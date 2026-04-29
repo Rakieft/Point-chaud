@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connexion | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body>
+    <main class="auth-shell">
+      <section class="container">
+        <div class="auth-card">
+          <span class="badge">Connexion</span>
+          <h1>Acceder a votre espace</h1>
+          <p class="muted">Clients, managers et admins se connectent depuis la meme interface.</p>
+          <div id="form-message" class="message-box"></div>
+
+          <form id="login-form" class="stack">
+            <label>Email <input name="email" type="email" required /></label>
+            <label>Mot de passe <input name="password" type="password" required /></label>
+            <button class="btn-primary" type="submit">Se connecter</button>
+          </form>
+
+          <p class="muted">Pas encore de compte ? <a href="./register.html">Inscris-toi</a>.</p>
+          <p class="muted">Comptes de demo: admin `admin123`, manager `manager123`.</p>
+        </div>
+      </section>
+    </main>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/auth.js"></script>
+  </body>
+</html>

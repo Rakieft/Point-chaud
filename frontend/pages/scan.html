@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scan manuel | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="./dashboard-admin.html">POINT CHAUD</a>
+        <nav class="nav-links">
+          <a href="./dashboard-admin.html">Retour au back office</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="auth-shell">
+      <section class="container">
+        <div class="auth-card">
+          <h1>Validation par token QR</h1>
+          <p class="muted">Si le scan n'est pas automatise, colle ici le token securise affiche dans le QR code.</p>
+          <div id="scan-message" class="message-box"></div>
+          <form id="scan-form" class="stack">
+            <label>Token QR <input id="qr-token" required /></label>
+            <button class="btn-primary" type="submit">Confirmer la recuperation</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <script src="../assets/js/api.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        requireAuth(["manager", "admin"]);
+        document.getElementById("scan-form").addEventListener("submit", async event => {
+          event.preventDefault();
+          try {
+            await apiRequest(`/orders/scan/${document.getElementById("qr-token").value}`, {
+              method: "POST"
+            });
+            showMessage("scan-message", "success", "Commande remise avec succes.");
+          } catch (error) {
+            showMessage("scan-message", "error", error.message);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

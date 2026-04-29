@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catalogue | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="./index.html">POINT CHAUD</a>
+        <nav class="nav-links">
+          <a href="./cart.html">Panier</a>
+          <a href="./login.html">Connexion</a>
+          <a href="./register.html">Inscription</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="container">
+        <div class="section-head">
+          <div>
+            <h1>Catalogue de produits</h1>
+            <p>Choisis tes produits, puis ajoute-les au panier pour passer commande.</p>
+          </div>
+          <a class="btn btn-primary" href="./cart.html">Voir le panier</a>
+        </div>
+
+        <div class="filters">
+          <input id="product-search" type="search" placeholder="Rechercher un produit" />
+          <select id="category-filter">
+            <option value="">Toutes les categories</option>
+          </select>
+        </div>
+
+        <div id="products-grid" class="catalog-grid"></div>
+      </section>
+    </main>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/cart.js"></script>
+    <script src="../assets/js/order.js"></script>
+  </body>
+</html>

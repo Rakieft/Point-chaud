@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Commande & Paiement | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="./dashboard-client.html">POINT CHAUD</a>
+        <nav class="nav-links">
+          <a href="./products.html">Produits</a>
+          <a href="./cart.html">Panier</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="container">
+        <div id="checkout-message" class="message-box"></div>
+        <div class="section-head">
+          <div>
+            <h1>Passer la commande</h1>
+            <p>Le paiement sera envoye uniquement apres validation du manager.</p>
+          </div>
+        </div>
+
+        <div class="checkout-grid">
+          <article class="panel">
+            <h3>Panier actuel</h3>
+            <div id="checkout-cart-preview"></div>
+          </article>
+
+          <article class="panel">
+            <form id="checkout-order-form" class="stack">
+              <label>
+                Point chaud
+                <select id="location_id" name="location_id" required></select>
+              </label>
+              <label>
+                Date de retrait
+                <input name="pickup_date" type="date" required />
+              </label>
+              <label>
+                Heure de retrait
+                <input name="pickup_time" type="time" required />
+              </label>
+              <label>
+                Notes
+                <textarea name="notes" placeholder="Ex: sans piment, recuperation pour 16h30"></textarea>
+              </label>
+              <button class="btn-primary" type="submit">Envoyer la commande</button>
+            </form>
+          </article>
+        </div>
+
+        <div class="section-head" style="margin-top: 32px">
+          <div>
+            <h2>Envoyer une preuve de paiement</h2>
+            <p>Utilise cette section quand une commande a deja ete validee.</p>
+          </div>
+        </div>
+
+        <div class="checkout-grid">
+          <article class="panel">
+            <h3>Comptes pour virement bancaire</h3>
+            <div id="bank-accounts"></div>
+          </article>
+
+          <article class="panel">
+            <div id="payment-message" class="message-box"></div>
+            <p>Commande cible: <strong id="order-id">Selectionnez une commande via le tableau de bord</strong></p>
+            <form id="payment-form" class="stack" enctype="multipart/form-data">
+              <label>
+                Methode de paiement
+                <select name="payment_method" required>
+                  <option value="moncash">MonCash</option>
+                  <option value="natcash">NatCash</option>
+                  <option value="bank_transfer">Virement bancaire</option>
+                </select>
+              </label>
+              <label>
+                Reference de transaction
+                <input name="transaction_reference" required />
+              </label>
+              <label>
+                Preuve de paiement
+                <input name="proof" type="file" accept=".png,.jpg,.jpeg,.pdf" required />
+              </label>
+              <button class="btn-primary" type="submit">Envoyer la preuve</button>
+            </form>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/order.js"></script>
+  </body>
+</html>

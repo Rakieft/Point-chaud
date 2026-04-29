@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Back Office | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="./index.html">POINT CHAUD</a>
+        <nav class="nav-links">
+          <a href="./scan.html">Zone de scan</a>
+          <button onclick="logout()">Deconnexion</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="container">
+        <div id="admin-message" class="message-box"></div>
+        <div class="section-head">
+          <div>
+            <h1>Back office de <span id="admin-name">gestion</span></h1>
+            <p>Validation des commandes, verification des paiements et remise des commandes.</p>
+          </div>
+        </div>
+
+        <div id="stats-grid" class="stats-grid"></div>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <h2>Commandes recues</h2>
+              <p>Les managers et admins traitent ici toutes les etapes du flux.</p>
+            </div>
+          </div>
+          <div id="manager-orders" class="stack"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/admin.js"></script>
+  </body>
+</html>

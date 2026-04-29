@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Espace Client | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="./index.html">POINT CHAUD</a>
+        <nav class="nav-links">
+          <a href="./products.html">Produits</a>
+          <a href="./cart.html">Panier</a>
+          <button onclick="logout()">Deconnexion</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="container">
+        <div id="dashboard-message" class="message-box"></div>
+        <div class="section-head">
+          <div>
+            <h1>Bienvenue, <span id="client-name">client</span></h1>
+            <p>Retrouve ton catalogue, tes notifications et l'etat de tes commandes.</p>
+          </div>
+          <div class="toolbar">
+            <a class="btn btn-primary" href="./products.html">Commander</a>
+            <a class="btn btn-light" href="./checkout.html">Finaliser une commande</a>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel">
+            <h2>Catalogue rapide</h2>
+            <div class="filters">
+              <input id="product-search" type="search" placeholder="Chercher" />
+              <select id="category-filter">
+                <option value="">Toutes les categories</option>
+              </select>
+            </div>
+            <div id="products-grid" class="catalog-grid"></div>
+          </article>
+
+          <article class="panel">
+            <h2>Notifications</h2>
+            <div id="notifications-list"></div>
+          </article>
+        </div>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <h2>Mes commandes</h2>
+              <p>Statuts, preuve de paiement et QR code apparaissent ici.</p>
+            </div>
+          </div>
+          <div id="orders-list" class="stack"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/cart.js"></script>
+    <script src="../assets/js/order.js"></script>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panier | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="./index.html">POINT CHAUD</a>
+        <nav class="nav-links">
+          <a href="./products.html">Produits</a>
+          <a href="./checkout.html">Commander</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="container">
+        <div class="section-head">
+          <div>
+            <h1>Panier</h1>
+            <p>Verifie les quantites avant de choisir ton point de retrait.</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <article class="cart-card">
+            <div id="cart-items"></div>
+          </article>
+
+          <article class="cart-card">
+            <h3>Resume</h3>
+            <p>Total</p>
+            <div class="price" id="cart-total">0 HTG</div>
+            <div class="summary-actions">
+              <a class="btn btn-primary" href="./checkout.html">Continuer vers la commande</a>
+              <a class="btn btn-light" href="./products.html">Ajouter d'autres produits</a>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/cart.js"></script>
+  </body>
+</html>
