@@ -3,45 +3,102 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Back Office | Point Chaud</title>
+    <title>Dashboard Staff | Point Chaud</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
-  <body>
-    <header class="topbar">
-      <div class="container topbar-inner">
-        <a class="brand" href="./index.html">POINT CHAUD</a>
-        <nav class="nav-links">
-          <a href="./scan.html">Zone de scan</a>
-          <button onclick="logout()">Deconnexion</button>
-        </nav>
-      </div>
-    </header>
-
-    <main class="page-shell">
-      <section class="container">
-        <div id="admin-message" class="message-box"></div>
-        <div class="section-head">
+  <body class="admin-body">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-logo-block">
+          <div class="admin-logo-mark">PC</div>
           <div>
-            <h1>Back office de <span id="admin-name">gestion</span></h1>
-            <p>Validation des commandes, verification des paiements et remise des commandes.</p>
+            <strong>Point Chaud</strong>
+            <p>Gestion des ventes</p>
           </div>
         </div>
 
-        <div id="stats-grid" class="stats-grid"></div>
+        <nav class="admin-nav">
+          <a class="active" href="./dashboard-admin.html">Dashboard</a>
+          <a href="./products.html">Produits</a>
+          <a href="./orders-pending.html">Commandes</a>
+          <a href="./deliveries.html">Livraisons</a>
+          <a href="./scan-orders.html">Scan</a>
+          <a href="./cashier.html">Caisse</a>
+          <a href="./staff-profile.html">Utilisateurs</a>
+          <a href="./orders-pending.html#payments-section">Paiements</a>
+          <a href="./reports.html">Rapports</a>
+          <a class="admin-only" href="./analytics.html">Analyse Data</a>
+          <button onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
 
-        <section class="section">
-          <div class="section-head">
-            <div>
-              <h2>Commandes recues</h2>
-              <p>Les managers et admins traitent ici toutes les etapes du flux.</p>
+      <main class="admin-main">
+        <header class="admin-header">
+          <div>
+            <p class="admin-eyebrow">Vue d'ensemble</p>
+            <h1>Dashboard Point Chaud</h1>
+          </div>
+
+          <div class="admin-header-tools">
+            <button class="admin-icon-btn" type="button">
+              Notification
+              <span id="header-notification-count" class="admin-notification-count">0</span>
+            </button>
+            <div class="admin-user-chip">
+              <div id="admin-avatar" class="admin-avatar">A</div>
+              <div>
+                <strong id="admin-name">Admin</strong>
+                <small id="admin-role-label">Staff</small>
+              </div>
             </div>
           </div>
-          <div id="manager-orders" class="stack"></div>
+        </header>
+
+        <section class="admin-content">
+          <div id="admin-message" class="message-box"></div>
+
+          <section class="admin-hero">
+            <div>
+              <span class="badge admin-badge">Back office moderne</span>
+              <h2 id="welcome-title">Pilote ton point de vente sans surcharger l'ecran principal.</h2>
+              <p id="welcome-subtitle">
+                Utilise les pages dediees pour gerer les commandes, les paiements, les profils staff et les rapports.
+              </p>
+            </div>
+            <div class="admin-hero-panel">
+              <small>Succursale</small>
+              <strong id="admin-location-label">Toutes les succursales</strong>
+              <p id="admin-location-copy">Vue consolidee des commandes, du stock et des ventes.</p>
+            </div>
+          </section>
+
+          <section id="stats-grid" class="admin-stats-grid"></section>
+
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Acces rapide</p>
+                <h2>Actions essentielles</h2>
+              </div>
+            </div>
+            <div id="quick-links-grid" class="admin-quick-links"></div>
+          </section>
+
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Alertes</p>
+                <h2>Priorites du moment</h2>
+              </div>
+            </div>
+            <div id="alerts-list" class="stack"></div>
+          </section>
         </section>
-      </section>
-    </main>
+      </main>
+    </div>
 
     <script src="../assets/js/api.js"></script>
-    <script src="../assets/js/admin.js"></script>
+    <script src="../assets/js/backoffice-common.js"></script>
+    <script src="../assets/js/dashboard-home.js"></script>
   </body>
 </html>

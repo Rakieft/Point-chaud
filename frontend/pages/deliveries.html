@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Livraisons | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="admin-body">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-logo-block">
+          <div class="admin-logo-mark">PC</div>
+          <div>
+            <strong>Point Chaud</strong>
+            <p>Gestion des livraisons</p>
+          </div>
+        </div>
+        <nav class="admin-nav">
+          <a class="driver-hidden" href="./dashboard-admin.html">Dashboard</a>
+          <a class="driver-hidden" href="./products.html">Produits</a>
+          <a class="driver-hidden" href="./orders-pending.html">Commandes</a>
+          <a class="active" href="./deliveries.html">Livraisons</a>
+          <a class="driver-hidden" href="./scan-orders.html">Scan</a>
+          <a class="driver-hidden" href="./cashier.html">Caisse</a>
+          <a class="driver-hidden" href="./staff-profile.html">Utilisateurs</a>
+          <a class="driver-hidden" href="./orders-pending.html#payments-section">Paiements</a>
+          <a class="driver-hidden" href="./reports.html">Rapports</a>
+          <a class="admin-only" href="./analytics.html">Analyse Data</a>
+          <button onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
+
+      <main class="admin-main">
+        <header class="admin-header">
+          <div>
+            <p class="admin-eyebrow">Livraisons</p>
+            <h1 id="deliveries-page-title">Suivi des commandes en livraison</h1>
+          </div>
+          <div class="admin-user-chip">
+            <div id="admin-avatar" class="admin-avatar">A</div>
+            <div>
+              <strong id="admin-name">Staff</strong>
+              <small id="admin-role-label">Manager</small>
+            </div>
+          </div>
+        </header>
+
+        <section class="admin-content">
+          <div id="deliveries-message" class="message-box"></div>
+          <section id="deliveries-stats" class="admin-stats-grid"></section>
+
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Livraisons actives</p>
+                <h2>A affecter, en route ou a confirmer</h2>
+              </div>
+            </div>
+            <div id="deliveries-active-list" class="admin-payment-grid"></div>
+          </section>
+
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Archives livraison</p>
+                <h2>Commandes deja livrees</h2>
+              </div>
+            </div>
+            <div id="deliveries-archive-list" class="admin-payment-grid"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/backoffice-common.js"></script>
+    <script src="../assets/js/deliveries.js"></script>
+  </body>
+</html>

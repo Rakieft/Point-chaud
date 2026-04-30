@@ -6,6 +6,13 @@ exports.validateOrderPayload = payload => {
     };
   }
 
+  if (payload.order_type === "delivery" && !payload.delivery_address) {
+    return {
+      isValid: false,
+      message: "L'adresse de livraison est obligatoire pour une commande en livraison"
+    };
+  }
+
   if (!Array.isArray(payload.items) || !payload.items.length) {
     return {
       isValid: false,

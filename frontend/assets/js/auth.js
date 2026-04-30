@@ -38,7 +38,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         saveSession(data);
         const nextPage =
-          data.user.role === "client" ? "../pages/dashboard-client.html" : "../pages/dashboard-admin.html";
+          data.user.role === "client"
+            ? "../pages/dashboard-client.html"
+            : data.user.role === "driver"
+              ? "../pages/deliveries.html"
+              : "../pages/dashboard-admin.html";
         window.location.href = nextPage;
       } catch (error) {
         showMessage("form-message", "error", error.message);

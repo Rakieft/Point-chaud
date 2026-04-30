@@ -6,64 +6,123 @@
     <title>Espace Client | Point Chaud</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
-  <body>
-    <header class="topbar">
-      <div class="container topbar-inner">
-        <a class="brand" href="./index.html">POINT CHAUD</a>
-        <nav class="nav-links">
-          <a href="./products.html">Produits</a>
-          <a href="./cart.html">Panier</a>
-          <button onclick="logout()">Deconnexion</button>
-        </nav>
-      </div>
-    </header>
-
-    <main class="page-shell">
-      <section class="container">
-        <div id="dashboard-message" class="message-box"></div>
-        <div class="section-head">
+  <body class="client-body" data-client-page="home">
+    <div id="client-sidebar-overlay" class="client-sidebar-overlay"></div>
+    <div class="client-layout">
+      <aside id="client-sidebar" class="client-sidebar">
+        <div class="client-sidebar-head">
+          <div class="client-logo-mark">PC</div>
           <div>
-            <h1>Bienvenue, <span id="client-name">client</span></h1>
-            <p>Retrouve ton catalogue, tes notifications et l'etat de tes commandes.</p>
+            <strong>Point Chaud</strong>
+            <p>Commande & recuperation</p>
           </div>
-          <div class="toolbar">
-            <a class="btn btn-primary" href="./products.html">Commander</a>
-            <a class="btn btn-light" href="./checkout.html">Finaliser une commande</a>
+          <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
+        </div>
+
+        <div class="client-sidebar-user">
+          <div data-client-avatar class="client-profile-avatar">CL</div>
+          <div class="stack-sm">
+            <strong data-client-name>Client</strong>
+            <small data-client-email>email</small>
           </div>
         </div>
 
-        <div class="dashboard-grid">
-          <article class="panel">
-            <h2>Catalogue rapide</h2>
-            <div class="filters">
-              <input id="product-search" type="search" placeholder="Chercher" />
-              <select id="category-filter">
-                <option value="">Toutes les categories</option>
-              </select>
-            </div>
-            <div id="products-grid" class="catalog-grid"></div>
-          </article>
+        <nav class="client-sidebar-nav">
+          <a class="active" href="./dashboard-client.html">Accueil</a>
+          <a href="./client-products.html">catalogue</a>
+          <a href="./client-cart.html">Panier</a>
+          <a href="./client-orders.html">Mes commandes</a>
+          <a href="./client-profile.html">Profil</a>
+          <button type="button" onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
 
-          <article class="panel">
-            <h2>Notifications</h2>
-            <div id="notifications-list"></div>
-          </article>
-        </div>
-
-        <section class="section">
-          <div class="section-head">
+      <main class="client-main">
+        <header class="client-topbar">
+          <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
+          <div>
+            <p class="admin-eyebrow">Accueil</p>
+            <h1>Bienvenue, <span data-client-name>client</span></h1>
+          </div>
+          <div class="client-topbar-user">
+            <div data-client-avatar class="client-topbar-avatar">CL</div>
             <div>
-              <h2>Mes commandes</h2>
-              <p>Statuts, preuve de paiement et QR code apparaissent ici.</p>
+              <strong data-client-name>Client</strong>
+              <small data-client-phone>Telephone non renseigne</small>
             </div>
           </div>
-          <div id="orders-list" class="stack"></div>
+        </header>
+
+        <section class="client-main-content">
+          <div id="dashboard-message" class="message-box"></div>
+
+          <section class="client-hero">
+            <div class="client-hero-copy">
+              <span class="badge client-badge">Dashboard client</span>
+              <h2>Bienvenue, <span id="client-name">client</span></h2>
+              <p>
+                Suis facilement tes commandes, paie uniquement apres validation et retrouve ton QR code des
+                que la commande est prete.
+              </p>
+              <div class="hero-actions">
+                <a class="btn btn-primary" href="./client-products.html">Voir les produits</a>
+                <a class="btn btn-light" href="./checkout.html">Passer une commande</a>
+              </div>
+            </div>
+            <div class="client-hero-panel">
+              <small>Parcours de commande</small>
+              <ol class="client-timeline">
+                <li>Commande envoyee</li>
+                <li>Validation manager</li>
+                <li>Paiement du client</li>
+                <li>Confirmation du paiement</li>
+                <li>QR code et recuperation</li>
+              </ol>
+            </div>
+          </section>
+
+          <section id="client-stats-grid" class="client-stats-grid"></section>
+
+          <div class="dashboard-grid client-dashboard-grid">
+            <article class="panel client-panel">
+              <div class="section-head">
+                <div>
+                  <h2>Actions rapides</h2>
+                  <p>Acces simple aux pages importantes.</p>
+                </div>
+              </div>
+              <div class="client-helper-list">
+                <a class="client-helper-item" href="./client-products.html">
+                  <strong>Commander des produits</strong>
+                  <p>Parcours le catalogue et ajoute des articles au panier.</p>
+                </a>
+                <a class="client-helper-item" href="./client-orders.html">
+                  <strong>Suivre mes commandes</strong>
+                  <p>Consulte le statut, le paiement et le QR code de recuperation.</p>
+                </a>
+                <a class="client-helper-item" href="./client-profile.html">
+                  <strong>Voir mon profil</strong>
+                  <p>Retrouve rapidement tes informations et les consignes importantes.</p>
+                </a>
+              </div>
+            </article>
+
+            <article class="panel client-panel">
+              <div class="section-head">
+                <div>
+                  <h2>Notifications</h2>
+                  <p>Messages utiles lies a tes commandes.</p>
+                </div>
+              </div>
+              <div id="notifications-list"></div>
+            </article>
+          </div>
         </section>
-      </section>
-    </main>
+      </main>
+    </div>
 
     <script src="../assets/js/api.js"></script>
-    <script src="../assets/js/cart.js"></script>
+    <script src="../assets/js/client-shell.js"></script>
     <script src="../assets/js/order.js"></script>
   </body>
 </html>

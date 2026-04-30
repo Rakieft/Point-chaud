@@ -4,6 +4,8 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "migrate": "node scripts/migrate-db.js",
+    "smoke": "node scripts/smoke-test.js",
     "dev": "nodemon server.js",
     "start": "node server.js"
   },
@@ -19,6 +21,7 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.1.1",
     "mysql2": "^3.22.3",
+    "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {

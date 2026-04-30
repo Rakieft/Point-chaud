@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Produits Client | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="client-body" data-client-page="products">
+    <div id="client-sidebar-overlay" class="client-sidebar-overlay"></div>
+    <div class="client-layout">
+      <aside id="client-sidebar" class="client-sidebar">
+        <div class="client-sidebar-head">
+          <div class="client-logo-mark">PC</div>
+          <div>
+            <strong>Point Chaud</strong>
+            <p>Commande & recuperation</p>
+          </div>
+          <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
+        </div>
+
+        <div class="client-sidebar-user">
+          <div data-client-avatar class="client-profile-avatar">CL</div>
+          <div class="stack-sm">
+            <strong data-client-name>Client</strong>
+            <small data-client-email>email</small>
+          </div>
+        </div>
+
+        <nav class="client-sidebar-nav">
+          <a href="./dashboard-client.html">Accueil</a>
+          <a class="active" href="./client-products.html">Produits</a>
+          <a href="./client-cart.html">Panier</a>
+          <a href="./client-orders.html">Mes commandes</a>
+          <a href="./client-profile.html">Profil</a>
+          <button type="button" onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
+
+      <main class="client-main">
+        <header class="client-topbar">
+          <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
+          <div>
+            <p class="admin-eyebrow">Produits</p>
+            <h1>Catalogue Point Chaud</h1>
+          </div>
+          <div class="client-topbar-user">
+            <div data-client-avatar class="client-topbar-avatar">CL</div>
+            <div>
+              <strong data-client-name>Client</strong>
+              <small data-client-phone>Telephone non renseigne</small>
+            </div>
+          </div>
+        </header>
+
+        <section class="client-main-content">
+          <div class="section-head">
+            <div>
+              <h2>Choisir des produits</h2>
+              <p>Recherche rapide, categories et ajout direct au panier.</p>
+            </div>
+            <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
+          </div>
+
+          <div class="panel client-panel">
+            <div class="filters">
+              <input id="product-search" type="search" placeholder="Rechercher un produit" />
+              <select id="category-filter">
+                <option value="">Toutes les categories</option>
+              </select>
+            </div>
+            <div id="products-grid" class="catalog-grid"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/cart.js"></script>
+    <script src="../assets/js/client-shell.js"></script>
+    <script src="../assets/js/order.js"></script>
+  </body>
+</html>

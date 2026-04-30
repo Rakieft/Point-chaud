@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scan Commandes | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="admin-body">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-logo-block">
+          <div class="admin-logo-mark">PC</div>
+          <div>
+            <strong>Point Chaud</strong>
+            <p>Validation des retraits</p>
+          </div>
+        </div>
+        <nav class="admin-nav">
+          <a href="./dashboard-admin.html">Dashboard</a>
+          <a href="./products.html">Produits</a>
+          <a href="./orders-pending.html">Commandes</a>
+          <a href="./deliveries.html">Livraisons</a>
+          <a class="active" href="./scan-orders.html">Scan</a>
+          <a href="./cashier.html">Caisse</a>
+          <a href="./staff-profile.html">Utilisateurs</a>
+          <a href="./reports.html">Rapports</a>
+          <a class="admin-only" href="./analytics.html">Analyse Data</a>
+          <button onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
+
+      <main class="admin-main">
+        <header class="admin-header">
+          <div>
+            <p class="admin-eyebrow">Scan & retrait</p>
+            <h1>Valider la remise des commandes</h1>
+          </div>
+          <div class="admin-user-chip">
+            <div id="admin-avatar" class="admin-avatar">A</div>
+            <div>
+              <strong id="admin-name">Staff</strong>
+              <small id="admin-role-label">Manager</small>
+            </div>
+          </div>
+        </header>
+
+        <section class="admin-content">
+          <div id="scan-message" class="message-box"></div>
+
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Camera QR</p>
+                <h2>Scanner avec la camera</h2>
+              </div>
+            </div>
+            <div class="scan-camera-grid">
+              <div class="scan-camera-stage">
+                <video id="qr-video" class="scan-video" autoplay playsinline muted></video>
+                <div class="scan-video-overlay">
+                  <div class="scan-frame"></div>
+                </div>
+              </div>
+              <div class="stack">
+                <p class="muted">
+                  Utilise la camera du telephone, de la tablette ou du PC pour lire le QR code. Une douchette USB peut aussi etre utilisee en collant le token dans le champ manuel.
+                </p>
+                <div class="admin-action-group">
+                  <button id="start-camera-scan" class="btn-primary" type="button">Demarrer la camera</button>
+                  <button id="stop-camera-scan" class="btn-light" type="button">Arreter</button>
+                </div>
+                <small id="camera-status" class="muted">La camera n'est pas encore activee.</small>
+              </div>
+            </div>
+          </section>
+
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Scan manuel</p>
+                <h2>Scanner ou coller un token QR</h2>
+              </div>
+            </div>
+            <form id="scan-form" class="admin-staff-form">
+              <label class="admin-form-span">
+                Token QR
+                <input id="scan-token-input" name="token" placeholder="Coller ici le token securise de la commande" required />
+              </label>
+              <div class="card-actions admin-form-span">
+                <button class="btn-primary" type="submit">Valider le retrait</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Commandes prêtes</p>
+                <h2>Retraits QR disponibles</h2>
+              </div>
+            </div>
+            <div id="scan-ready-list" class="admin-payment-grid"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="order-detail-modal" class="admin-modal hidden">
+      <div class="admin-modal-backdrop" onclick="closeOrderDetail()"></div>
+      <div class="admin-modal-card">
+        <div class="admin-modal-head">
+          <div>
+            <p class="admin-eyebrow">Detail commande</p>
+            <h3 id="modal-order-title">Commande</h3>
+          </div>
+          <button class="admin-icon-btn" type="button" onclick="closeOrderDetail()">Fermer</button>
+        </div>
+        <div id="order-detail-content" class="admin-modal-content"></div>
+      </div>
+    </div>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/backoffice-common.js"></script>
+    <script src="../assets/vendor/qr-scanner.umd.min.js"></script>
+    <script src="../assets/js/scan-orders.js"></script>
+  </body>
+</html>

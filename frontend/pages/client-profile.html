@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profil Client | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="client-body" data-client-page="profile">
+    <div id="client-sidebar-overlay" class="client-sidebar-overlay"></div>
+    <div class="client-layout">
+      <aside id="client-sidebar" class="client-sidebar">
+        <div class="client-sidebar-head">
+          <div class="client-logo-mark">PC</div>
+          <div>
+            <strong>Point Chaud</strong>
+            <p>Commande & recuperation</p>
+          </div>
+          <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
+        </div>
+
+        <div class="client-sidebar-user">
+          <div data-client-avatar class="client-profile-avatar">CL</div>
+          <div class="stack-sm">
+            <strong data-client-name>Client</strong>
+            <small data-client-email>email</small>
+          </div>
+        </div>
+
+        <nav class="client-sidebar-nav">
+          <a href="./dashboard-client.html">Accueil</a>
+          <a href="./client-products.html">Produits</a>
+          <a href="./client-cart.html">Panier</a>
+          <a href="./client-orders.html">Mes commandes</a>
+          <a class="active" href="./client-profile.html">Profil</a>
+          <button type="button" onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
+
+      <main class="client-main">
+        <header class="client-topbar">
+          <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
+          <div>
+            <p class="admin-eyebrow">Profil</p>
+            <h1>Mon espace client</h1>
+          </div>
+          <div class="client-topbar-user">
+            <div data-client-avatar class="client-topbar-avatar">CL</div>
+            <div>
+              <strong data-client-name>Client</strong>
+              <small data-client-phone>Telephone non renseigne</small>
+            </div>
+          </div>
+        </header>
+
+        <section class="client-main-content">
+          <div id="profile-message" class="message-box"></div>
+          <div class="dashboard-grid client-dashboard-grid">
+            <article class="panel client-panel">
+              <div class="section-head">
+                <div>
+                  <h2>Mes informations</h2>
+                  <p>Modifie ton nom, ton telephone et tes informations personnelles.</p>
+                </div>
+              </div>
+              <div class="client-profile-card">
+                <div data-client-avatar class="client-profile-avatar">CL</div>
+                <div class="stack-sm">
+                  <strong data-client-name>Client</strong>
+                  <span data-client-email class="muted">email</span>
+                  <span data-client-phone class="muted">Telephone non renseigne</span>
+                </div>
+              </div>
+
+              <form id="client-profile-form" class="admin-staff-form">
+                <label>Nom complet <input name="name" required /></label>
+                <label>Email <input name="email" type="email" required /></label>
+                <label>Telephone <input name="phone" /></label>
+                <label>Avatar URL <input name="avatar_url" /></label>
+                <label>Mot de passe <input name="password" type="password" placeholder="Laisser vide pour ne pas changer" /></label>
+                <label class="admin-form-span">Biographie <textarea name="bio"></textarea></label>
+                <div class="card-actions admin-form-span">
+                  <button class="btn-primary" type="submit">Mettre a jour mon profil</button>
+                </div>
+              </form>
+            </article>
+
+            <div class="client-side-stack">
+              <article class="panel client-panel">
+                <h3>Guide rapide</h3>
+                <div class="client-helper-list">
+                  <div class="client-helper-item">
+                    <strong>Validation</strong>
+                    <p>Le manager doit d'abord valider la commande avant tout paiement.</p>
+                  </div>
+                  <div class="client-helper-item">
+                    <strong>Preuve de paiement</strong>
+                    <p>Envoye une capture lisible ou un fichier clair pour eviter les retards.</p>
+                  </div>
+                  <div class="client-helper-item">
+                    <strong>Recuperation</strong>
+                    <p>Le QR code apparait uniquement apres confirmation du paiement.</p>
+                  </div>
+                </div>
+              </article>
+
+              <article class="panel client-panel">
+                <h3>Navigation rapide</h3>
+                <div class="card-actions">
+                  <a class="btn btn-primary" href="./client-orders.html">Voir mes commandes</a>
+                  <a class="btn btn-light" href="./client-products.html">Commander</a>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/client-shell.js"></script>
+    <script src="../assets/js/order.js"></script>
+  </body>
+</html>

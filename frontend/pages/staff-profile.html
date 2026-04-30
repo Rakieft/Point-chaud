@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profil & Staff | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="admin-body">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-logo-block">
+          <div class="admin-logo-mark">PC</div>
+          <div>
+            <strong>Point Chaud</strong>
+            <p>Gestion des ventes</p>
+          </div>
+        </div>
+        <nav class="admin-nav">
+          <a href="./dashboard-admin.html">Dashboard</a>
+          <a href="./products.html">Produits</a>
+          <a href="./orders-pending.html">Commandes</a>
+          <a href="./deliveries.html">Livraisons</a>
+          <a href="./scan-orders.html">Scan</a>
+          <a href="./cashier.html">Caisse</a>
+          <a class="active" href="./staff-profile.html">Utilisateurs</a>
+          <a href="./orders-pending.html#payments-section">Paiements</a>
+          <a href="./reports.html">Rapports</a>
+          <a class="admin-only" href="./analytics.html">Analyse Data</a>
+          <button onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
+
+      <main class="admin-main">
+        <header class="admin-header">
+          <div>
+            <p class="admin-eyebrow">Profil staff</p>
+            <h1>Profil, promotions et gestion des managers</h1>
+          </div>
+          <div class="admin-user-chip">
+            <div id="admin-avatar" class="admin-avatar">A</div>
+            <div>
+              <strong id="admin-name">Staff</strong>
+              <small id="admin-role-label">Manager</small>
+            </div>
+          </div>
+        </header>
+
+        <section class="admin-content">
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Mon profil</p>
+                <h2>Modifier mes informations</h2>
+              </div>
+            </div>
+            <div id="profile-message" class="message-box"></div>
+            <form id="profile-form" class="admin-staff-form">
+              <label>Nom complet <input name="name" required /></label>
+              <label>Telephone <input name="phone" /></label>
+              <label>Poste <input name="title" /></label>
+              <label>Avatar URL <input name="avatar_url" /></label>
+              <label class="admin-form-span">Biographie <textarea name="bio"></textarea></label>
+              <label class="admin-form-span">Nouveau mot de passe <input name="password" type="password" placeholder="Laisser vide pour ne pas changer" /></label>
+              <div class="card-actions admin-form-span">
+                <button class="btn-primary" type="submit">Mettre a jour le profil</button>
+              </div>
+            </form>
+          </section>
+
+          <section id="admin-only-staff-section" class="admin-panel admin-only" style="display:none;">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Gestion du staff</p>
+                <h2>Creer, promouvoir ou desactiver des managers</h2>
+              </div>
+            </div>
+            <div id="staff-message" class="message-box"></div>
+            <form id="staff-form" class="admin-staff-form">
+              <label>Nom complet <input name="name" required /></label>
+              <label>Email <input name="email" type="email" required /></label>
+              <label>Telephone <input name="phone" /></label>
+              <label>
+                Role
+                <select name="role" required>
+                  <option value="manager">Manager</option>
+                  <option value="driver">Livreur</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+              <label>
+                Succursale
+                <select name="assigned_location_id" id="staff-location-select">
+                  <option value="">Aucune</option>
+                </select>
+              </label>
+              <label>Poste <input name="title" /></label>
+              <label class="admin-form-span">Biographie <textarea name="bio"></textarea></label>
+              <label class="admin-form-span">Mot de passe provisoire <input name="password" type="text" required /></label>
+              <div class="card-actions admin-form-span">
+                <button class="btn-primary" type="submit">Creer le compte</button>
+              </div>
+            </form>
+
+            <div class="admin-table-wrap" style="margin-top:20px;">
+              <table class="admin-orders-table">
+                <thead>
+                  <tr>
+                    <th>Nom</th>
+                    <th>Role</th>
+                    <th>Succursale</th>
+                    <th>Etat</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="staff-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="staff-edit-modal" class="admin-modal hidden">
+      <div class="admin-modal-backdrop" onclick="closeStaffEdit()"></div>
+      <div class="admin-modal-card">
+        <div class="admin-modal-head">
+          <div>
+            <p class="admin-eyebrow">Modifier un membre</p>
+            <h3 id="staff-edit-title">Mettre a jour le profil staff</h3>
+          </div>
+          <button class="admin-icon-btn" type="button" onclick="closeStaffEdit()">Fermer</button>
+        </div>
+
+        <div id="staff-edit-message" class="message-box"></div>
+
+        <form id="staff-edit-form" class="admin-staff-form">
+          <input type="hidden" name="staff_id" />
+          <label>Nom complet <input name="name" required /></label>
+          <label>Telephone <input name="phone" /></label>
+          <label>Poste <input name="title" /></label>
+          <label>Avatar URL <input name="avatar_url" /></label>
+          <label class="admin-form-span">Biographie <textarea name="bio"></textarea></label>
+          <div class="card-actions admin-form-span">
+            <button class="btn-primary" type="submit">Enregistrer les modifications</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/backoffice-common.js"></script>
+    <script src="../assets/js/staff-profile.js"></script>
+  </body>
+</html>

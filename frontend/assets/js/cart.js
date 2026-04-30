@@ -38,6 +38,10 @@ function updateCartQuantity(productId, quantity) {
 }
 
 function renderCartPage() {
+  if (document.body.classList.contains("client-body")) {
+    initClientShell?.();
+  }
+
   const list = document.getElementById("cart-items");
   const totalEl = document.getElementById("cart-total");
 

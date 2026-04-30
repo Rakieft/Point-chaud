@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analyse Data | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="admin-body analytics-body">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-logo-block">
+          <div class="admin-logo-mark">PC</div>
+          <div>
+            <strong>Point Chaud</strong>
+            <p>Analyse des ventes</p>
+          </div>
+        </div>
+        <nav class="admin-nav">
+          <a href="./dashboard-admin.html">Dashboard</a>
+          <a href="./products.html">Produits</a>
+          <a href="./orders-pending.html">Commandes</a>
+          <a href="./deliveries.html">Livraisons</a>
+          <a href="./scan-orders.html">Scan</a>
+          <a href="./cashier.html">Caisse</a>
+          <a href="./staff-profile.html">Utilisateurs</a>
+          <a href="./orders-pending.html#payments-section">Paiements</a>
+          <a href="./reports.html">Rapports</a>
+          <a class="active admin-only" href="./analytics.html">Analyse Data</a>
+          <button onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
+
+      <main class="admin-main">
+        <header class="admin-header">
+          <div>
+            <p class="admin-eyebrow">Analyse Data</p>
+            <h1>Progression des ventes sur 30 jours</h1>
+          </div>
+          <div class="admin-user-chip">
+            <div id="admin-avatar" class="admin-avatar">A</div>
+            <div>
+              <strong id="admin-name">Admin</strong>
+              <small id="admin-role-label">Administrateur</small>
+            </div>
+          </div>
+        </header>
+
+        <section class="admin-content">
+          <div id="analytics-message" class="message-box"></div>
+
+          <section class="analytics-hero">
+            <div class="analytics-hero-copy">
+              <span class="badge admin-badge">Lecture mensuelle glissante</span>
+              <h2 id="analytics-window-title">Analyse consolidée du réseau Point Chaud</h2>
+              <p id="analytics-window-copy">
+                Les revenus sont calculés sur une fenêtre glissante de 30 jours. La lecture se renouvelle automatiquement au fil du temps, sans action manuelle.
+              </p>
+              <div id="analytics-summary-cards" class="analytics-summary-cards"></div>
+            </div>
+
+            <section class="admin-panel analytics-circle-panel">
+              <div class="analytics-circle-wrap">
+                <div id="analytics-donut" class="analytics-donut">
+                  <div class="analytics-donut-core">
+                    <small>Revenus 30 j</small>
+                    <strong id="analytics-total-revenue">0 HTG</strong>
+                    <span id="analytics-refresh-note">Actualisation live</span>
+                  </div>
+                </div>
+              </div>
+              <div id="analytics-legend" class="analytics-legend"></div>
+            </section>
+          </section>
+
+          <section class="analytics-grid">
+            <section class="admin-panel">
+              <div class="admin-section-head">
+                <div>
+                  <p class="admin-eyebrow">Communauté</p>
+                  <h2>Utilisateurs et inscriptions</h2>
+                </div>
+              </div>
+              <div id="analytics-user-stats" class="admin-stats-grid"></div>
+            </section>
+
+            <section class="admin-panel">
+              <div class="admin-section-head">
+                <div>
+                  <p class="admin-eyebrow">Succursales</p>
+                  <h2>Performance par point chaud</h2>
+                </div>
+              </div>
+              <div id="analytics-location-cards" class="analytics-location-cards"></div>
+            </section>
+          </section>
+
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Lecture stratégique</p>
+                <h2>Indicateurs utiles pour piloter le réseau</h2>
+              </div>
+            </div>
+            <div id="analytics-insights" class="analytics-insights-grid"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/backoffice-common.js"></script>
+    <script src="../assets/js/analytics.js"></script>
+  </body>
+</html>

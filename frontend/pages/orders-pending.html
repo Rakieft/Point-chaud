@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Commandes a traiter | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="admin-body" data-orders-group="pending">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-logo-block">
+          <div class="admin-logo-mark">PC</div>
+          <div>
+            <strong>Point Chaud</strong>
+            <p>Gestion des ventes</p>
+          </div>
+        </div>
+        <nav class="admin-nav">
+          <a href="./dashboard-admin.html">Dashboard</a>
+          <a href="./products.html">Produits</a>
+          <a class="active" href="./orders-pending.html">Commandes</a>
+          <a href="./deliveries.html">Livraisons</a>
+          <a href="./scan-orders.html">Scan</a>
+          <a href="./cashier.html">Caisse</a>
+          <a href="./staff-profile.html">Utilisateurs</a>
+          <a href="#payments-section">Paiements</a>
+          <a href="./reports.html">Rapports</a>
+          <a class="admin-only" href="./analytics.html">Analyse Data</a>
+          <button onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
+
+      <main class="admin-main">
+        <header class="admin-header">
+          <div>
+            <p class="admin-eyebrow">Commandes a traiter</p>
+            <h1>Validation et ajustements</h1>
+          </div>
+          <div class="admin-user-chip">
+            <div id="admin-avatar" class="admin-avatar">A</div>
+            <div>
+              <strong id="admin-name">Staff</strong>
+              <small id="admin-role-label">Manager</small>
+            </div>
+          </div>
+        </header>
+
+        <section class="admin-content">
+          <div id="orders-message" class="message-box"></div>
+
+          <div class="admin-page-tabs">
+            <a class="active" href="./orders-pending.html">A traiter</a>
+            <a href="./orders-validated.html">Validees & archivees</a>
+          </div>
+
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Commandes en attente</p>
+                <h2>Commandes a valider ou a ajuster</h2>
+              </div>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-orders-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Client</th>
+                    <th>Point chaud</th>
+                    <th>Retrait</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="orders-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="payments-section" class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Paiements</p>
+                <h2>Preuves a confirmer</h2>
+              </div>
+            </div>
+            <div id="payments-review-list" class="admin-payment-grid"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="order-detail-modal" class="admin-modal hidden">
+      <div class="admin-modal-backdrop" onclick="closeOrderDetail()"></div>
+      <div class="admin-modal-card">
+        <div class="admin-modal-head">
+          <div>
+            <p class="admin-eyebrow">Detail commande</p>
+            <h3 id="modal-order-title">Commande</h3>
+          </div>
+          <button class="admin-icon-btn" type="button" onclick="closeOrderDetail()">Fermer</button>
+        </div>
+        <div id="order-detail-content" class="admin-modal-content"></div>
+      </div>
+    </div>
+
+    <div id="order-edit-modal" class="admin-modal hidden">
+      <div class="admin-modal-backdrop" onclick="closeOrderEdit()"></div>
+      <div class="admin-modal-card">
+        <div class="admin-modal-head">
+          <div>
+            <p class="admin-eyebrow">Ajuster commande</p>
+            <h3 id="edit-modal-title">Modifier la commande</h3>
+          </div>
+          <button class="admin-icon-btn" type="button" onclick="closeOrderEdit()">Fermer</button>
+        </div>
+        <div id="edit-order-message" class="message-box"></div>
+        <form id="order-edit-form" class="stack"></form>
+      </div>
+    </div>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/backoffice-common.js"></script>
+    <script src="../assets/js/orders-backoffice.js"></script>
+  </body>
+</html>

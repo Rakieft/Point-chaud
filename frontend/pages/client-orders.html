@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mes Commandes | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="client-body" data-client-page="orders">
+    <div id="client-sidebar-overlay" class="client-sidebar-overlay"></div>
+    <div class="client-layout">
+      <aside id="client-sidebar" class="client-sidebar">
+        <div class="client-sidebar-head">
+          <div class="client-logo-mark">PC</div>
+          <div>
+            <strong>Point Chaud</strong>
+            <p>Commande & recuperation</p>
+          </div>
+          <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
+        </div>
+
+        <div class="client-sidebar-user">
+          <div data-client-avatar class="client-profile-avatar">CL</div>
+          <div class="stack-sm">
+            <strong data-client-name>Client</strong>
+            <small data-client-email>email</small>
+          </div>
+        </div>
+
+        <nav class="client-sidebar-nav">
+          <a href="./dashboard-client.html">Accueil</a>
+          <a href="./client-products.html">Produits</a>
+          <a href="./client-cart.html">Panier</a>
+          <a class="active" href="./client-orders.html">Mes commandes</a>
+          <a href="./client-profile.html">Profil</a>
+          <button type="button" onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
+
+      <main class="client-main">
+        <header class="client-topbar">
+          <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
+          <div>
+            <p class="admin-eyebrow">Mes commandes</p>
+            <h1>Historique et paiement</h1>
+          </div>
+          <div class="client-topbar-user">
+            <div data-client-avatar class="client-topbar-avatar">CL</div>
+            <div>
+              <strong data-client-name>Client</strong>
+              <small data-client-phone>Telephone non renseigne</small>
+            </div>
+          </div>
+        </header>
+
+        <section class="client-main-content">
+          <div id="dashboard-message" class="message-box"></div>
+          <div class="section-head">
+            <div>
+              <h2>Suivi des commandes</h2>
+              <p>Consulte un resume rapide, puis clique sur une commande pour voir tous les details.</p>
+            </div>
+            <a class="btn btn-light" href="./checkout.html">Nouvelle commande</a>
+          </div>
+          <div id="orders-list" class="client-orders-grid"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="client-order-detail-modal" class="admin-modal hidden">
+      <div class="admin-modal-backdrop" onclick="closeClientOrderDetail()"></div>
+      <div class="admin-modal-card">
+        <div class="admin-modal-head">
+          <div>
+            <p class="admin-eyebrow">Detail commande</p>
+            <h3 id="client-order-detail-title">Commande</h3>
+          </div>
+          <button class="admin-icon-btn" type="button" onclick="closeClientOrderDetail()">Fermer</button>
+        </div>
+        <div id="client-order-detail-content" class="admin-modal-content"></div>
+      </div>
+    </div>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/cart.js"></script>
+    <script src="../assets/js/client-shell.js"></script>
+    <script src="../assets/js/order.js"></script>
+  </body>
+</html>

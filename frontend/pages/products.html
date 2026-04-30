@@ -7,40 +7,228 @@
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body>
-    <header class="topbar">
-      <div class="container topbar-inner">
-        <a class="brand" href="./index.html">POINT CHAUD</a>
-        <nav class="nav-links">
-          <a href="./cart.html">Panier</a>
-          <a href="./login.html">Connexion</a>
-          <a href="./register.html">Inscription</a>
-        </nav>
-      </div>
-    </header>
+    <div id="public-products-view">
+      <header class="topbar">
+        <div class="container topbar-inner">
+          <a class="brand" href="./index.html">POINT CHAUD</a>
+          <nav class="nav-links">
+            <a href="./cart.html">Panier</a>
+            <a href="./login.html">Connexion</a>
+            <a href="./register.html">Inscription</a>
+          </nav>
+        </div>
+      </header>
 
-    <main class="page-shell">
-      <section class="container">
-        <div class="section-head">
-          <div>
-            <h1>Catalogue de produits</h1>
-            <p>Choisis tes produits, puis ajoute-les au panier pour passer commande.</p>
+      <main class="page-shell">
+        <section class="container">
+          <div class="section-head">
+            <div>
+              <h1>Catalogue de produits</h1>
+              <p>Choisis tes produits, puis ajoute-les au panier pour passer commande.</p>
+            </div>
+            <a class="btn btn-primary" href="./cart.html">Voir le panier</a>
           </div>
-          <a class="btn btn-primary" href="./cart.html">Voir le panier</a>
-        </div>
 
-        <div class="filters">
-          <input id="product-search" type="search" placeholder="Rechercher un produit" />
-          <select id="category-filter">
-            <option value="">Toutes les categories</option>
-          </select>
-        </div>
+          <div class="filters">
+            <input id="product-search" type="search" placeholder="Rechercher un produit" />
+            <select id="category-filter">
+              <option value="">Toutes les categories</option>
+            </select>
+          </div>
 
-        <div id="products-grid" class="catalog-grid"></div>
-      </section>
-    </main>
+          <div id="products-grid" class="catalog-grid"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="client-products-view" class="client-body" data-client-page="products" style="display:none;">
+      <div id="client-sidebar-overlay" class="client-sidebar-overlay"></div>
+      <div class="client-layout">
+        <aside id="client-sidebar" class="client-sidebar">
+          <div class="client-sidebar-head">
+            <div class="client-logo-mark">PC</div>
+            <div>
+              <strong>Point Chaud</strong>
+              <p>Commande & recuperation</p>
+            </div>
+            <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
+          </div>
+
+          <div class="client-sidebar-user">
+            <div data-client-avatar class="client-profile-avatar">CL</div>
+            <div class="stack-sm">
+              <strong data-client-name>Client</strong>
+              <small data-client-email>email</small>
+            </div>
+          </div>
+
+          <nav class="client-sidebar-nav">
+            <a href="./dashboard-client.html">Accueil</a>
+            <a class="active" href="./client-products.html">Produits</a>
+            <a href="./client-cart.html">Panier</a>
+            <a href="./client-orders.html">Mes commandes</a>
+            <a href="./client-profile.html">Profil</a>
+            <button type="button" onclick="logout()">Deconnexion</button>
+          </nav>
+        </aside>
+
+        <main class="client-main">
+          <header class="client-topbar">
+            <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
+            <div>
+              <p class="admin-eyebrow">Produits</p>
+              <h1>Catalogue Point Chaud</h1>
+            </div>
+            <div class="client-topbar-user">
+              <div data-client-avatar class="client-topbar-avatar">CL</div>
+              <div>
+                <strong data-client-name>Client</strong>
+                <small data-client-phone>Telephone non renseigne</small>
+              </div>
+            </div>
+          </header>
+
+          <section class="client-main-content">
+            <div class="section-head">
+              <div>
+                <h2>Choisir des produits</h2>
+                <p>Recherche rapide, categories et ajout direct au panier.</p>
+              </div>
+              <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
+            </div>
+
+            <div class="panel client-panel">
+              <div class="filters">
+                <input id="client-product-search" type="search" placeholder="Rechercher un produit" />
+                <select id="client-category-filter">
+                  <option value="">Toutes les categories</option>
+                </select>
+              </div>
+              <div id="client-products-grid" class="catalog-grid"></div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div id="admin-products-view" class="admin-body" style="display:none;">
+      <div class="admin-layout">
+        <aside class="admin-sidebar">
+          <div class="admin-logo-block">
+            <div class="admin-logo-mark">PC</div>
+            <div>
+              <strong>Point Chaud</strong>
+              <p>Gestion des ventes</p>
+            </div>
+          </div>
+          <nav class="admin-nav">
+            <a href="./dashboard-admin.html">Dashboard</a>
+            <a class="active" href="./products.html">Produits</a>
+            <a href="./orders-pending.html">Commandes</a>
+            <a href="./deliveries.html">Livraisons</a>
+            <a href="./scan-orders.html">Scan</a>
+            <a href="./cashier.html">Caisse</a>
+            <a href="./staff-profile.html">Utilisateurs</a>
+            <a href="./orders-pending.html#payments-section">Paiements</a>
+            <a href="./reports.html">Rapports</a>
+            <a class="admin-only" href="./analytics.html">Analyse Data</a>
+            <button onclick="logout()">Deconnexion</button>
+          </nav>
+        </aside>
+
+        <main class="admin-main">
+          <header class="admin-header">
+            <div>
+              <p class="admin-eyebrow">Catalogue</p>
+              <h1>Produits & categories</h1>
+            </div>
+            <div class="admin-user-chip">
+              <div id="admin-avatar" class="admin-avatar">A</div>
+              <div>
+                <strong id="admin-name">Admin</strong>
+                <small id="admin-role-label">Administrateur</small>
+              </div>
+            </div>
+          </header>
+
+          <section class="admin-content">
+            <section id="admin-product-create-panel" class="admin-panel admin-only" style="display:none;">
+              <div class="admin-section-head">
+                <div>
+                  <p class="admin-eyebrow">Ajout</p>
+                  <h2>Ajouter une categorie ou un produit</h2>
+                </div>
+              </div>
+
+              <div id="product-admin-message" class="message-box"></div>
+
+              <div class="admin-report-columns">
+                <form id="category-form" class="admin-report-list stack">
+                  <h3>Nouvelle categorie</h3>
+                  <label>Nom de categorie <input name="name" required /></label>
+                  <button class="btn-primary" type="submit">Ajouter la categorie</button>
+                </form>
+
+                <form id="product-form" class="admin-report-list stack">
+                  <h3 id="product-form-title">Nouveau produit</h3>
+                  <input type="hidden" name="product_id" />
+                  <label>Nom <input name="name" required /></label>
+                  <label>Description <textarea name="description"></textarea></label>
+                  <label>Prix <input name="price" type="number" step="0.01" min="0" required /></label>
+                  <label>Stock total indicatif <input name="stock" type="number" min="0" required /></label>
+                  <label>Image URL <input name="image" /></label>
+                  <label>
+                    Categorie
+                    <select id="admin-category-select" name="category_id" required></select>
+                  </label>
+                  <div class="stack">
+                    <div>
+                      <strong>Stock par succursale</strong>
+                      <p class="muted">Le stock reel de commande est verifie par point chaud.</p>
+                    </div>
+                    <div id="product-location-stocks" class="admin-report-list"></div>
+                  </div>
+                  <div class="admin-action-group">
+                    <button class="btn-primary" type="submit">Enregistrer le produit</button>
+                    <button id="product-form-cancel" class="btn-light" type="button">Annuler</button>
+                  </div>
+                </form>
+              </div>
+            </section>
+
+            <section class="admin-panel">
+              <div class="admin-section-head">
+                <div>
+                  <p class="admin-eyebrow">Catalogue staff</p>
+                  <h2 id="products-table-title">Modifier ou supprimer les produits</h2>
+                </div>
+              </div>
+              <div class="admin-table-wrap">
+                <table class="admin-orders-table">
+                  <thead>
+                    <tr>
+                      <th>Produit</th>
+                      <th>Categorie</th>
+                      <th>Prix</th>
+                      <th>Stock total</th>
+                      <th>Par succursale</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-products-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+        </main>
+      </div>
+    </div>
 
     <script src="../assets/js/api.js"></script>
     <script src="../assets/js/cart.js"></script>
+    <script src="../assets/js/client-shell.js"></script>
+    <script src="../assets/js/backoffice-common.js"></script>
     <script src="../assets/js/order.js"></script>
+    <script src="../assets/js/products-admin.js"></script>
   </body>
 </html>

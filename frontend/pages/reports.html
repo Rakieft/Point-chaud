@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rapports | Point Chaud</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="admin-body">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-logo-block">
+          <div class="admin-logo-mark">PC</div>
+          <div>
+            <strong>Point Chaud</strong>
+            <p>Gestion des ventes</p>
+          </div>
+        </div>
+        <nav class="admin-nav">
+          <a href="./dashboard-admin.html">Dashboard</a>
+          <a href="./products.html">Produits</a>
+          <a href="./orders-pending.html">Commandes</a>
+          <a href="./deliveries.html">Livraisons</a>
+          <a href="./scan-orders.html">Scan</a>
+          <a href="./cashier.html">Caisse</a>
+          <a href="./staff-profile.html">Utilisateurs</a>
+          <a href="./orders-pending.html#payments-section">Paiements</a>
+          <a class="active" href="./reports.html">Rapports</a>
+          <a class="admin-only" href="./analytics.html">Analyse Data</a>
+          <button onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
+
+      <main class="admin-main">
+        <header class="admin-header">
+          <div>
+            <p class="admin-eyebrow">Rapports & stock</p>
+            <h1>Produits les plus et les moins vendus</h1>
+          </div>
+          <div class="admin-user-chip">
+            <div id="admin-avatar" class="admin-avatar">A</div>
+            <div>
+              <strong id="admin-name">Staff</strong>
+              <small id="admin-role-label">Manager</small>
+            </div>
+          </div>
+        </header>
+
+        <section class="admin-content">
+          <div id="reports-message" class="message-box"></div>
+          <div id="reports-grid" class="admin-reports-grid"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/backoffice-common.js"></script>
+    <script src="../assets/js/reports.js"></script>
+  </body>
+</html>

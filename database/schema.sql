@@ -10,7 +10,12 @@ CREATE TABLE users (
     email VARCHAR(100) UNIQUE,
     password VARCHAR(255),
     phone VARCHAR(30),
-    role ENUM('client', 'admin', 'manager') DEFAULT 'client',
+    bio TEXT,
+    avatar_url VARCHAR(255),
+    title VARCHAR(100),
+    role ENUM('client', 'admin', 'manager', 'driver') DEFAULT 'client',
+    assigned_location_id INT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -46,6 +51,17 @@ CREATE TABLE products (
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
+CREATE TABLE product_stocks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    location_id INT NOT NULL,
+    stock INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_product_location (product_id, location_id),
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
+);
+
 -- =========================
 -- BANK ACCOUNTS
 -- =========================
@@ -78,6 +94,13 @@ CREATE TABLE orders (
     location_id INT,
     pickup_date DATE,
     pickup_time TIME,
+    order_type ENUM('pickup', 'delivery') DEFAULT 'pickup',
+    delivery_address VARCHAR(255),
+    delivery_zone VARCHAR(120),
+    delivery_fee DECIMAL(10,2) DEFAULT 0,
+    delivery_status ENUM('pending_assignment', 'assigned', 'out_for_delivery', 'delivered') DEFAULT 'pending_assignment',
+    assigned_driver_id INT,
+    delivered_at DATETIME,
 
     -- Paiement
     payment_method ENUM('moncash', 'natcash', 'bank_transfer'),
@@ -102,7 +125,8 @@ CREATE TABLE orders (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (location_id) REFERENCES locations(id),
     FOREIGN KEY (validated_by) REFERENCES users(id),
-    FOREIGN KEY (confirmed_by) REFERENCES users(id)
+    FOREIGN KEY (confirmed_by) REFERENCES users(id),
+    FOREIGN KEY (assigned_driver_id) REFERENCES users(id)
 );
 
 -- =========================
@@ -131,3 +155,7 @@ CREATE TABLE notifications (
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+ALTER TABLE users
+ADD CONSTRAINT fk_users_location
+FOREIGN KEY (assigned_location_id) REFERENCES locations(id);

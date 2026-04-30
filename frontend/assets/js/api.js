@@ -26,6 +26,8 @@ const storage = {
   }
 };
 
+const liveRefreshRegistry = new Map();
+
 async function apiRequest(path, options = {}) {
   const headers = { ...(options.headers || {}) };
   const isFormData = options.body instanceof FormData;
@@ -40,7 +42,8 @@ async function apiRequest(path, options = {}) {
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
-    headers
+    headers,
+    cache: "no-store"
   });
 
   const data = await response.json().catch(() => ({}));
@@ -50,6 +53,26 @@ async function apiRequest(path, options = {}) {
   }
 
   return data;
+}
+
+function stopLiveRefresh(key) {
+  const current = liveRefreshRegistry.get(key);
+  if (!current) return;
+  clearInterval(current.intervalId);
+  liveRefreshRegistry.delete(key);
+}
+
+function startLiveRefresh(key, callback, intervalMs = 15000) {
+  stopLiveRefresh(key);
+
+  const run = async () => {
+    if (document.hidden) return;
+    await callback();
+  };
+
+  const intervalId = window.setInterval(run, intervalMs);
+  liveRefreshRegistry.set(key, { intervalId, callback, intervalMs });
+  return run;
 }
 
 function saveSession(data) {
@@ -71,7 +94,12 @@ function requireAuth(roles = []) {
   }
 
   if (roles.length && !roles.includes(user.role)) {
-    const nextPage = user.role === "client" ? "../pages/dashboard-client.html" : "../pages/dashboard-admin.html";
+    const nextPage =
+      user.role === "client"
+        ? "../pages/dashboard-client.html"
+        : user.role === "driver"
+          ? "../pages/deliveries.html"
+          : "../pages/dashboard-admin.html";
     window.location.href = nextPage;
     return null;
   }
@@ -87,8 +115,64 @@ function formatMoney(value) {
   }).format(Number(value || 0));
 }
 
+function formatDateValue(date) {
+  if (!date) return "";
+
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) {
+    return String(date);
+  }
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "America/Port-au-Prince",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(parsed);
+}
+
+function formatTimeValue(time) {
+  if (!time) return "";
+
+  const clean = String(time).slice(0, 5);
+  if (/^\d{2}:\d{2}$/.test(clean)) {
+    return clean;
+  }
+
+  const parsed = new Date(time);
+  if (Number.isNaN(parsed.getTime())) {
+    return String(time).slice(0, 5);
+  }
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "America/Port-au-Prince",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(parsed);
+}
+
+function formatTimestamp(value) {
+  if (!value) return "";
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "America/Port-au-Prince",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(parsed);
+}
+
 function formatDateTime(date, time) {
-  return `${date || ""}${date && time ? " a " : ""}${time || ""}`;
+  const dateLabel = formatDateValue(date);
+  const timeLabel = formatTimeValue(time);
+  return `${dateLabel || ""}${dateLabel && timeLabel ? " a " : ""}${timeLabel || ""}`;
 }
 
 function getCart() {
