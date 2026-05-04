@@ -29,6 +29,33 @@ exports.createNotificationForDriversAtLocation = async (locationId, message) => 
   await Promise.all(users.map(user => exports.createNotificationForUser(user.id, message)));
 };
 
+exports.getUserContact = async userId => {
+  const [users] = await db.query(
+    "SELECT id, name, email, phone, role, assigned_location_id FROM users WHERE id = ? LIMIT 1",
+    [userId]
+  );
+
+  return users[0] || null;
+};
+
+exports.getManagersAtLocation = async locationId => {
+  const [users] = await db.query(
+    "SELECT id, name, email, phone, assigned_location_id FROM users WHERE role = 'manager' AND is_active = TRUE AND assigned_location_id = ?",
+    [locationId]
+  );
+
+  return users;
+};
+
+exports.getDriversAtLocation = async locationId => {
+  const [users] = await db.query(
+    "SELECT id, name, email, phone, assigned_location_id FROM users WHERE role = 'driver' AND is_active = TRUE AND assigned_location_id = ?",
+    [locationId]
+  );
+
+  return users;
+};
+
 exports.getScopedUser = async userId => {
   const [rows] = await db.query(
     `

@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Point Chaud | Commande en ligne</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body>
@@ -21,24 +24,86 @@
     <main>
       <section class="hero">
         <div class="container hero-grid">
-          <div class="hero-copy">
+          <div class="hero-copy hero-copy-home">
             <span class="hero-pill">Commande validee avant paiement</span>
-            <h1>Le point chaud devient enfin simple, rapide et securise.</h1>
+            <h1>Le gout du point chaud, commande sans stress et recuperation securisee.</h1>
             <p>
-              Les clients commandent en ligne, le manager valide, le paiement est confirme
-              manuellement, puis un QR code securise permet la recuperation au bon endroit.
+              Pain chaud, pates, pizza, fritures et boissons. Le client commande en ligne, le manager valide,
+              le paiement est confirme, puis la recuperation se fait rapidement avec QR code ou livraison.
             </p>
+            <div class="hero-highlights">
+              <span>Produits frais tous les jours</span>
+              <span>Paiement apres validation</span>
+              <span>Retrait ou livraison selon la commande</span>
+            </div>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="./products.html">Voir le catalogue</a>
-              <a class="btn btn-light" href="./login.html">Acceder au tableau de bord</a>
+              <a class="btn btn-primary" href="./products.html">Commander maintenant</a>
+              <a class="btn btn-light" href="./login.html">Suivre ma commande</a>
+            </div>
+            <div class="hero-proof-strip">
+              <article>
+                <strong>3 succursales</strong>
+                <span>Route Freres, Petion-Ville, Delmas</span>
+              </article>
+              <article>
+                <strong>Paiements locaux</strong>
+                <span>MonCash, NatCash, virement bancaire</span>
+              </article>
             </div>
           </div>
 
-          <div class="hero-card">
+          <div class="hero-visual">
+            <div class="hero-visual-glow"></div>
+            <div class="hero-visual-copy">
+              <span class="badge hero-visual-badge">Fraicheur • Rapidite • Confiance</span>
+              <h2>Tout est pret pour commander plus vite.</h2>
+            </div>
             <img
-              src="https://images.unsplash.com/photo-1549931319-a545dcf3bc73?auto=format&fit=crop&w=1200&q=80"
-              alt="Pain chaud et viennoiseries"
+              src="../assets/images/hero-point-chaud-premium.png"
+              alt="Produits Point Chaud avec pains, pates, pizza, croissant, cafe et jus"
             />
+            <div class="hero-floating-card hero-floating-top">
+              <strong>Best sellers</strong>
+              <span>Pate poulet • Pain chaud • Pizza fromage</span>
+            </div>
+            <div class="hero-floating-card hero-floating-bottom">
+              <strong>Recuperation rapide</strong>
+              <span>QR code securise apres confirmation du paiement</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <div>
+              <h2>Les envies les plus commandees</h2>
+              <p>Des incontournables qui donnent tout de suite faim et qui parlent a tes clients.</p>
+            </div>
+            <a class="btn btn-light" href="./products.html">Voir tout le catalogue</a>
+          </div>
+          <div class="cards-grid home-feature-grid">
+            <article class="card home-feature-card">
+              <span class="badge">Pain & Boulangerie</span>
+              <h3>Pain chaud</h3>
+              <p>Croustillant, simple, incontournable et toujours pret pour accompagner le quotidien.</p>
+            </article>
+            <article class="card home-feature-card">
+              <span class="badge">Pates</span>
+              <h3>Pate poulet</h3>
+              <p>Le classique qui fait revenir les clients encore et encore, surtout aux heures de pointe.</p>
+            </article>
+            <article class="card home-feature-card">
+              <span class="badge">Pizza</span>
+              <h3>Pizza fromage</h3>
+              <p>Une option chaude, genereuse et rapide a servir pour les commandes partagees.</p>
+            </article>
+            <article class="card home-feature-card">
+              <span class="badge">Boissons</span>
+              <h3>Jus orange</h3>
+              <p>La boisson qui complete facilement un achat rapide et augmente le panier moyen.</p>
+            </article>
           </div>
         </div>
       </section>
@@ -74,28 +139,108 @@
 
       <section class="section">
         <div class="container grid-2">
-          <article class="panel">
-            <h3>Points de retrait disponibles</h3>
-            <div class="stack-sm">
-              <span>Route Freres</span>
-              <span>Petion-Ville</span>
-              <span>Delmas</span>
+          <article class="panel home-location-panel">
+            <h3>Succursales & horaires</h3>
+            <div class="stack">
+              <div class="line-item">
+                <strong>Route Freres</strong>
+                <span>Retrait rapide et commandes de quartier</span>
+                <small>7h00 - 20h00</small>
+              </div>
+              <div class="line-item">
+                <strong>Petion-Ville</strong>
+                <span>Flux soutenu aux heures de pause et du soir</span>
+                <small>7h00 - 21h00</small>
+              </div>
+              <div class="line-item">
+                <strong>Delmas</strong>
+                <span>Validation locale par manager de succursale</span>
+                <small>7h00 - 20h30</small>
+              </div>
             </div>
           </article>
-          <article class="panel">
-            <h3>Roles geres dans la plateforme</h3>
-            <div class="stack-sm">
-              <span>Client: commande et envoie sa preuve de paiement</span>
-              <span>Manager: valide la commande et confirme le paiement</span>
-              <span>Admin: supervise l'activite globale</span>
+
+          <article class="panel home-trust-panel">
+            <h3>Pourquoi les clients peuvent avoir confiance</h3>
+            <div class="stack">
+              <div class="line-item">
+                <strong>Validation humaine</strong>
+                <span>Chaque commande est verifiee avant paiement pour eviter les malentendus.</span>
+              </div>
+              <div class="line-item">
+                <strong>Paiement apres accord</strong>
+                <span>Le client ne paie qu'une fois la commande confirmee par le manager.</span>
+              </div>
+              <div class="line-item">
+                <strong>Recuperation ou livraison suivie</strong>
+                <span>QR code pour le retrait, suivi clair pour la livraison et notifications utiles.</span>
+              </div>
             </div>
           </article>
         </div>
       </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="home-cta-band">
+            <div>
+              <span class="badge home-cta-badge">Pret a commander ?</span>
+              <h2>Choisis tes produits, laisse le manager valider, puis recupere sans confusion.</h2>
+              <p>
+                Une experience moderne pour le client, plus organisee pour le point chaud, et plus rassurante
+                pour le paiement et la recuperation.
+              </p>
+            </div>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="./products.html">Voir le menu</a>
+              <a class="btn btn-light" href="./register.html">Creer mon compte</a>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
-    <footer class="footer">
-      <div class="container">Projet Point Chaud 2026</div>
+    <footer class="footer footer-pro">
+      <div class="container footer-grid">
+        <section>
+          <a class="brand" href="./index.html">POINT CHAUD</a>
+          <p>
+            Plateforme de commande en ligne pour point chaud avec validation, paiement differé, QR code securise et
+            gestion par succursale.
+          </p>
+        </section>
+
+        <section>
+          <h3>Navigation</h3>
+          <div class="stack-sm">
+            <a href="./products.html">Catalogue</a>
+            <a href="./register.html">Creer un compte</a>
+            <a href="./login.html">Connexion</a>
+          </div>
+        </section>
+
+        <section>
+          <h3>Succursales</h3>
+          <div class="stack-sm">
+            <span>Route Freres</span>
+            <span>Petion-Ville</span>
+            <span>Delmas</span>
+          </div>
+        </section>
+
+        <section>
+          <h3>Infos pratiques</h3>
+          <div class="stack-sm">
+            <span>Paiement apres validation</span>
+            <span>QR code de recuperation</span>
+            <span>MonCash, NatCash, virement</span>
+          </div>
+        </section>
+      </div>
+      <div class="container footer-bottom">
+        <span>Projet Point Chaud 2026</span>
+        <span>Commande locale modernisee, plus rapide et plus sure</span>
+      </div>
     </footer>
   </body>
 </html>

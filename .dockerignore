@@ -1,0 +1,9 @@
+.git
+.gitignore
+backend/.env
+backend/node_modules
+frontend/node_modules
+backend/uploads
+backend/uploards
+npm-debug.log
+README.md

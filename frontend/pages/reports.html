@@ -4,25 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rapports | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body class="admin-body">
     <div class="admin-layout">
-      <aside class="admin-sidebar">
+      <div id="admin-sidebar-overlay" class="admin-sidebar-overlay"></div>
+      <aside id="admin-sidebar" class="admin-sidebar">
         <div class="admin-logo-block">
           <div class="admin-logo-mark">PC</div>
           <div>
             <strong>Point Chaud</strong>
             <p>Gestion des ventes</p>
           </div>
+          <button id="admin-menu-close" class="admin-menu-close" type="button">Fermer</button>
         </div>
         <nav class="admin-nav">
           <a href="./dashboard-admin.html">Dashboard</a>
           <a href="./products.html">Produits</a>
           <a href="./orders-pending.html">Commandes</a>
           <a href="./deliveries.html">Livraisons</a>
-          <a href="./scan-orders.html">Scan</a>
-          <a href="./cashier.html">Caisse</a>
+          <a href="./cashier.html">Caisse & scan</a>
           <a href="./staff-profile.html">Utilisateurs</a>
           <a href="./orders-pending.html#payments-section">Paiements</a>
           <a class="active" href="./reports.html">Rapports</a>
@@ -33,6 +37,7 @@
 
       <main class="admin-main">
         <header class="admin-header">
+          <button id="admin-menu-toggle" class="admin-menu-toggle" type="button">Menu</button>
           <div>
             <p class="admin-eyebrow">Rapports & stock</p>
             <h1>Produits les plus et les moins vendus</h1>
@@ -48,6 +53,21 @@
 
         <section class="admin-content">
           <div id="reports-message" class="message-box"></div>
+          <section id="proof-maintenance-panel" class="admin-panel admin-only" style="display:none;">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Maintenance des preuves</p>
+                <h2>Nettoyage automatique tous les 90 jours</h2>
+              </div>
+            </div>
+            <div id="proof-maintenance-message" class="message-box"></div>
+            <div id="proof-maintenance-grid" class="admin-maintenance-grid"></div>
+            <div class="admin-action-group">
+              <button id="run-proof-cleanup-btn" class="btn-primary" type="button">
+                Nettoyer les preuves anciennes maintenant
+              </button>
+            </div>
+          </section>
           <div id="reports-grid" class="admin-reports-grid"></div>
         </section>
       </main>

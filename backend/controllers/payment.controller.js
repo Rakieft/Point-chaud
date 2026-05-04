@@ -3,10 +3,13 @@ const db = require("../config/db");
 const {
   createNotificationForManagersAtLocation,
   createNotificationForUser,
-  getScopedUser
+  getScopedUser,
+  getUserContact,
+  getManagersAtLocation
 } = require("../utils/helpers");
 const { generateQrPayload } = require("../services/qr.service");
 const { fetchOrderByIdWithDetails } = require("../utils/helpers");
+const { sendSmsNotification } = require("../services/sms.service");
 
 exports.submitPaymentProof = async (req, res) => {
   const { payment_method, transaction_reference } = req.body;
@@ -48,6 +51,16 @@ exports.submitPaymentProof = async (req, res) => {
     await createNotificationForManagersAtLocation(
       order.location_id,
       `Une preuve de paiement a ete soumise pour la commande #${req.params.orderId}.`
+    );
+
+    const managerContacts = await getManagersAtLocation(order.location_id);
+    await Promise.all(
+      managerContacts.map(manager =>
+        sendSmsNotification(
+          manager.phone,
+          `Point Chaud: preuve de paiement recue pour la commande #${req.params.orderId}.`
+        )
+      )
     );
 
     res.json({ message: "Preuve de paiement envoyee" });
@@ -102,6 +115,14 @@ exports.confirmPayment = async (req, res) => {
           : `Paiement confirme pour la commande #${req.params.orderId}. Votre QR code est disponible.`
       );
 
+      const customerContact = await getUserContact(order.user_id);
+      await sendSmsNotification(
+        customerContact?.phone,
+        order.order_type === "delivery"
+          ? `Point Chaud: paiement confirme pour la commande #${req.params.orderId}. La livraison sera organisee.`
+          : `Point Chaud: paiement confirme pour la commande #${req.params.orderId}. Ton QR code est pret.`
+      );
+
       const qrCode = qrToken ? await generateQrPayload(qrToken, Number(req.params.orderId)) : null;
 
       const updatedOrder = await fetchOrderByIdWithDetails(req.params.orderId);
@@ -127,6 +148,11 @@ exports.confirmPayment = async (req, res) => {
     await createNotificationForUser(
       order.user_id,
       `Le paiement de la commande #${req.params.orderId} a ete rejete. Veuillez soumettre une nouvelle preuve.`
+    );
+    const customerContact = await getUserContact(order.user_id);
+    await sendSmsNotification(
+      customerContact?.phone,
+      `Point Chaud: le paiement de la commande #${req.params.orderId} a ete rejete. Envoie une nouvelle preuve.`
     );
 
     const updatedOrder = await fetchOrderByIdWithDetails(req.params.orderId);

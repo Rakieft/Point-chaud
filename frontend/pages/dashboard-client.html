@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Espace Client | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body class="client-body" data-client-page="home">
@@ -29,9 +32,9 @@
 
         <nav class="client-sidebar-nav">
           <a class="active" href="./dashboard-client.html">Accueil</a>
-          <a href="./client-products.html">catalogue</a>
-          <a href="./client-cart.html">Panier</a>
+          <a href="./client-products.html">Catalogue</a>
           <a href="./client-orders.html">Mes commandes</a>
+          <a href="./client-cart.html">Panier</a>
           <a href="./client-profile.html">Profil</a>
           <button type="button" onclick="logout()">Deconnexion</button>
         </nav>
@@ -56,8 +59,8 @@
         <section class="client-main-content">
           <div id="dashboard-message" class="message-box"></div>
 
-          <section class="client-hero">
-            <div class="client-hero-copy">
+          <section class="catalog-hero client-catalog-hero client-dashboard-hero">
+            <div class="catalog-hero-copy">
               <span class="badge client-badge">Dashboard client</span>
               <h2>Bienvenue, <span id="client-name">client</span></h2>
               <p>
@@ -65,23 +68,49 @@
                 que la commande est prete.
               </p>
               <div class="hero-actions">
-                <a class="btn btn-primary" href="./client-products.html">Voir les produits</a>
-                <a class="btn btn-light" href="./checkout.html">Passer une commande</a>
+                <a class="btn btn-primary" href="./client-products.html">Explorer le catalogue</a>
+                <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
               </div>
             </div>
-            <div class="client-hero-panel">
-              <small>Parcours de commande</small>
-              <ol class="client-timeline">
-                <li>Commande envoyee</li>
-                <li>Validation manager</li>
-                <li>Paiement du client</li>
-                <li>Confirmation du paiement</li>
-                <li>QR code et recuperation</li>
-              </ol>
+            <div class="catalog-hero-side">
+              <div class="catalog-mini-summary client-dashboard-summary-card">
+                <small>Depuis ton espace client</small>
+                <strong>Tout ton parcours en un coup d'oeil</strong>
+                <div class="client-dashboard-summary-list">
+                  <span>Explorer les categories populaires</span>
+                  <span>Ajouter au panier et confirmer la commande</span>
+                  <span>Attendre la validation manager</span>
+                  <span>Payer puis envoyer la preuve</span>
+                  <span>Recuperer avec QR ou suivre la livraison</span>
+                </div>
+              </div>
             </div>
           </section>
 
           <section id="client-stats-grid" class="client-stats-grid"></section>
+
+          <section class="dashboard-grid client-dashboard-grid">
+            <article class="panel client-panel client-dashboard-focus-panel">
+              <div class="section-head">
+                <div>
+                  <h2>Prochaines actions</h2>
+                  <p>Ce que tu devrais faire maintenant selon l'etat de tes commandes.</p>
+                </div>
+              </div>
+              <div id="client-next-actions" class="client-helper-list"></div>
+            </article>
+
+            <article class="panel client-panel client-dashboard-focus-panel">
+              <div class="section-head">
+                <div>
+                  <h2>Commandes actives</h2>
+                  <p>Resume rapide avant d'ouvrir le detail complet.</p>
+                </div>
+                <a class="btn btn-light" href="./client-orders.html">Voir tout</a>
+              </div>
+              <div id="client-active-orders-preview" class="client-helper-list"></div>
+            </article>
+          </section>
 
           <div class="dashboard-grid client-dashboard-grid">
             <article class="panel client-panel">
@@ -93,8 +122,12 @@
               </div>
               <div class="client-helper-list">
                 <a class="client-helper-item" href="./client-products.html">
-                  <strong>Commander des produits</strong>
-                  <p>Parcours le catalogue et ajoute des articles au panier.</p>
+                  <strong>Explorer le catalogue</strong>
+                  <p>Recherche, tri, categories rapides et ajout direct au panier.</p>
+                </a>
+                <a class="client-helper-item" href="./client-cart.html">
+                  <strong>Voir mon panier</strong>
+                  <p>Controle tes articles, les quantites et le total avant validation.</p>
                 </a>
                 <a class="client-helper-item" href="./client-orders.html">
                   <strong>Suivre mes commandes</strong>

@@ -4,25 +4,33 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Livraisons | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body class="admin-body">
     <div class="admin-layout">
-      <aside class="admin-sidebar">
+      <div id="admin-sidebar-overlay" class="admin-sidebar-overlay"></div>
+      <aside id="admin-sidebar" class="admin-sidebar">
         <div class="admin-logo-block">
           <div class="admin-logo-mark">PC</div>
           <div>
             <strong>Point Chaud</strong>
             <p>Gestion des livraisons</p>
           </div>
+          <button id="admin-menu-close" class="admin-menu-close" type="button">Fermer</button>
         </div>
         <nav class="admin-nav">
+          <a class="driver-only" href="./dashboard-driver.html">Accueil livreur</a>
+          <a class="driver-only active" href="./deliveries.html">Journal de route</a>
+          <a class="driver-only" href="./driver-profile.html">Mon profil</a>
+
           <a class="driver-hidden" href="./dashboard-admin.html">Dashboard</a>
           <a class="driver-hidden" href="./products.html">Produits</a>
           <a class="driver-hidden" href="./orders-pending.html">Commandes</a>
           <a class="active" href="./deliveries.html">Livraisons</a>
-          <a class="driver-hidden" href="./scan-orders.html">Scan</a>
-          <a class="driver-hidden" href="./cashier.html">Caisse</a>
+          <a class="driver-hidden" href="./cashier.html">Caisse & scan</a>
           <a class="driver-hidden" href="./staff-profile.html">Utilisateurs</a>
           <a class="driver-hidden" href="./orders-pending.html#payments-section">Paiements</a>
           <a class="driver-hidden" href="./reports.html">Rapports</a>
@@ -33,6 +41,7 @@
 
       <main class="admin-main">
         <header class="admin-header">
+          <button id="admin-menu-toggle" class="admin-menu-toggle" type="button">Menu</button>
           <div>
             <p class="admin-eyebrow">Livraisons</p>
             <h1 id="deliveries-page-title">Suivi des commandes en livraison</h1>
@@ -48,7 +57,46 @@
 
         <section class="admin-content">
           <div id="deliveries-message" class="message-box"></div>
+
+          <section class="admin-hero admin-subhero">
+            <div>
+              <span class="badge admin-badge">Livraisons</span>
+              <h2>Suivi clair des commandes a livrer, en route ou deja remises.</h2>
+              <p>
+                Affecte les livreurs, surveille les livraisons actives et retrouve rapidement les commandes
+                deja terminees.
+              </p>
+            </div>
+            <div class="admin-hero-panel">
+              <small>Vue operationnelle</small>
+              <strong>Une lecture simple pour staff et livreurs</strong>
+              <p>Les actions importantes restent visibles pour eviter les oublis pendant le service.</p>
+            </div>
+          </section>
+
           <section id="deliveries-stats" class="admin-stats-grid"></section>
+
+          <section id="deliveries-manager-hub" class="admin-panel" style="display:none;">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Affectation manager</p>
+                <h2>Quel livreur prend quelle commande ?</h2>
+                <p>Choisis un livreur de ta succursale, affecte la commande, puis suis son avancement sans quitter cette page.</p>
+              </div>
+            </div>
+
+            <div id="deliveries-driver-summary" class="admin-driver-grid"></div>
+          </section>
+
+          <section id="deliveries-assignment-panel" class="admin-panel" style="display:none;">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Pretes a affecter</p>
+                <h2>Commandes payees qui attendent un livreur</h2>
+              </div>
+            </div>
+            <div id="deliveries-assignment-list" class="admin-payment-grid"></div>
+          </section>
 
           <section class="admin-panel">
             <div class="admin-section-head">
@@ -71,6 +119,20 @@
           </section>
         </section>
       </main>
+    </div>
+
+    <div id="order-detail-modal" class="admin-modal hidden">
+      <div class="admin-modal-backdrop" onclick="closeOrderDetail()"></div>
+      <div class="admin-modal-card">
+        <div class="admin-modal-head">
+          <div>
+            <p class="admin-eyebrow">Detail commande</p>
+            <h2 id="modal-order-title">Commande</h2>
+          </div>
+          <button class="btn-light" type="button" onclick="closeOrderDetail()">Fermer</button>
+        </div>
+        <div id="order-detail-content"></div>
+      </div>
     </div>
 
     <script src="../assets/js/api.js"></script>

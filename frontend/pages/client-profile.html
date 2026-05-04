@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Profil Client | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body class="client-body" data-client-page="profile">
@@ -55,20 +58,66 @@
 
         <section class="client-main-content">
           <div id="profile-message" class="message-box"></div>
+          <section class="catalog-hero client-catalog-hero client-profile-hero">
+            <div class="catalog-hero-copy">
+              <span class="badge client-badge">Espace personnel</span>
+              <h2>Garde ton profil clair pour commander plus vite.</h2>
+              <p>
+                Mets a jour tes informations personnelles, ton email de contact et les details utiles pour
+                simplifier tes prochaines commandes.
+              </p>
+              <div class="hero-highlights">
+                <span>Profil a jour</span>
+                <span>Contact fiable</span>
+                <span>Commande plus rapide</span>
+              </div>
+            </div>
+            <div class="catalog-hero-side">
+              <div class="catalog-mini-summary">
+                <small>Rappel</small>
+                <strong>Un bon profil fait gagner du temps</strong>
+                <span>Nom, email, telephone et bio aident l'equipe a mieux traiter tes commandes.</span>
+              </div>
+            </div>
+          </section>
+
           <div class="dashboard-grid client-dashboard-grid">
-            <article class="panel client-panel">
+            <article class="panel client-panel client-profile-form-card">
               <div class="section-head">
                 <div>
                   <h2>Mes informations</h2>
-                  <p>Modifie ton nom, ton telephone et tes informations personnelles.</p>
+                  <p>Modifie ton nom, ton email, ton telephone et les informations personnelles utiles.</p>
                 </div>
               </div>
-              <div class="client-profile-card">
+
+              <div class="client-profile-card client-profile-identity">
                 <div data-client-avatar class="client-profile-avatar">CL</div>
-                <div class="stack-sm">
+                <div class="stack-sm client-profile-copy">
                   <strong data-client-name>Client</strong>
                   <span data-client-email class="muted">email</span>
                   <span data-client-phone class="muted">Telephone non renseigne</span>
+                  <p id="client-profile-bio-preview" class="muted">
+                    Ajoute une courte bio pour aider l'equipe a mieux te reconnaitre.
+                  </p>
+                </div>
+              </div>
+
+              <div class="client-order-summary-grid client-profile-meta-grid">
+                <div class="client-meta-item">
+                  <small>Nom complet</small>
+                  <strong id="client-profile-summary-name">Client</strong>
+                </div>
+                <div class="client-meta-item">
+                  <small>Email</small>
+                  <strong id="client-profile-summary-email">email</strong>
+                </div>
+                <div class="client-meta-item">
+                  <small>Telephone</small>
+                  <strong id="client-profile-summary-phone">Telephone non renseigne</strong>
+                </div>
+                <div class="client-meta-item">
+                  <small>Role</small>
+                  <strong>Client</strong>
                 </div>
               </div>
 
@@ -86,6 +135,29 @@
             </article>
 
             <div class="client-side-stack">
+              <article class="panel client-panel client-profile-summary-card">
+                <div class="stack-sm">
+                  <div>
+                    <p class="admin-eyebrow">Vue rapide</p>
+                    <h3>Etat de ton profil</h3>
+                  </div>
+                  <div class="client-helper-list">
+                    <div class="client-helper-item">
+                      <strong>Contact principal</strong>
+                      <p id="client-profile-contact-summary">Ajoute un email et un telephone fiables.</p>
+                    </div>
+                    <div class="client-helper-item">
+                      <strong>Biographie</strong>
+                      <p id="client-profile-bio-summary">Une courte note peut aider l'equipe a mieux te servir.</p>
+                    </div>
+                    <div class="client-helper-item client-profile-security">
+                      <strong>Securite</strong>
+                      <p>Change ton mot de passe uniquement si necessaire. Laisse le champ vide sinon.</p>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
               <article class="panel client-panel">
                 <h3>Guide rapide</h3>
                 <div class="client-helper-list">

@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Produits Client | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body class="client-body" data-client-page="products">
@@ -54,22 +57,55 @@
         </header>
 
         <section class="client-main-content">
-          <div class="section-head">
-            <div>
-              <h2>Choisir des produits</h2>
-              <p>Recherche rapide, categories et ajout direct au panier.</p>
+          <section class="catalog-hero client-catalog-hero">
+            <div class="catalog-hero-copy">
+              <span class="badge client-badge">Selection rapide</span>
+              <h2>Compose ton panier sans perdre de temps.</h2>
+              <p>Retrouve facilement les categories les plus commandees et ajoute tes produits favoris.</p>
             </div>
-            <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
-          </div>
+            <div class="catalog-hero-side">
+              <div class="catalog-mini-summary">
+                <small>Mon panier</small>
+                <strong id="client-cart-count">0 article</strong>
+                <span id="client-cart-total">0,00 HTG</span>
+                <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
+              </div>
+            </div>
+          </section>
 
-          <div class="panel client-panel">
-            <div class="filters">
-              <input id="product-search" type="search" placeholder="Rechercher un produit" />
-              <select id="category-filter">
+          <div class="panel client-panel catalog-panel">
+            <div class="section-head">
+              <div>
+                <h2>Choisir des produits</h2>
+                <p>Recherche rapide, categories et ajout direct au panier.</p>
+              </div>
+              <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
+            </div>
+
+            <div class="filters catalog-filters">
+              <input id="client-product-search" type="search" placeholder="Rechercher un produit" />
+              <select id="client-category-filter">
                 <option value="">Toutes les categories</option>
               </select>
+              <select id="client-product-sort">
+                <option value="featured">Trier: suggestions</option>
+                <option value="price-asc">Prix croissant</option>
+                <option value="price-desc">Prix decroissant</option>
+                <option value="name-asc">Nom A-Z</option>
+                <option value="stock-desc">Plus disponibles</option>
+              </select>
             </div>
-            <div id="products-grid" class="catalog-grid"></div>
+
+            <div id="client-category-chips" class="category-chips"></div>
+
+            <div class="catalog-toolbar">
+              <div class="catalog-results-copy">
+                <strong id="client-results-count">0 produit</strong>
+                <span id="client-results-note">Catalogue client pret.</span>
+              </div>
+            </div>
+
+            <div id="client-products-grid" class="catalog-grid catalog-grid-premium"></div>
           </div>
         </section>
       </main>

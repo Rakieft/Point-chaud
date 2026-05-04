@@ -7,6 +7,8 @@ const router = express.Router();
 
 router.get("/", productController.getCatalog);
 router.post("/categories", auth, role("admin"), productController.createCategory);
+router.patch("/categories/:id", auth, role("admin"), productController.updateCategory);
+router.delete("/categories/:id", auth, role("admin"), productController.deleteCategory);
 router.post("/", auth, role("admin"), productController.createProduct);
 router.patch("/:id", auth, role("admin"), productController.updateProduct);
 router.delete("/:id", auth, role("admin"), productController.deleteProduct);

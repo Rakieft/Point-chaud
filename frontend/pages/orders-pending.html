@@ -4,25 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Commandes a traiter | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body class="admin-body" data-orders-group="pending">
     <div class="admin-layout">
-      <aside class="admin-sidebar">
+      <div id="admin-sidebar-overlay" class="admin-sidebar-overlay"></div>
+      <aside id="admin-sidebar" class="admin-sidebar">
         <div class="admin-logo-block">
           <div class="admin-logo-mark">PC</div>
           <div>
             <strong>Point Chaud</strong>
             <p>Gestion des ventes</p>
           </div>
+          <button id="admin-menu-close" class="admin-menu-close" type="button">Fermer</button>
         </div>
         <nav class="admin-nav">
           <a href="./dashboard-admin.html">Dashboard</a>
           <a href="./products.html">Produits</a>
           <a class="active" href="./orders-pending.html">Commandes</a>
           <a href="./deliveries.html">Livraisons</a>
-          <a href="./scan-orders.html">Scan</a>
-          <a href="./cashier.html">Caisse</a>
+          <a href="./cashier.html">Caisse & scan</a>
           <a href="./staff-profile.html">Utilisateurs</a>
           <a href="#payments-section">Paiements</a>
           <a href="./reports.html">Rapports</a>
@@ -33,6 +37,7 @@
 
       <main class="admin-main">
         <header class="admin-header">
+          <button id="admin-menu-toggle" class="admin-menu-toggle" type="button">Menu</button>
           <div>
             <p class="admin-eyebrow">Commandes a traiter</p>
             <h1>Validation et ajustements</h1>

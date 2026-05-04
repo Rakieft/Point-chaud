@@ -4,7 +4,10 @@ const {
   createNotificationForUser,
   createNotificationForManagersAtLocation,
   createNotificationForDriversAtLocation,
-  getScopedUser
+  getScopedUser,
+  getUserContact,
+  getManagersAtLocation,
+  getDriversAtLocation
 } = require("../utils/helpers");
 const { generateQrPayload } = require("../services/qr.service");
 const { sendSmsNotification } = require("../services/sms.service");
@@ -195,10 +198,20 @@ exports.createOrder = async (req, res) => {
       `Nouvelle commande #${result.insertId} en attente de validation.`
     );
 
-    sendSmsNotification(
-      null,
-      `Commande #${result.insertId} recue. Elle sera validee par un manager avant paiement.`
-    );
+    const [customerContact, managerContacts] = await Promise.all([
+      getUserContact(req.user.id),
+      getManagersAtLocation(location_id)
+    ]);
+
+    await Promise.all([
+      sendSmsNotification(
+        customerContact?.phone,
+        `Point Chaud: commande #${result.insertId} recue. Attends la validation avant de payer.`
+      ),
+      ...managerContacts.map(manager =>
+        sendSmsNotification(manager.phone, `Point Chaud: nouvelle commande #${result.insertId} a valider.`)
+      )
+    ]);
 
     const [orders] = await db.query(`${orderSelect} WHERE o.id = ?`, [result.insertId]);
     const order = await mapOrder(orders[0]);
@@ -292,7 +305,8 @@ exports.validateOrder = async (req, res) => {
         : `Votre commande #${req.params.id} a ete refusee.`;
 
     await createNotificationForUser(order.user_id, message);
-    sendSmsNotification(null, message);
+    const customerContact = await getUserContact(order.user_id);
+    await sendSmsNotification(customerContact?.phone, `Point Chaud: ${message}`);
 
     const [updatedOrders] = await db.query(`${orderSelect} WHERE o.id = ?`, [req.params.id]);
     const updatedOrder = await mapOrder(updatedOrders[0]);
@@ -400,6 +414,11 @@ exports.updateOrderByStaff = async (req, res) => {
       order.user_id,
       `Votre commande #${order.id} a ete ajustee par le staff en fonction de l'horaire ou du stock disponible.`
     );
+    const customerContact = await getUserContact(order.user_id);
+    await sendSmsNotification(
+      customerContact?.phone,
+      `Point Chaud: la commande #${order.id} a ete ajustee. Verifie les nouveaux details dans ton espace client.`
+    );
 
     const [updatedOrders] = await db.query(`${orderSelect} WHERE o.id = ?`, [req.params.id]);
     const updatedOrder = await mapOrder(updatedOrders[0]);
@@ -438,6 +457,8 @@ exports.scanOrder = async (req, res) => {
 
     await db.query("UPDATE orders SET status = 'completed' WHERE id = ?", [order.id]);
     await createNotificationForUser(order.user_id, `Commande #${order.id} recuperee avec succes.`);
+    const customerContact = await getUserContact(order.user_id);
+    await sendSmsNotification(customerContact?.phone, `Point Chaud: commande #${order.id} remise avec succes.`);
 
     const [updatedOrders] = await db.query(`${orderSelect} WHERE o.id = ?`, [order.id]);
     const updatedOrder = await mapOrder(updatedOrders[0]);
@@ -484,6 +505,11 @@ exports.assignDriver = async (req, res) => {
     if (order.status !== "paid") {
       return res.status(400).json({ message: "Le paiement doit etre confirme avant d'affecter un livreur" });
     }
+    if (["out_for_delivery", "delivered"].includes(order.delivery_status) || order.status === "completed") {
+      return res.status(400).json({
+        message: "Cette livraison est deja en cours ou terminee. L'affectation ne peut plus etre changee."
+      });
+    }
 
     if (actor.role === "manager" && Number(actor.assigned_location_id) !== Number(order.location_id)) {
       return res.status(403).json({ message: "Acces refuse pour cette succursale" });
@@ -503,18 +529,52 @@ exports.assignDriver = async (req, res) => {
       return res.status(400).json({ message: "Le livreur doit appartenir a la meme succursale" });
     }
 
+    const reassignment = order.assigned_driver_id && Number(order.assigned_driver_id) !== Number(driver_id);
+
     await db.query("UPDATE orders SET assigned_driver_id = ?, delivery_status = 'assigned' WHERE id = ?", [
       driver_id,
       req.params.id
     ]);
 
-    await createNotificationForUser(order.user_id, `Votre commande #${order.id} a ete affectee a un livreur.`);
-    await createNotificationForUser(driver_id, `Une nouvelle livraison #${order.id} vous a ete attribuee.`);
+    await createNotificationForUser(
+      order.user_id,
+      reassignment
+        ? `Le livreur de votre commande #${order.id} a ete reaffecte.`
+        : `Votre commande #${order.id} a ete affectee a un livreur.`
+    );
+    await createNotificationForUser(
+      driver_id,
+      reassignment
+        ? `La livraison #${order.id} vous a ete reaffectee.`
+        : `Une nouvelle livraison #${order.id} vous a ete attribuee.`
+    );
+    const [customerContact, driverContacts] = await Promise.all([
+      getUserContact(order.user_id),
+      getDriversAtLocation(order.location_id)
+    ]);
+    const assignedDriverContact = driverContacts.find(driver => Number(driver.id) === Number(driver_id));
+    await Promise.all([
+      sendSmsNotification(
+        customerContact?.phone,
+        reassignment
+          ? `Point Chaud: le livreur de la commande #${order.id} a ete reaffecte.`
+          : `Point Chaud: un livreur a ete affecte a la commande #${order.id}.`
+      ),
+      sendSmsNotification(
+        assignedDriverContact?.phone,
+        reassignment
+          ? `Point Chaud: la livraison #${order.id} vous a ete reaffectee.`
+          : `Point Chaud: une nouvelle livraison #${order.id} vous a ete attribuee.`
+      )
+    ]);
 
     const [updatedOrders] = await db.query(`${orderSelect} WHERE o.id = ?`, [req.params.id]);
     const updatedOrder = await mapOrder(updatedOrders[0]);
 
-    res.json({ message: "Livreur assigne avec succes", order: updatedOrder });
+    res.json({
+      message: reassignment ? "Livreur reaffecte avec succes" : "Livreur assigne avec succes",
+      order: updatedOrder
+    });
   } catch (error) {
     res.status(500).json({ message: "Impossible d'assigner le livreur", error: error.message });
   }
@@ -563,6 +623,8 @@ exports.updateDeliveryStatus = async (req, res) => {
     };
 
     await createNotificationForUser(order.user_id, messages[delivery_status]);
+    const customerContact = await getUserContact(order.user_id);
+    await sendSmsNotification(customerContact?.phone, `Point Chaud: ${messages[delivery_status]}`);
 
     const [updatedOrders] = await db.query(`${orderSelect} WHERE o.id = ?`, [req.params.id]);
     const updatedOrder = await mapOrder(updatedOrders[0]);

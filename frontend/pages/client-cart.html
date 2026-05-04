@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Panier Client | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body class="client-body" data-client-page="cart">
@@ -54,24 +57,76 @@
         </header>
 
         <section class="client-main-content">
-          <div class="grid-2">
-            <article class="cart-card client-panel">
+          <section class="catalog-hero client-catalog-hero">
+            <div class="catalog-hero-copy">
+              <span class="badge client-badge">Panier en cours</span>
+              <h2>Verifie tes produits avant de valider.</h2>
+              <p>
+                Ajuste les quantites, controle le total et continue ensuite vers la commande avec lieu, horaire
+                et mode de recuperation ou livraison.
+              </p>
+              <div class="hero-highlights">
+                <span>Modification rapide</span>
+                <span>Total clair</span>
+                <span>Passage au checkout simplifie</span>
+              </div>
+            </div>
+            <div class="catalog-hero-side">
+              <div class="catalog-mini-summary">
+                <small>Etapes</small>
+                <strong>Panier → Checkout</strong>
+                <span>Succursale, horaire, validation manager puis paiement.</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="checkout-grid client-cart-grid">
+            <article class="cart-card client-panel client-cart-items-panel">
               <div class="section-head">
                 <div>
                   <h2>Produits choisis</h2>
                   <p>Verifie les quantites avant de continuer.</p>
                 </div>
+                <a class="btn btn-light" href="./client-products.html">Ajouter d'autres produits</a>
               </div>
+
               <div id="cart-items"></div>
             </article>
 
-            <article class="cart-card client-panel">
-              <h3>Resume</h3>
-              <p>Total de la commande</p>
-              <div class="price" id="cart-total">0 HTG</div>
-              <div class="summary-actions">
-                <a class="btn btn-primary" href="./checkout.html">Continuer vers la commande</a>
-                <a class="btn btn-light" href="./client-products.html">Ajouter d'autres produits</a>
+            <article class="cart-card client-panel client-cart-summary-panel">
+              <div class="stack">
+                <div>
+                  <p class="admin-eyebrow">Resume commande</p>
+                  <h3>Total de la commande</h3>
+                </div>
+
+                <div class="client-cart-summary-box">
+                  <div class="line-item">
+                    <strong>Articles</strong>
+                    <span id="cart-count">0 article</span>
+                  </div>
+                  <div class="line-item">
+                    <strong>Sous-total</strong>
+                    <span id="cart-subtotal">0 HTG</span>
+                  </div>
+                  <div class="line-item">
+                    <strong>Total estime</strong>
+                    <span class="price" id="cart-total">0 HTG</span>
+                  </div>
+                </div>
+
+                <div class="client-cart-note">
+                  <strong>Ce qu'il se passe ensuite</strong>
+                  <p>
+                    Au checkout, tu choisis la succursale, l'heure, le retrait ou la livraison. Le paiement vient
+                    seulement apres validation du manager.
+                  </p>
+                </div>
+
+                <div class="summary-actions client-cart-actions">
+                  <a class="btn btn-primary" href="./checkout.html">Continuer vers la commande</a>
+                  <a class="btn btn-light" href="./client-products.html">Retour au catalogue</a>
+                </div>
               </div>
             </article>
           </div>

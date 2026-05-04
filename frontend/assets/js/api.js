@@ -1,4 +1,26 @@
-const API_BASE_URL = "http://localhost:5000/api";
+function resolveApiBaseUrl() {
+  const runtimeOverride = window.POINT_CHAUD_API_BASE_URL || document.documentElement.dataset.apiBaseUrl;
+  if (runtimeOverride) {
+    return String(runtimeOverride).replace(/\/$/, "");
+  }
+
+  if (window.location.protocol === "file:") {
+    return "http://localhost:5000/api";
+  }
+
+  const host = window.location.hostname;
+  const port = window.location.port;
+  const isLocalPreviewHost = ["127.0.0.1", "localhost"].includes(host);
+  const isFrontendPreviewPort = ["5500", "5501", "5502", "5503"].includes(port);
+
+  if (isLocalPreviewHost && isFrontendPreviewPort) {
+    return "http://localhost:5000/api";
+  }
+
+  return `${window.location.origin}/api`;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 const storage = {
   get token() {
@@ -98,7 +120,7 @@ function requireAuth(roles = []) {
       user.role === "client"
         ? "../pages/dashboard-client.html"
         : user.role === "driver"
-          ? "../pages/deliveries.html"
+          ? "../pages/dashboard-driver.html"
           : "../pages/dashboard-admin.html";
     window.location.href = nextPage;
     return null;
@@ -175,6 +197,68 @@ function formatDateTime(date, time) {
   return `${dateLabel || ""}${dateLabel && timeLabel ? " a " : ""}${timeLabel || ""}`;
 }
 
+function slugifyText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function buildProductPlaceholder(product) {
+  const name = product?.name || "Produit";
+  const category = product?.category_name || "Point Chaud";
+  const primary = "#b93821";
+  const secondary = "#ef6b2f";
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420">
+      <defs>
+        <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${primary}" />
+          <stop offset="100%" stop-color="${secondary}" />
+        </linearGradient>
+      </defs>
+      <rect width="640" height="420" rx="36" fill="url(#g)" />
+      <circle cx="520" cy="92" r="78" fill="rgba(255,255,255,0.12)" />
+      <circle cx="118" cy="330" r="92" fill="rgba(255,255,255,0.08)" />
+      <text x="44" y="92" fill="#fff4e8" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">${category}</text>
+      <text x="44" y="188" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800">${name}</text>
+      <text x="44" y="248" fill="#fff4e8" font-family="Segoe UI, Arial, sans-serif" font-size="24">Apercu produit Point Chaud</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function resolveProductImage(product) {
+  const image = String(product?.image || "").trim();
+
+  if (image) {
+    if (/^(https?:)?\/\//i.test(image) || image.startsWith("data:") || image.startsWith("../")) {
+      return image;
+    }
+
+    if (image.startsWith("/")) {
+      return image;
+    }
+
+    return `../assets/images/products/${image}`;
+  }
+
+  const slug = slugifyText(product?.name || "");
+  return slug ? `../assets/images/products/${slug}.jpg` : buildProductPlaceholder(product);
+}
+
+function handleProductImageError(imageElement, productName, categoryName) {
+  if (!imageElement || imageElement.dataset.fallbackApplied === "true") {
+    return;
+  }
+
+  imageElement.dataset.fallbackApplied = "true";
+  imageElement.src = buildProductPlaceholder({ name: productName, category_name: categoryName });
+}
+
 function getCart() {
   return JSON.parse(localStorage.getItem("pointchaud_cart") || "[]");
 }
@@ -198,3 +282,5 @@ function logout() {
   clearSession();
   window.location.href = "../pages/login.html";
 }
+
+window.API_BASE_URL = API_BASE_URL;

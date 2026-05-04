@@ -1,6 +1,10 @@
 const db = require("../config/db");
 const { hashPassword } = require("../utils/hash");
 const { getScopedUser } = require("../utils/helpers");
+const {
+  getPaymentProofCleanupStats,
+  runPaymentProofCleanup
+} = require("../services/payment-proof-cleanup.service");
 
 async function ensureManagerLocationCoverage(locationId, excludedUserId = null) {
   const params = [locationId];
@@ -361,6 +365,35 @@ exports.getReports = async (req, res) => {
     res.json({ actor, reports });
   } catch (error) {
     res.status(500).json({ message: "Impossible de generer les rapports", error: error.message });
+  }
+};
+
+exports.getPaymentProofMaintenance = async (req, res) => {
+  try {
+    const stats = await getPaymentProofCleanupStats();
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({
+      message: "Impossible de recuperer les informations de maintenance des preuves",
+      error: error.message
+    });
+  }
+};
+
+exports.runPaymentProofMaintenance = async (req, res) => {
+  try {
+    const result = await runPaymentProofCleanup({ trigger: "manual" });
+    res.json({
+      message: result.alreadyRunning
+        ? result.message
+        : `${result.cleanedOrders} preuve(s) ancienne(s) nettoyee(s) avec succes.`,
+      result
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Impossible de lancer le nettoyage des preuves",
+      error: error.message
+    });
   }
 };
 

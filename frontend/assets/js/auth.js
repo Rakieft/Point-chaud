@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
           data.user.role === "client"
             ? "../pages/dashboard-client.html"
             : data.user.role === "driver"
-              ? "../pages/deliveries.html"
+              ? "../pages/dashboard-driver.html"
               : "../pages/dashboard-admin.html";
         window.location.href = nextPage;
       } catch (error) {

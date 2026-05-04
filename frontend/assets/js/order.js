@@ -14,6 +14,7 @@ async function renderClientDashboard() {
   try {
     const [orders, notifications] = await Promise.all([apiRequest("/orders/my"), apiRequest("/notifications")]);
     renderClientStats(orders, notifications);
+    renderClientDashboardHighlights(orders, notifications);
     renderNotifications(notificationsList, notifications);
   } catch (error) {
     showMessage("dashboard-message", "error", error.message);
@@ -57,10 +58,116 @@ function renderClientStats(orders, notifications) {
     .join("");
 }
 
+function renderClientDashboardHighlights(orders, notifications) {
+  const nextActions = document.getElementById("client-next-actions");
+  const activeOrdersPreview = document.getElementById("client-active-orders-preview");
+
+  const pendingValidation = orders.filter(order => order.status === "pending_validation");
+  const paymentRequired = orders.filter(
+    order => order.status === "awaiting_payment" && (!order.payment_proof || order.payment_status === "rejected")
+  );
+  const proofPending = orders.filter(
+    order => order.status === "awaiting_payment" && order.payment_proof && order.payment_status === "pending"
+  );
+  const readyOrders = orders.filter(order => order.status === "paid");
+  const activeOrders = orders
+    .filter(order => !["cancelled", "completed"].includes(order.status))
+    .sort((a, b) => Number(b.id) - Number(a.id))
+    .slice(0, 3);
+
+  if (nextActions) {
+    const actions = [];
+
+    if (paymentRequired.length) {
+      actions.push({
+        title: "Paiement a effectuer",
+        text: `${paymentRequired.length} commande(s) validee(s) attendent maintenant ton paiement et ta preuve.`,
+        href: "./client-orders.html"
+      });
+    }
+
+    if (proofPending.length) {
+      actions.push({
+        title: "Preuve en verification",
+        text: `${proofPending.length} preuve(s) de paiement ont ete envoyees et attendent la confirmation du manager.`,
+        href: "./client-orders.html"
+      });
+    }
+
+    if (readyOrders.length) {
+      actions.push({
+        title: "Commande prete a suivre",
+        text: `${readyOrders.length} commande(s) sont confirmees avec QR code ou suivi de livraison disponible.`,
+        href: "./client-orders.html"
+      });
+    }
+
+    if (pendingValidation.length) {
+      actions.push({
+        title: "Validation en attente",
+        text: `${pendingValidation.length} commande(s) sont en cours de validation par le manager.`,
+        href: "./client-orders.html"
+      });
+    }
+
+    if (!actions.length) {
+      actions.push({
+        title: "Tout est calme",
+        text: notifications.length
+          ? "Aucune action urgente. Tu peux consulter tes notifications ou lancer une nouvelle commande."
+          : "Aucune action urgente. Tu peux commencer une nouvelle commande quand tu veux.",
+        href: "./client-products.html"
+      });
+    }
+
+    nextActions.innerHTML = actions
+      .map(
+        action => `
+          <a class="client-helper-item client-dashboard-action-card" href="${action.href}">
+            <strong>${action.title}</strong>
+            <p>${action.text}</p>
+          </a>
+        `
+      )
+      .join("");
+  }
+
+  if (activeOrdersPreview) {
+    activeOrdersPreview.innerHTML = activeOrders.length
+      ? activeOrders
+          .map(order => {
+            const state = getClientOrderState(order);
+            return `
+              <a class="client-helper-item client-dashboard-order-card" href="./client-orders.html">
+                <div class="toolbar">
+                  <strong>Commande #${order.id}</strong>
+                  <span class="status ${state.badgeClass}">${state.badgeText}</span>
+                </div>
+                <p>${order.order_type === "delivery" ? "Livraison" : order.location_name} • ${formatDateTime(order.pickup_date, order.pickup_time)}</p>
+                <small>${order.items.length} produit(s) • ${formatMoney(order.total)}</small>
+              </a>
+            `;
+          })
+          .join("")
+      : `
+          <div class="empty-state">
+            <h3>Aucune commande active</h3>
+            <p>Quand tu passeras une commande, elle apparaitra ici en priorite.</p>
+          </div>
+        `;
+  }
+}
+
 function renderCatalog(products, options = {}) {
   const container = document.getElementById(options.gridId || "products-grid");
   const search = document.getElementById(options.searchId || "product-search");
   const category = document.getElementById(options.categoryId || "category-filter");
+  const sort = document.getElementById(options.sortId || "product-sort");
+  const chips = document.getElementById(options.chipsId || "public-category-chips");
+  const resultsCount = document.getElementById(options.resultsCountId || "public-results-count");
+  const resultsNote = document.getElementById(options.resultsNoteId || "public-results-note");
+  const cartCount = document.getElementById(options.cartCountId || "public-cart-count");
+  const cartTotal = document.getElementById(options.cartTotalId || "public-cart-total");
 
   if (!container) {
     return;
@@ -73,37 +180,126 @@ function renderCatalog(products, options = {}) {
     category.dataset.loaded = "true";
   }
 
+  const updateCartSummary = () => {
+    const cart = getCart();
+    const totalItems = cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const totalPrice = cart.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0);
+
+    if (cartCount) {
+      cartCount.textContent = `${totalItems} article${totalItems > 1 ? "s" : ""}`;
+    }
+
+    if (cartTotal) {
+      cartTotal.textContent = formatMoney(totalPrice);
+    }
+  };
+
+  if (chips && !chips.dataset.loaded) {
+    chips.innerHTML = `
+      <button class="category-chip active" type="button" data-category-chip="">Tous</button>
+      ${categories
+        .map(
+          name => `<button class="category-chip" type="button" data-category-chip="${name}">${name}</button>`
+        )
+        .join("")}
+    `;
+
+    chips.querySelectorAll("[data-category-chip]").forEach(button => {
+      button.addEventListener("click", () => {
+        const value = button.dataset.categoryChip || "";
+        if (category) {
+          category.value = value;
+        }
+
+        chips.querySelectorAll("[data-category-chip]").forEach(chip => {
+          chip.classList.toggle("active", chip === button);
+        });
+
+        draw();
+      });
+    });
+
+    chips.dataset.loaded = "true";
+  }
+
+  const syncActiveChip = value => {
+    if (!chips) return;
+    chips.querySelectorAll("[data-category-chip]").forEach(button => {
+      button.classList.toggle("active", (button.dataset.categoryChip || "") === value);
+    });
+  };
+
   const draw = () => {
     const term = (search?.value || "").toLowerCase();
     const selectedCategory = category?.value || "";
+    const sortValue = sort?.value || "featured";
 
-    const filtered = products.filter(product => {
-      const matchesText =
-        product.name.toLowerCase().includes(term) ||
-        (product.description || "").toLowerCase().includes(term);
-      const matchesCategory = !selectedCategory || product.category_name === selectedCategory;
-      return matchesText && matchesCategory;
-    });
+    const filtered = products
+      .filter(product => {
+        const matchesText =
+          product.name.toLowerCase().includes(term) ||
+          (product.description || "").toLowerCase().includes(term);
+        const matchesCategory = !selectedCategory || product.category_name === selectedCategory;
+        return matchesText && matchesCategory;
+      })
+      .sort((a, b) => {
+        if (sortValue === "price-asc") return Number(a.price || 0) - Number(b.price || 0);
+        if (sortValue === "price-desc") return Number(b.price || 0) - Number(a.price || 0);
+        if (sortValue === "name-asc") return String(a.name || "").localeCompare(String(b.name || ""), "fr");
+        if (sortValue === "stock-desc") return Number(b.stock || 0) - Number(a.stock || 0);
+
+        const categoryCompare = String(a.category_name || "").localeCompare(String(b.category_name || ""), "fr");
+        if (categoryCompare !== 0) return categoryCompare;
+        return String(a.name || "").localeCompare(String(b.name || ""), "fr");
+      });
+
+    if (resultsCount) {
+      resultsCount.textContent = `${filtered.length} produit${filtered.length > 1 ? "s" : ""}`;
+    }
+
+    if (resultsNote) {
+      resultsNote.textContent = selectedCategory
+        ? `Categorie active: ${selectedCategory}`
+        : term
+          ? `Resultats pour "${search?.value || ""}".`
+          : "Catalogue pret a explorer.";
+    }
+
+    syncActiveChip(selectedCategory);
 
     container.innerHTML = filtered.length
       ? filtered
           .map(
             product => `
               <article class="product-card">
-                <img src="${product.image || "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=80"}" alt="${product.name}" />
+                <img
+                  src="${resolveProductImage(product)}"
+                  alt="${product.name}"
+                  loading="lazy"
+                  onerror="handleProductImageError(this, '${String(product.name || "").replace(/'/g, "\\'")}', '${String(product.category_name || "Point Chaud").replace(/'/g, "\\'")}')"
+                />
                 <div class="product-meta">
-                  <span class="badge">${product.category_name || "Produit"}</span>
-                  <h3>${product.name}</h3>
+                  <div class="product-card-head">
+                    <span class="badge">${product.category_name || "Produit"}</span>
+                    <span class="product-stock-badge ${Number(product.stock || 0) <= 5 ? "low" : "ok"}">
+                      ${Number(product.stock || 0) <= 5 ? "Stock limite" : "Disponible"}
+                    </span>
+                  </div>
+                  <div class="product-title-row">
+                    <h3>${product.name}</h3>
+                    <span class="price">${formatMoney(product.price)}</span>
+                  </div>
                   <p class="muted">${product.description || "Produit artisanal du point chaud."}</p>
-                  <span class="price">${formatMoney(product.price)}</span>
-                  <small>Stock disponible: ${product.stock}</small>
-                  <button
-                    class="btn-primary add-to-cart-btn"
-                    data-id="${product.id}"
-                    data-name="${encodeURIComponent(product.name)}"
-                    data-price="${product.price}">
-                    Ajouter au panier
-                  </button>
+                  <div class="product-card-footer">
+                    <small>Stock disponible: ${product.stock}</small>
+                    <button
+                      class="btn-primary add-to-cart-btn"
+                      data-id="${product.id}"
+                      data-name="${encodeURIComponent(product.name)}"
+                      data-price="${product.price}">
+                      Ajouter au panier
+                    </button>
+                  </div>
                 </div>
               </article>
             `
@@ -118,12 +314,22 @@ function renderCatalog(products, options = {}) {
           name: decodeURIComponent(button.dataset.name),
           price: Number(button.dataset.price)
         });
+        updateCartSummary();
+
+        if (resultsNote) {
+          resultsNote.textContent = `${decodeURIComponent(button.dataset.name)} a ete ajoute au panier.`;
+        }
       });
     });
   };
 
   search?.addEventListener("input", draw);
-  category?.addEventListener("change", draw);
+  category?.addEventListener("change", () => {
+    syncActiveChip(category.value || "");
+    draw();
+  });
+  sort?.addEventListener("change", draw);
+  updateCartSummary();
   draw();
 }
 
@@ -176,7 +382,13 @@ async function renderClientProductsPage() {
     renderCatalog(catalog.products, {
       gridId: "client-products-grid",
       searchId: "client-product-search",
-      categoryId: "client-category-filter"
+      categoryId: "client-category-filter",
+      sortId: "client-product-sort",
+      chipsId: "client-category-chips",
+      resultsCountId: "client-results-count",
+      resultsNoteId: "client-results-note",
+      cartCountId: "client-cart-count",
+      cartTotalId: "client-cart-total"
     });
   } catch (error) {
     showMessage("dashboard-message", "error", error.message);
@@ -561,8 +773,12 @@ function renderClientOrders(container, orders, bankAccounts) {
   if (!container) return;
   clientOrdersCache = orders;
   latestClientBankAccounts = bankAccounts;
+  const summaryContainer = document.getElementById("client-orders-summary");
 
   if (!orders.length) {
+    if (summaryContainer) {
+      summaryContainer.innerHTML = "";
+    }
     container.innerHTML = `<div class="empty-state"><h3>Pas encore de commande</h3><p>Ton historique apparaitra ici apres la premiere commande.</p></div>`;
     return;
   }
@@ -570,6 +786,40 @@ function renderClientOrders(container, orders, bankAccounts) {
   const activeOrders = orders.filter(order => !["cancelled", "completed"].includes(order.status));
   const archivedOrders = orders.filter(order => order.status === "completed");
   const rejectedOrders = orders.filter(order => order.status === "cancelled");
+  const paymentPendingOrders = orders.filter(order => order.status === "awaiting_payment").length;
+  const readyOrders = orders.filter(
+    order =>
+      order.status === "paid" &&
+      (order.order_type === "pickup" ||
+        ["pending_assignment", "assigned", "out_for_delivery", "delivered"].includes(order.delivery_status))
+  ).length;
+  const confirmedTotal = orders
+    .filter(order => ["paid", "completed"].includes(order.status))
+    .reduce((sum, order) => sum + Number(order.total || 0), 0);
+
+  if (summaryContainer) {
+    const stats = [
+      ["Total commandes", orders.length, "Toutes tes commandes depuis la creation du compte"],
+      ["En cours", activeOrders.length, "Validation, paiement, preparation ou livraison"],
+      ["Paiement requis", paymentPendingOrders, "Commandes validees qui attendent ton paiement"],
+      ["Pretes / confirmees", readyOrders, "QR ou livraison en preparation"],
+      ["Archivees", archivedOrders.length, "Commandes completees ou deja retirees"],
+      ["Refusees", rejectedOrders.length, "Aucun paiement requis pour ces commandes"],
+      ["Montant confirme", formatMoney(confirmedTotal), "Total des commandes deja confirmees"]
+    ];
+
+    summaryContainer.innerHTML = stats
+      .map(
+        ([label, value, text]) => `
+          <article class="client-stat-card client-orders-stat-card">
+            <small>${label}</small>
+            <h3>${value}</h3>
+            <p>${text}</p>
+          </article>
+        `
+      )
+      .join("");
+  }
 
   const renderOrderCard = order => `
             <article class="order-card client-order-card client-order-summary-card" onclick="openClientOrderDetail(${order.id})" role="button" tabindex="0">
@@ -585,12 +835,16 @@ function renderClientOrders(container, orders, bankAccounts) {
               </div>
               <div class="client-order-summary-grid">
                 <div class="client-meta-item">
-                  <small>${order.order_type === "delivery" ? "Mode" : "Point chaud"}</small>
-                  <strong>${order.order_type === "delivery" ? "Livraison" : order.location_name}</strong>
+                  <small>Mode</small>
+                  <strong>${order.order_type === "delivery" ? "Livraison" : "Retrait"}</strong>
                 </div>
                 <div class="client-meta-item">
-                  <small>${order.order_type === "delivery" ? "Adresse" : "Retrait"}</small>
-                  <strong>${order.order_type === "delivery" ? order.delivery_address || "Adresse non renseignee" : formatDateTime(order.pickup_date, order.pickup_time)}</strong>
+                  <small>${order.order_type === "delivery" ? "Adresse" : "Point chaud"}</small>
+                  <strong>${order.order_type === "delivery" ? order.delivery_address || "Adresse non renseignee" : order.location_name}</strong>
+                </div>
+                <div class="client-meta-item">
+                  <small>Retrait / livraison</small>
+                  <strong>${formatDateTime(order.pickup_date, order.pickup_time)}</strong>
                 </div>
                 <div class="client-meta-item">
                   <small>Resume</small>
@@ -599,6 +853,10 @@ function renderClientOrders(container, orders, bankAccounts) {
                 <div class="client-meta-item">
                   <small>Section</small>
                   <strong>${clientOrderSectionLabel(order)}</strong>
+                </div>
+                <div class="client-meta-item">
+                  <small>${order.order_type === "delivery" ? "Livraison" : "Validation"}</small>
+                  <strong>${order.order_type === "delivery" ? formatDeliveryStatusLabel(order.delivery_status) : order.validator_name || "En attente"}</strong>
                 </div>
               </div>
               <div class="client-order-note compact">
@@ -734,7 +992,7 @@ async function renderCheckoutPage() {
       const enough = Number(locationStock) >= Number(item.quantity);
 
       return `
-        <div class="line-item">
+        <div class="line-item client-checkout-stock-item">
           <strong>${item.name}</strong>
           <span>${item.quantity} demande(s)</span>
           <small class="${enough ? "muted" : "text-danger"}">
@@ -791,11 +1049,14 @@ async function renderCheckoutPage() {
       bankAccountsBox.innerHTML = catalog.bankAccounts
         .map(
           account => `
-            <div class="line-item">
-              <strong>${account.bank_name}</strong>
+            <article class="client-payment-account-card">
+              <div class="client-payment-account-head">
+                <strong>${account.bank_name}</strong>
+                <span class="badge">${account.account_type || "Paiement"}</span>
+              </div>
               <span>${account.account_name}</span>
               <small>${account.account_number}</small>
-            </div>
+            </article>
           `
         )
         .join("");
@@ -807,10 +1068,30 @@ async function renderCheckoutPage() {
   if (cartPreview) {
     const cart = getCart();
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const totalItems = cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
     cartPreview.innerHTML = cart.length
       ? cart
-          .map(item => `<div class="line-item">${item.name} x ${item.quantity} - ${formatMoney(item.price)}</div>`)
-          .join("") + `<div class="line-item"><strong>Total: ${formatMoney(total)}</strong></div>`
+          .map(
+            item => `
+              <article class="line-item client-checkout-cart-item">
+                <div>
+                  <strong>${item.name}</strong>
+                  <small>${item.quantity} article${Number(item.quantity) > 1 ? "s" : ""}</small>
+                </div>
+                <span>${formatMoney(item.price * item.quantity)}</span>
+              </article>
+            `
+          )
+          .join("") +
+        `
+          <article class="line-item client-checkout-cart-total">
+            <div>
+              <strong>Total commande</strong>
+              <small>${totalItems} article${totalItems > 1 ? "s" : ""}</small>
+            </div>
+            <span class="price">${formatMoney(total)}</span>
+          </article>
+        `
       : `<div class="empty-state"><p>Le panier est vide.</p></div>`;
   }
 
@@ -925,6 +1206,28 @@ async function renderClientProfilePage() {
     document.querySelectorAll("[data-client-avatar]").forEach(element => {
       element.textContent = getClientInitials(profile.name);
     });
+
+    const summaryName = document.getElementById("client-profile-summary-name");
+    const summaryEmail = document.getElementById("client-profile-summary-email");
+    const summaryPhone = document.getElementById("client-profile-summary-phone");
+    const bioPreview = document.getElementById("client-profile-bio-preview");
+    const bioSummary = document.getElementById("client-profile-bio-summary");
+    const contactSummary = document.getElementById("client-profile-contact-summary");
+
+    if (summaryName) summaryName.textContent = profile.name || "Client";
+    if (summaryEmail) summaryEmail.textContent = profile.email || "Email non renseigne";
+    if (summaryPhone) summaryPhone.textContent = profile.phone || "Telephone non renseigne";
+    if (bioPreview) {
+      bioPreview.textContent = profile.bio || "Ajoute une courte bio pour aider l'equipe a mieux te reconnaitre.";
+    }
+    if (bioSummary) {
+      bioSummary.textContent = profile.bio || "Une courte note peut aider l'equipe a mieux te servir.";
+    }
+    if (contactSummary) {
+      contactSummary.textContent = profile.phone
+        ? `${profile.email || "Email non renseigne"} • ${profile.phone}`
+        : `${profile.email || "Email non renseigne"} • Telephone a completer`;
+    }
   } catch (error) {
     showMessage("profile-message", "error", error.message);
   }

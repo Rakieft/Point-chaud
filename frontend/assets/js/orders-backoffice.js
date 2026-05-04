@@ -33,12 +33,12 @@ function renderOrdersTable(orders) {
     ? orders
         .map(
           order => `
-            <tr>
-              <td><strong>#${order.id}</strong></td>
-              <td>${order.customer_name}</td>
-              <td>${order.location_name}</td>
-              <td>${formatDateTime(order.pickup_date, order.pickup_time)}</td>
-              <td>
+            <tr class="admin-mobile-row">
+              <td data-label="Commande"><strong>#${order.id}</strong></td>
+              <td data-label="Client">${order.customer_name}</td>
+              <td data-label="Point chaud">${order.location_name}</td>
+              <td data-label="Retrait">${formatDateTime(order.pickup_date, order.pickup_time)}</td>
+              <td data-label="Statut">
                 <div class="admin-status-stack">
                   <span class="status ${order.status}">${backofficeStatusLabel(order.status)}</span>
                   ${
@@ -48,7 +48,7 @@ function renderOrdersTable(orders) {
                   }
                 </div>
               </td>
-              <td>
+              <td data-label="Actions">
                 <div class="admin-action-group">
                   ${
                     currentOrdersGroup() === "pending" && order.status === "pending_validation"
@@ -73,7 +73,7 @@ function renderOrdersTable(orders) {
         .join("")
     : `
       <tr>
-        <td colspan="6">
+        <td colspan="6" class="admin-table-empty">
           <div class="empty-state"><p>Aucune commande dans cette categorie.</p></div>
         </td>
       </tr>

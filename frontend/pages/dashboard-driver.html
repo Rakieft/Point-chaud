@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Livreur | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="admin-body">
+    <div class="admin-layout">
+      <div id="admin-sidebar-overlay" class="admin-sidebar-overlay"></div>
+      <aside id="admin-sidebar" class="admin-sidebar">
+        <div class="admin-logo-block">
+          <div class="admin-logo-mark">PC</div>
+          <div>
+            <strong>Point Chaud</strong>
+            <p>Espace livreur</p>
+          </div>
+          <button id="admin-menu-close" class="admin-menu-close" type="button">Fermer</button>
+        </div>
+        <nav class="admin-nav">
+          <a class="driver-only active" href="./dashboard-driver.html">Accueil livreur</a>
+          <a class="driver-only" href="./deliveries.html">Journal de route</a>
+          <a class="driver-only" href="./driver-profile.html">Mon profil</a>
+
+          <a class="driver-hidden" href="./dashboard-admin.html">Dashboard</a>
+          <a class="driver-hidden" href="./products.html">Produits</a>
+          <a class="driver-hidden" href="./orders-pending.html">Commandes</a>
+          <a class="driver-hidden" href="./deliveries.html">Livraisons</a>
+          <a class="driver-hidden" href="./cashier.html">Caisse & scan</a>
+          <a class="driver-hidden" href="./staff-profile.html">Utilisateurs</a>
+          <a class="driver-hidden" href="./orders-pending.html#payments-section">Paiements</a>
+          <a class="driver-hidden" href="./reports.html">Rapports</a>
+          <a class="admin-only" href="./analytics.html">Analyse Data</a>
+          <button onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
+
+      <main class="admin-main">
+        <header class="admin-header">
+          <button id="admin-menu-toggle" class="admin-menu-toggle" type="button">Menu</button>
+          <div>
+            <p class="admin-eyebrow">Dashboard livreur</p>
+            <h1>Mes livraisons du moment</h1>
+          </div>
+          <div class="admin-user-chip">
+            <div id="admin-avatar" class="admin-avatar">L</div>
+            <div>
+              <strong id="admin-name">Livreur</strong>
+              <small id="admin-role-label">Livreur</small>
+            </div>
+          </div>
+        </header>
+
+        <section class="admin-content">
+          <div id="driver-dashboard-message" class="message-box"></div>
+
+          <section class="admin-hero admin-subhero driver-hero">
+            <div class="driver-hero-copy">
+              <span class="badge admin-badge">Mission terrain</span>
+              <h2>Ton espace de route pour livrer vite, proprement et sans confusion.</h2>
+              <p>
+                Le dashboard livreur rassemble uniquement ce qui t'aide a travailler: prochaine course,
+                commandes actives, contact client et actions immediates.
+              </p>
+              <div class="driver-hero-pills">
+                <span>Prochaine livraison</span>
+                <span>Client joignable</span>
+                <span>Suivi en direct</span>
+              </div>
+            </div>
+            <div class="driver-hero-stack">
+              <div class="admin-hero-panel driver-hero-panel-main">
+                <small>Mission du jour</small>
+                <strong id="driver-branch-label">Succursale non definie</strong>
+                <p id="driver-hero-note">Connecte-toi pour voir les livraisons qui te sont affectees.</p>
+              </div>
+              <div class="driver-hero-mini-grid">
+                <article class="driver-hero-mini-card">
+                  <small>Vue rapide</small>
+                  <strong>Priorites claires</strong>
+                  <p>Les actions les plus urgentes restent visibles en premier.</p>
+                </article>
+                <article class="driver-hero-mini-card">
+                  <small>Mobile</small>
+                  <strong>Parfait en deplacement</strong>
+                  <p>Les cartes et boutons sont concus pour etre utilises sur telephone.</p>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section id="driver-stats" class="admin-stats-grid"></section>
+
+          <section class="driver-nav-strip">
+            <a class="btn btn-light" href="./deliveries.html">Ouvrir mon journal de route</a>
+            <a class="btn btn-light" href="./driver-profile.html">Modifier mon profil</a>
+          </section>
+
+          <section class="admin-grid-2 driver-dashboard-grid">
+            <section class="admin-panel driver-focus-panel">
+              <div class="admin-section-head">
+                <div>
+                  <p class="admin-eyebrow">Priorite</p>
+                  <h2>Ma prochaine livraison</h2>
+                </div>
+              </div>
+              <div id="driver-next-delivery"></div>
+            </section>
+
+            <section class="admin-panel">
+              <div class="admin-section-head">
+                <div>
+                  <p class="admin-eyebrow">Raccourcis utiles</p>
+                  <h2>Actions terrain</h2>
+                </div>
+              </div>
+              <div id="driver-quick-actions" class="admin-driver-grid"></div>
+            </section>
+          </section>
+
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">En cours</p>
+                <h2>Mes livraisons actives</h2>
+              </div>
+            </div>
+            <div id="driver-active-deliveries" class="admin-payment-grid"></div>
+          </section>
+
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Historique</p>
+                <h2>Dernieres livraisons terminees</h2>
+              </div>
+            </div>
+            <div id="driver-completed-deliveries" class="admin-payment-grid"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="order-detail-modal" class="admin-modal hidden">
+      <div class="admin-modal-backdrop" onclick="closeOrderDetail()"></div>
+      <div class="admin-modal-card">
+        <div class="admin-modal-head">
+          <div>
+            <p class="admin-eyebrow">Detail commande</p>
+            <h2 id="modal-order-title">Commande</h2>
+          </div>
+          <button class="btn-light" type="button" onclick="closeOrderDetail()">Fermer</button>
+        </div>
+        <div id="order-detail-content"></div>
+      </div>
+    </div>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/backoffice-common.js"></script>
+    <script src="../assets/js/dashboard-driver.js"></script>
+  </body>
+</html>

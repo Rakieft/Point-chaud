@@ -1,5 +1,34 @@
 let adminProductsCatalog = null;
 
+function getCategoryFormElements() {
+  const form = document.getElementById("category-form");
+  if (!form) return { form: null };
+
+  return {
+    form,
+    categoryId: form.elements.namedItem("category_id"),
+    name: form.elements.namedItem("name"),
+    submit: document.getElementById("category-form-submit"),
+    cancel: document.getElementById("category-form-cancel")
+  };
+}
+
+function getProductFormElements() {
+  const form = document.getElementById("product-form");
+  if (!form) return { form: null };
+
+  return {
+    form,
+    productId: form.elements.namedItem("product_id"),
+    name: form.elements.namedItem("name"),
+    description: form.elements.namedItem("description"),
+    price: form.elements.namedItem("price"),
+    stock: form.elements.namedItem("stock"),
+    image: form.elements.namedItem("image"),
+    categoryId: form.elements.namedItem("category_id")
+  };
+}
+
 function showAdminProductsView() {
   const publicView = document.getElementById("public-products-view");
   const adminView = document.getElementById("admin-products-view");
@@ -56,13 +85,56 @@ function fillAdminCategoryOptions(categories) {
     .join("");
 }
 
+function renderAdminCategoriesList(categories) {
+  const container = document.getElementById("admin-categories-list");
+  if (!container) return;
+
+  const isAdmin = storage.user?.role === "admin";
+  container.innerHTML = categories.length
+    ? categories
+        .map(
+          category => `
+            <article class="admin-category-chip">
+              <div class="stack-sm">
+                <strong>${category.name}</strong>
+                <small class="muted">ID categorie: ${category.id}</small>
+              </div>
+              ${
+                isAdmin
+                  ? `
+                    <div class="admin-action-group">
+                      <button class="btn-light" type="button" onclick="editCategory(${category.id})">Modifier</button>
+                      <button class="admin-btn-danger" type="button" onclick="deleteCategory(${category.id})">Supprimer</button>
+                    </div>
+                  `
+                  : ""
+              }
+            </article>
+          `
+        )
+        .join("")
+    : `<div class="empty-state"><p>Aucune categorie pour le moment.</p></div>`;
+}
+
+function resetCategoryForm() {
+  const { form, categoryId, submit, cancel } = getCategoryFormElements();
+  if (!form) return;
+
+  form.reset();
+  if (categoryId) categoryId.value = "";
+  if (submit) submit.textContent = "Ajouter la categorie";
+  if (cancel) cancel.style.display = "none";
+}
+
 function resetProductForm() {
-  const form = document.getElementById("product-form");
+  const { form, productId } = getProductFormElements();
   const title = document.getElementById("product-form-title");
   if (!form) return;
 
   form.reset();
-  form.product_id.value = "";
+  if (productId) {
+    productId.value = "";
+  }
   renderLocationStockInputs(adminProductsCatalog?.locations || []);
   if (title) {
     title.textContent = "Nouveau produit";
@@ -78,16 +150,16 @@ function renderAdminProductsTable(products) {
   tbody.innerHTML = products
     .map(
       product => `
-        <tr>
-          <td>
+        <tr class="admin-mobile-row">
+          <td data-label="Produit">
             <strong>${product.name}</strong>
             <div><small>${product.description || "Sans description"}</small></div>
           </td>
-          <td>${product.category_name || "Sans categorie"}</td>
-          <td>${formatMoney(product.price)}</td>
-          <td>${product.stock}</td>
-          <td>${(product.location_stocks || []).map(item => `${item.location_name}: ${item.stock}`).join("<br>")}</td>
-          <td>
+          <td data-label="Categorie">${product.category_name || "Sans categorie"}</td>
+          <td data-label="Prix">${formatMoney(product.price)}</td>
+          <td data-label="Stock total">${product.stock}</td>
+          <td data-label="Par succursale">${(product.location_stocks || []).map(item => `${item.location_name}: ${item.stock}`).join("<br>")}</td>
+          <td data-label="Actions">
             <div class="admin-action-group">
               ${
                 isAdmin
@@ -118,6 +190,7 @@ async function renderAdminProductsPage() {
     const catalog = await apiRequest("/products");
     adminProductsCatalog = catalog;
     fillAdminCategoryOptions(catalog.categories);
+    renderAdminCategoriesList(catalog.categories);
     renderLocationStockInputs(catalog.locations);
     renderAdminProductsTable(catalog.products);
 
@@ -138,24 +211,27 @@ async function renderAdminProductsPage() {
 }
 
 function editProduct(productId) {
-  const product = adminProductsCatalog?.products.find(item => item.id === productId);
-  const form = document.getElementById("product-form");
+  const product = adminProductsCatalog?.products.find(item => Number(item.id) === Number(productId));
+  const { form, productId: productIdInput, name, description, price, stock, image, categoryId } =
+    getProductFormElements();
   const title = document.getElementById("product-form-title");
 
   if (!product || !form || storage.user?.role !== "admin") return;
 
-  form.product_id.value = product.id;
-  form.name.value = product.name || "";
-  form.description.value = product.description || "";
-  form.price.value = product.price || "";
-  form.stock.value = product.stock || 0;
-  form.image.value = product.image || "";
-  form.category_id.value = product.category_id;
+  if (productIdInput) productIdInput.value = product.id;
+  if (name) name.value = product.name || "";
+  if (description) description.value = product.description || "";
+  if (price) price.value = product.price || "";
+  if (stock) stock.value = product.stock || 0;
+  if (image) image.value = product.image || "";
+  if (categoryId) categoryId.value = product.category_id;
   renderLocationStockInputs(adminProductsCatalog?.locations || [], product);
 
   if (title) {
     title.textContent = `Modifier ${product.name}`;
   }
+
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function deleteProduct(productId) {
@@ -174,34 +250,54 @@ async function deleteProduct(productId) {
 }
 
 function bindCategoryForm() {
-  const form = document.getElementById("category-form");
-  if (!form || storage.user?.role !== "admin") return;
+  const { form, cancel } = getCategoryFormElements();
+  if (!form || form.dataset.bound === "true") return;
 
   form.addEventListener("submit", async event => {
     event.preventDefault();
+    if (storage.user?.role !== "admin") return;
     const payload = Object.fromEntries(new FormData(form).entries());
+    const currentCategoryId = payload.category_id;
+    delete payload.category_id;
 
     try {
-      const data = await apiRequest("/products/categories", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-      form.reset();
+      const data = currentCategoryId
+        ? await apiRequest(`/products/categories/${currentCategoryId}`, {
+            method: "PATCH",
+            body: JSON.stringify(payload)
+          })
+        : await apiRequest("/products/categories", {
+            method: "POST",
+            body: JSON.stringify(payload)
+          });
+
       showMessage("product-admin-message", "success", data.message);
-      renderAdminProductsPage();
+      await renderAdminProductsPage();
+      resetCategoryForm();
+
+      const { categoryId } = getProductFormElements();
+      if (categoryId && data.category?.id) {
+        categoryId.value = String(data.category.id);
+      }
     } catch (error) {
       showMessage("product-admin-message", "error", error.message);
     }
   });
+
+  cancel?.addEventListener("click", resetCategoryForm);
+  if (cancel) cancel.style.display = "none";
+  form.dataset.bound = "true";
 }
 
 function bindProductForm() {
-  const form = document.getElementById("product-form");
+  const { form, productId } = getProductFormElements();
   const cancelBtn = document.getElementById("product-form-cancel");
-  if (!form || storage.user?.role !== "admin") return;
+  if (!form || form.dataset.bound === "true") return;
 
   form.addEventListener("submit", async event => {
     event.preventDefault();
+    if (storage.user?.role !== "admin") return;
+
     const payload = Object.fromEntries(new FormData(form).entries());
     payload.location_stocks = JSON.stringify(
       (adminProductsCatalog?.locations || []).map(location => ({
@@ -211,33 +307,68 @@ function bindProductForm() {
         )
       }))
     );
-    const productId = payload.product_id;
+    const currentProductId = payload.product_id;
     delete payload.product_id;
 
     try {
-      if (productId) {
-        const data = await apiRequest(`/products/${productId}`, {
+      if (currentProductId) {
+        const data = await apiRequest(`/products/${currentProductId}`, {
           method: "PATCH",
           body: JSON.stringify(payload)
         });
         showMessage("product-admin-message", "success", data.message);
       } else {
-        await apiRequest("/products", {
+        const data = await apiRequest("/products", {
           method: "POST",
           body: JSON.stringify(payload)
         });
-        showMessage("product-admin-message", "success", "Produit ajoute avec succes");
+        showMessage("product-admin-message", "success", data.message || "Produit ajoute avec succes");
       }
 
       resetProductForm();
-      renderAdminProductsPage();
+      await renderAdminProductsPage();
     } catch (error) {
       showMessage("product-admin-message", "error", error.message);
     }
   });
 
   cancelBtn?.addEventListener("click", resetProductForm);
+  form.dataset.bound = "true";
 }
+
+window.editProduct = editProduct;
+window.deleteProduct = deleteProduct;
+
+function editCategory(categoryId) {
+  const category = adminProductsCatalog?.categories.find(item => Number(item.id) === Number(categoryId));
+  const { form, categoryId: categoryIdInput, name, submit, cancel } = getCategoryFormElements();
+  if (!category || !form || storage.user?.role !== "admin") return;
+
+  if (categoryIdInput) categoryIdInput.value = category.id;
+  if (name) name.value = category.name || "";
+  if (submit) submit.textContent = `Modifier ${category.name}`;
+  if (cancel) cancel.style.display = "";
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function deleteCategory(categoryId) {
+  if (storage.user?.role !== "admin") return;
+  if (!confirm("Supprimer cette categorie si elle est vide ?")) return;
+
+  try {
+    const data = await apiRequest(`/products/categories/${categoryId}`, {
+      method: "DELETE"
+    });
+    showMessage("product-admin-message", "success", data.message);
+    await renderAdminProductsPage();
+    resetCategoryForm();
+  } catch (error) {
+    showMessage("product-admin-message", "error", error.message);
+  }
+}
+
+window.editCategory = editCategory;
+window.deleteCategory = deleteCategory;
 
 document.addEventListener("DOMContentLoaded", async () => {
   await renderAdminProductsPage();

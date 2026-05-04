@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 760" role="img" aria-labelledby="title desc">
+  <title id="title">Hero Point Chaud</title>
+  <desc id="desc">Composition gourmande premium avec plateau, sandwich, croissant, pate, boisson et elements de service Point Chaud.</desc>
+  <defs>
+    <linearGradient id="boardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff7ef"/>
+      <stop offset="100%" stop-color="#ffd8b3"/>
+    </linearGradient>
+    <linearGradient id="breadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f9cf86"/>
+      <stop offset="100%" stop-color="#d68734"/>
+    </linearGradient>
+    <linearGradient id="breadDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e7a754"/>
+      <stop offset="100%" stop-color="#b7681f"/>
+    </linearGradient>
+    <linearGradient id="pizzaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd870"/>
+      <stop offset="100%" stop-color="#ff9a3d"/>
+    </linearGradient>
+    <linearGradient id="cupGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9c301f"/>
+      <stop offset="100%" stop-color="#5d1d14"/>
+    </linearGradient>
+    <linearGradient id="juiceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffbe4a"/>
+      <stop offset="100%" stop-color="#ff7f2d"/>
+    </linearGradient>
+    <filter id="shadowSoft" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="24" stdDeviation="20" flood-color="#8e4f20" flood-opacity="0.18"/>
+    </filter>
+    <filter id="shadowTiny" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#8e4f20" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <ellipse cx="482" cy="656" rx="288" ry="48" fill="#e8cdb6" opacity=".55"/>
+  <ellipse cx="704" cy="610" rx="120" ry="26" fill="#f1d9c3" opacity=".6"/>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="154" y="232" width="514" height="288" rx="82" transform="rotate(-8 154 232)" fill="url(#boardGrad)"/>
+    <rect x="174" y="252" width="474" height="248" rx="68" transform="rotate(-8 174 252)" fill="#fffdf9" opacity=".78"/>
+  </g>
+
+  <g transform="translate(176 182) rotate(-8 250 170)" filter="url(#shadowTiny)">
+    <rect x="48" y="120" width="286" height="152" rx="76" fill="url(#breadGrad)"/>
+    <rect x="76" y="148" width="232" height="96" rx="48" fill="#f3b85f"/>
+    <rect x="86" y="180" width="214" height="24" rx="12" fill="#7ec35f"/>
+    <rect x="86" y="208" width="214" height="18" rx="9" fill="#d34735"/>
+    <rect x="86" y="230" width="184" height="15" rx="7.5" fill="#f6ead6"/>
+    <path d="M114 136c18-15 34-22 52-26" fill="none" stroke="#ffe9c8" stroke-linecap="round" stroke-width="10"/>
+    <path d="M184 124c18-10 34-15 52-18" fill="none" stroke="#ffe9c8" stroke-linecap="round" stroke-width="10"/>
+    <path d="M252 126c12-6 22-10 36-12" fill="none" stroke="#ffe9c8" stroke-linecap="round" stroke-width="10"/>
+  </g>
+
+  <g transform="translate(570 170)" filter="url(#shadowSoft)">
+    <path d="M86 42c50 0 98 38 98 96 0 62-56 106-126 106C-18 244-72 210-72 154c0-68 67-112 158-112Z" fill="url(#breadGrad)"/>
+    <path d="M-18 160c52-58 96-84 162-90 22 17 36 42 36 70 0 62-54 104-122 104-62 0-112-28-138-74 18 4 38 6 62 6Z" fill="url(#breadDark)"/>
+    <path d="M0 154c28-28 60-48 106-66" fill="none" stroke="#fff1d7" stroke-linecap="round" stroke-width="12"/>
+    <path d="M52 180c26-20 58-38 96-48" fill="none" stroke="#fff1d7" stroke-linecap="round" stroke-width="12"/>
+  </g>
+
+  <g transform="translate(600 396) rotate(14 92 96)" filter="url(#shadowTiny)">
+    <path d="M12 12h164l-56 156c-4 11-14 18-26 18H54c-12 0-22-8-26-20L12 12Z" fill="url(#pizzaGrad)"/>
+    <path d="M34 40h118l-34 102H68L34 40Z" fill="#ffb94d"/>
+    <circle cx="72" cy="72" r="12" fill="#bc2e21"/>
+    <circle cx="116" cy="58" r="11" fill="#bc2e21"/>
+    <circle cx="92" cy="108" r="12" fill="#bc2e21"/>
+    <circle cx="52" cy="108" r="9" fill="#d44e2c"/>
+    <circle cx="132" cy="94" r="8" fill="#d44e2c"/>
+    <path d="M48 68c12 8 24 16 34 28" fill="none" stroke="#7cc261" stroke-linecap="round" stroke-width="8"/>
+    <path d="M100 84c14 6 24 14 34 24" fill="none" stroke="#7cc261" stroke-linecap="round" stroke-width="8"/>
+  </g>
+
+  <g transform="translate(686 394)" filter="url(#shadowTiny)">
+    <rect x="0" y="56" width="102" height="146" rx="22" fill="url(#cupGrad)"/>
+    <rect x="10" y="68" width="82" height="102" rx="16" fill="#d96f2f"/>
+    <path d="M100 82h22c24 0 34 14 34 38 0 25-10 38-34 38h-22" fill="none" stroke="#7b2919" stroke-linecap="round" stroke-width="15"/>
+    <path d="M28 28c0-16 10-24 20-38" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="9" opacity=".86"/>
+    <path d="M58 22c0-14 9-22 18-34" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="9" opacity=".78"/>
+  </g>
+
+  <g transform="translate(502 472)" filter="url(#shadowTiny)">
+    <rect x="0" y="30" width="76" height="110" rx="24" fill="#fff8ef"/>
+    <rect x="10" y="40" width="56" height="82" rx="18" fill="url(#juiceGrad)"/>
+    <path d="M38 0v40" fill="none" stroke="#ff9b39" stroke-width="7" stroke-linecap="round"/>
+    <path d="M38 0c14 8 22 12 30 12" fill="none" stroke="#ffcf77" stroke-width="6" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(218 86)" filter="url(#shadowTiny)">
+    <rect x="0" y="0" width="190" height="100" rx="28" fill="#ffffff" opacity=".96"/>
+    <rect x="22" y="22" width="54" height="54" rx="18" fill="#fff4e8"/>
+    <circle cx="49" cy="49" r="19" fill="#ff3a2f"/>
+    <text x="94" y="42" font-family="Segoe UI, Arial, sans-serif" font-size="21" font-weight="800" fill="#7f1d1d">POINT CHAUD</text>
+    <text x="94" y="67" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#7a675b">Pain chaud • Pates • Pizza</text>
+  </g>
+
+  <g transform="translate(472 124)" opacity=".82">
+    <circle cx="0" cy="0" r="14" fill="#ffcc6f"/>
+    <circle cx="40" cy="30" r="8" fill="#ff9a52"/>
+    <circle cx="72" cy="2" r="10" fill="#ffd48e"/>
+  </g>
+</svg>

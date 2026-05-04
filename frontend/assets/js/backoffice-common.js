@@ -1,5 +1,36 @@
 let backofficeCurrentUser = null;
 
+function initializeBackofficeMobileMenu() {
+  const toggle = document.getElementById("admin-menu-toggle");
+  const close = document.getElementById("admin-menu-close");
+  const sidebar = document.getElementById("admin-sidebar");
+  const overlay = document.getElementById("admin-sidebar-overlay");
+
+  if (!toggle || !close || !sidebar || !overlay) return;
+
+  const openMenu = () => {
+    sidebar.classList.add("open");
+    overlay.classList.add("visible");
+    document.body.classList.add("admin-menu-open");
+  };
+
+  const closeMenu = () => {
+    sidebar.classList.remove("open");
+    overlay.classList.remove("visible");
+    document.body.classList.remove("admin-menu-open");
+  };
+
+  toggle.addEventListener("click", openMenu);
+  close.addEventListener("click", closeMenu);
+  overlay.addEventListener("click", closeMenu);
+
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 1100) {
+      closeMenu();
+    }
+  });
+}
+
 function backofficeStatusLabel(status) {
   const labels = {
     pending_validation: "En attente",
@@ -37,6 +68,8 @@ async function loadBackofficeUser() {
   const user = requireAuth(["manager", "admin", "driver"]);
   if (!user) return null;
 
+  initializeBackofficeMobileMenu();
+
   const profile = await apiRequest("/users/me");
   backofficeCurrentUser = profile;
   storage.user = profile;
@@ -57,6 +90,14 @@ async function loadBackofficeUser() {
   });
 
   document.querySelectorAll(".driver-hidden").forEach(element => {
+    element.style.display = profile.role === "driver" ? "none" : "";
+  });
+
+  document.querySelectorAll(".driver-only").forEach(element => {
+    element.style.display = profile.role === "driver" ? "" : "none";
+  });
+
+  document.querySelectorAll(".manager-admin-only").forEach(element => {
     element.style.display = profile.role === "driver" ? "none" : "";
   });
 

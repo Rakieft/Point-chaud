@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Commande & Paiement | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body class="client-body" data-client-page="checkout">
@@ -56,40 +59,93 @@
         <section class="client-main-content">
           <div id="checkout-message" class="message-box"></div>
 
-          <section class="client-hero client-checkout-hero">
-            <div class="client-hero-copy">
+          <section class="catalog-hero client-catalog-hero client-checkout-hero">
+            <div class="catalog-hero-copy">
               <span class="badge client-badge">Processus guide</span>
               <h2>Commande d'abord, paiement apres validation</h2>
               <p>
                 Choisis ton point chaud, l'heure de retrait et les details utiles. Le paiement ne doit etre
                 effectue qu'apres validation du manager.
               </p>
+              <div class="hero-highlights">
+                <span>Retrait ou livraison</span>
+                <span>Validation manager</span>
+                <span>Paiement apres accord</span>
+              </div>
             </div>
-            <div class="client-hero-panel">
-              <small>Rappel important</small>
-              <ol class="client-timeline">
-                <li>Envoyer la commande</li>
-                <li>Attendre la validation</li>
-                <li>Effectuer le paiement</li>
-                <li>Envoyer la preuve</li>
-                <li>Recevoir le QR code</li>
-              </ol>
+            <div class="catalog-hero-side">
+              <div class="catalog-mini-summary client-checkout-progress-card">
+                <small>Rappel important</small>
+                <strong>Ton parcours client</strong>
+                <ol class="client-checkout-progress-list">
+                  <li>Envoyer la commande</li>
+                  <li>Attendre la validation</li>
+                  <li>Effectuer le paiement</li>
+                  <li>Envoyer la preuve</li>
+                  <li>Recevoir le QR code</li>
+                </ol>
+              </div>
             </div>
           </section>
 
-          <div class="checkout-grid">
-            <article class="panel client-panel">
-              <h3>Panier actuel</h3>
-              <div id="checkout-cart-preview"></div>
-              <div class="client-order-note" style="margin-top:16px;">
-                <strong>Disponibilite par succursale</strong>
-                <p>Le stock ci-dessous sera verifie selon le point chaud choisi avant l'envoi de la commande.</p>
-              </div>
-              <div id="checkout-location-stock-preview" class="stack-sm"></div>
-            </article>
+          <div class="checkout-grid client-checkout-grid">
+            <div class="client-side-stack client-checkout-side">
+              <article class="cart-card client-panel client-checkout-preview-panel">
+                <div class="section-head">
+                  <div>
+                    <p class="admin-eyebrow">Panier actuel</p>
+                    <h3>Resume de tes produits</h3>
+                  </div>
+                  <a class="btn btn-light" href="./client-cart.html">Modifier le panier</a>
+                </div>
+                <div id="checkout-cart-preview"></div>
+              </article>
 
-            <article class="panel client-panel">
-              <h3>Informations de retrait</h3>
+              <article class="cart-card client-panel client-checkout-stock-panel">
+                <div class="stack-sm">
+                  <div>
+                    <p class="admin-eyebrow">Verification stock</p>
+                    <h3>Disponibilite par succursale</h3>
+                  </div>
+                  <p class="muted">
+                    Le stock affiche ici est controle selon le point chaud choisi avant l'envoi de la commande.
+                  </p>
+                </div>
+                <div id="checkout-location-stock-preview" class="stack-sm"></div>
+              </article>
+
+              <article class="cart-card client-panel client-checkout-helper-panel">
+                <div class="stack-sm">
+                  <div>
+                    <p class="admin-eyebrow">Bon a savoir</p>
+                    <h3>Comment eviter les erreurs</h3>
+                  </div>
+                  <div class="client-helper-list">
+                    <div class="client-helper-item">
+                      <strong>Choisis le bon point chaud</strong>
+                      <p>La validation et le stock dependent de la succursale selectionnee.</p>
+                    </div>
+                    <div class="client-helper-item">
+                      <strong>Ne paie qu'apres validation</strong>
+                      <p>Le paiement ne doit jamais etre envoye tant que la commande n'est pas validee.</p>
+                    </div>
+                    <div class="client-helper-item">
+                      <strong>Garde une heure realiste</strong>
+                      <p>Choisis une heure qui laisse au point chaud le temps de preparer la commande.</p>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <article class="cart-card client-panel client-checkout-form-panel">
+              <div class="section-head">
+                <div>
+                  <p class="admin-eyebrow">Informations</p>
+                  <h3>Finaliser la commande</h3>
+                </div>
+                <span class="badge">Etape principale</span>
+              </div>
               <form id="checkout-order-form" class="stack">
                 <label>
                   Mode de commande
@@ -133,22 +189,30 @@
             </article>
           </div>
 
-          <div class="section-head" style="margin-top: 8px">
+          <div class="section-head client-checkout-payment-head">
             <div>
               <h2>Envoyer une preuve de paiement</h2>
               <p>Utilise cette section uniquement quand une commande a deja ete validee.</p>
             </div>
           </div>
 
-          <div class="checkout-grid">
-            <article class="panel client-panel">
-              <h3>Comptes et methodes</h3>
+          <div class="checkout-grid client-checkout-grid client-checkout-payment-grid">
+            <article class="cart-card client-panel client-checkout-payment-info-panel">
+              <div class="section-head">
+                <div>
+                  <p class="admin-eyebrow">Paiement</p>
+                  <h3>Comptes et methodes</h3>
+                </div>
+              </div>
               <div id="bank-accounts"></div>
             </article>
 
-            <article class="panel client-panel">
+            <article class="cart-card client-panel client-checkout-proof-panel">
               <div id="payment-message" class="message-box"></div>
-              <p>Commande cible: <strong id="order-id">Selectionnez une commande depuis Mes commandes</strong></p>
+              <div class="client-checkout-order-target">
+                <small>Commande cible</small>
+                <strong id="order-id">Selectionnez une commande depuis Mes commandes</strong>
+              </div>
               <form id="payment-form" class="stack" enctype="multipart/form-data">
                 <label>
                   Methode de paiement

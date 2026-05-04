@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Catalogue | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body>
@@ -21,22 +24,64 @@
 
       <main class="page-shell">
         <section class="container">
-          <div class="section-head">
-            <div>
-              <h1>Catalogue de produits</h1>
-              <p>Choisis tes produits, puis ajoute-les au panier pour passer commande.</p>
+          <section class="catalog-hero public-catalog-hero">
+            <div class="catalog-hero-copy">
+              <span class="badge">Catalogue gourmand</span>
+              <h1>Choisis ton envie du moment.</h1>
+              <p>
+                Pains chauds, pates, pizzas, burgers, plats chauds et boissons. Parcours le menu, filtre
+                rapidement et ajoute tes produits au panier en quelques secondes.
+              </p>
+              <div class="catalog-hero-highlights">
+                <span>Produits frais</span>
+                <span>Paiement apres validation</span>
+                <span>Retrait securise ou livraison</span>
+              </div>
             </div>
-            <a class="btn btn-primary" href="./cart.html">Voir le panier</a>
-          </div>
+            <div class="catalog-hero-side">
+              <div class="catalog-mini-summary">
+                <small>Panier en cours</small>
+                <strong id="public-cart-count">0 article</strong>
+                <span id="public-cart-total">0,00 HTG</span>
+                <a class="btn btn-primary" href="./cart.html">Voir le panier</a>
+              </div>
+            </div>
+          </section>
 
-          <div class="filters">
-            <input id="product-search" type="search" placeholder="Rechercher un produit" />
-            <select id="category-filter">
-              <option value="">Toutes les categories</option>
-            </select>
-          </div>
+          <section class="panel catalog-panel">
+            <div class="section-head">
+              <div>
+                <h2>Explorer les produits</h2>
+                <p>Recherche, categories rapides et tri pour commander plus vite.</p>
+              </div>
+            </div>
 
-          <div id="products-grid" class="catalog-grid"></div>
+            <div class="filters catalog-filters">
+              <input id="product-search" type="search" placeholder="Rechercher un produit ou une envie" />
+              <select id="category-filter">
+                <option value="">Toutes les categories</option>
+              </select>
+              <select id="product-sort">
+                <option value="featured">Trier: suggestions</option>
+                <option value="price-asc">Prix croissant</option>
+                <option value="price-desc">Prix decroissant</option>
+                <option value="name-asc">Nom A-Z</option>
+                <option value="stock-desc">Plus disponibles</option>
+              </select>
+            </div>
+
+            <div id="public-category-chips" class="category-chips"></div>
+
+            <div class="catalog-toolbar">
+              <div class="catalog-results-copy">
+                <strong id="public-results-count">0 produit</strong>
+                <span id="public-results-note">Catalogue pret a explorer.</span>
+              </div>
+              <a class="btn btn-light" href="./cart.html">Commander maintenant</a>
+            </div>
+
+            <div id="products-grid" class="catalog-grid catalog-grid-premium"></div>
+          </section>
         </section>
       </main>
     </div>
@@ -89,22 +134,55 @@
           </header>
 
           <section class="client-main-content">
-            <div class="section-head">
-              <div>
-                <h2>Choisir des produits</h2>
-                <p>Recherche rapide, categories et ajout direct au panier.</p>
+            <section class="catalog-hero client-catalog-hero">
+              <div class="catalog-hero-copy">
+                <span class="badge client-badge">Selection rapide</span>
+                <h2>Compose ton panier sans perdre de temps.</h2>
+                <p>Retrouve facilement les categories les plus commandees et ajoute tes produits favoris.</p>
               </div>
-              <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
-            </div>
+              <div class="catalog-hero-side">
+                <div class="catalog-mini-summary">
+                  <small>Mon panier</small>
+                  <strong id="client-cart-count">0 article</strong>
+                  <span id="client-cart-total">0,00 HTG</span>
+                  <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
+                </div>
+              </div>
+            </section>
 
-            <div class="panel client-panel">
-              <div class="filters">
+            <div class="panel client-panel catalog-panel">
+              <div class="section-head">
+                <div>
+                  <h2>Choisir des produits</h2>
+                  <p>Recherche rapide, categories et ajout direct au panier.</p>
+                </div>
+                <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
+              </div>
+
+              <div class="filters catalog-filters">
                 <input id="client-product-search" type="search" placeholder="Rechercher un produit" />
                 <select id="client-category-filter">
                   <option value="">Toutes les categories</option>
                 </select>
+                <select id="client-product-sort">
+                  <option value="featured">Trier: suggestions</option>
+                  <option value="price-asc">Prix croissant</option>
+                  <option value="price-desc">Prix decroissant</option>
+                  <option value="name-asc">Nom A-Z</option>
+                  <option value="stock-desc">Plus disponibles</option>
+                </select>
               </div>
-              <div id="client-products-grid" class="catalog-grid"></div>
+
+              <div id="client-category-chips" class="category-chips"></div>
+
+              <div class="catalog-toolbar">
+                <div class="catalog-results-copy">
+                  <strong id="client-results-count">0 produit</strong>
+                  <span id="client-results-note">Catalogue client pret.</span>
+                </div>
+              </div>
+
+              <div id="client-products-grid" class="catalog-grid catalog-grid-premium"></div>
             </div>
           </section>
         </main>
@@ -113,21 +191,22 @@
 
     <div id="admin-products-view" class="admin-body" style="display:none;">
       <div class="admin-layout">
-        <aside class="admin-sidebar">
+        <div id="admin-sidebar-overlay" class="admin-sidebar-overlay"></div>
+        <aside id="admin-sidebar" class="admin-sidebar">
           <div class="admin-logo-block">
             <div class="admin-logo-mark">PC</div>
             <div>
               <strong>Point Chaud</strong>
               <p>Gestion des ventes</p>
             </div>
+            <button id="admin-menu-close" class="admin-menu-close" type="button">Fermer</button>
           </div>
           <nav class="admin-nav">
             <a href="./dashboard-admin.html">Dashboard</a>
             <a class="active" href="./products.html">Produits</a>
             <a href="./orders-pending.html">Commandes</a>
             <a href="./deliveries.html">Livraisons</a>
-            <a href="./scan-orders.html">Scan</a>
-            <a href="./cashier.html">Caisse</a>
+            <a href="./cashier.html">Caisse & scan</a>
             <a href="./staff-profile.html">Utilisateurs</a>
             <a href="./orders-pending.html#payments-section">Paiements</a>
             <a href="./reports.html">Rapports</a>
@@ -138,6 +217,7 @@
 
         <main class="admin-main">
           <header class="admin-header">
+            <button id="admin-menu-toggle" class="admin-menu-toggle" type="button">Menu</button>
             <div>
               <p class="admin-eyebrow">Catalogue</p>
               <h1>Produits & categories</h1>
@@ -152,6 +232,22 @@
           </header>
 
           <section class="admin-content">
+            <section class="admin-hero admin-subhero">
+              <div>
+                <span class="badge admin-badge">Catalogue staff</span>
+                <h2>Gere tes produits et categories sans quitter le back-office.</h2>
+                <p>
+                  Ajoute de nouveaux produits, ajuste les categories et controle le stock par succursale depuis
+                  un espace plus clair.
+                </p>
+              </div>
+              <div class="admin-hero-panel">
+                <small>Rappel utile</small>
+                <strong>Les produits clients se mettent a jour ici</strong>
+                <p>Chaque modification du catalogue est directement reutilisee dans l'experience client.</p>
+              </div>
+            </section>
+
             <section id="admin-product-create-panel" class="admin-panel admin-only" style="display:none;">
               <div class="admin-section-head">
                 <div>
@@ -163,10 +259,23 @@
               <div id="product-admin-message" class="message-box"></div>
 
               <div class="admin-report-columns">
-                <form id="category-form" class="admin-report-list stack">
-                  <h3>Nouvelle categorie</h3>
-                  <label>Nom de categorie <input name="name" required /></label>
-                  <button class="btn-primary" type="submit">Ajouter la categorie</button>
+                <form id="category-form" class="admin-report-list admin-category-form stack">
+                  <div class="stack-sm admin-category-form-copy">
+                    <h3>Nouvelle categorie</h3>
+                    <p class="muted">
+                      Ajoute une categorie propre pour organiser les produits du catalogue client et staff.
+                    </p>
+                  </div>
+                  <input type="hidden" name="category_id" />
+                  <label>
+                    Nom de categorie
+                    <input name="name" placeholder="Ex: Petit dejeuner, Jus frais..." required />
+                  </label>
+                  <div class="admin-action-group">
+                    <button id="category-form-submit" class="btn-primary" type="submit">Ajouter la categorie</button>
+                    <button id="category-form-cancel" class="btn-light" type="button">Annuler</button>
+                  </div>
+                  <div id="admin-categories-list" class="admin-categories-list"></div>
                 </form>
 
                 <form id="product-form" class="admin-report-list stack">
@@ -176,7 +285,14 @@
                   <label>Description <textarea name="description"></textarea></label>
                   <label>Prix <input name="price" type="number" step="0.01" min="0" required /></label>
                   <label>Stock total indicatif <input name="stock" type="number" min="0" required /></label>
-                  <label>Image URL <input name="image" /></label>
+                  <label>
+                    Image produit
+                    <input name="image" placeholder="URL ou nom de fichier ex: pain-chaud.webp" />
+                    <small>
+                      Les images locales peuvent etre placees dans <strong>frontend/assets/images/products/</strong>.
+                      Le format recommande est <strong>WebP</strong>.
+                    </small>
+                  </label>
                   <label>
                     Categorie
                     <select id="admin-category-select" name="category_id" required></select>

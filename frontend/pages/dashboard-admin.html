@@ -4,17 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard Staff | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body class="admin-body">
     <div class="admin-layout">
-      <aside class="admin-sidebar">
+      <div id="admin-sidebar-overlay" class="admin-sidebar-overlay"></div>
+      <aside id="admin-sidebar" class="admin-sidebar">
         <div class="admin-logo-block">
           <div class="admin-logo-mark">PC</div>
           <div>
             <strong>Point Chaud</strong>
             <p>Gestion des ventes</p>
           </div>
+          <button id="admin-menu-close" class="admin-menu-close" type="button">Fermer</button>
         </div>
 
         <nav class="admin-nav">
@@ -22,8 +27,7 @@
           <a href="./products.html">Produits</a>
           <a href="./orders-pending.html">Commandes</a>
           <a href="./deliveries.html">Livraisons</a>
-          <a href="./scan-orders.html">Scan</a>
-          <a href="./cashier.html">Caisse</a>
+          <a href="./cashier.html">Caisse & scan</a>
           <a href="./staff-profile.html">Utilisateurs</a>
           <a href="./orders-pending.html#payments-section">Paiements</a>
           <a href="./reports.html">Rapports</a>
@@ -34,6 +38,7 @@
 
       <main class="admin-main">
         <header class="admin-header">
+          <button id="admin-menu-toggle" class="admin-menu-toggle" type="button">Menu</button>
           <div>
             <p class="admin-eyebrow">Vue d'ensemble</p>
             <h1>Dashboard Point Chaud</h1>
@@ -92,6 +97,40 @@
               </div>
             </div>
             <div id="alerts-list" class="stack"></div>
+          </section>
+
+          <section class="admin-grid-2">
+            <section class="admin-panel">
+              <div class="admin-section-head">
+                <div>
+                  <p class="admin-eyebrow">Paiements</p>
+                  <h2>Paiements a verifier</h2>
+                </div>
+                <a class="btn btn-light" href="./orders-pending.html#payments-section">Voir tout</a>
+              </div>
+              <div id="dashboard-payments-review" class="stack"></div>
+            </section>
+
+            <section class="admin-panel">
+              <div class="admin-section-head">
+                <div>
+                  <p class="admin-eyebrow">Commandes</p>
+                  <h2>Dernieres commandes actives</h2>
+                </div>
+                <a class="btn btn-light" href="./orders-pending.html">Ouvrir la file</a>
+              </div>
+              <div id="dashboard-recent-orders" class="stack"></div>
+            </section>
+          </section>
+
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Activite</p>
+                <h2>Activite recente</h2>
+              </div>
+            </div>
+            <div id="dashboard-recent-activity" class="stack"></div>
           </section>
         </section>
       </main>

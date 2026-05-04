@@ -48,6 +48,11 @@ async function fetchProductById(productId) {
   };
 }
 
+async function categoryExists(categoryId) {
+  const [rows] = await db.query("SELECT id FROM categories WHERE id = ? LIMIT 1", [categoryId]);
+  return rows.length > 0;
+}
+
 exports.getCatalog = async (req, res) => {
   try {
     const locationId = req.query.location_id ? Number(req.query.location_id) : null;
@@ -100,12 +105,17 @@ exports.getCatalog = async (req, res) => {
 exports.createProduct = async (req, res) => {
   const { name, description, price, stock, category_id, image } = req.body;
   const location_stocks = parseLocationStocks(req.body.location_stocks);
+  const normalizedCategoryId = Number(category_id);
 
-  if (!name || !price || !category_id) {
+  if (!name || !price || !normalizedCategoryId) {
     return res.status(400).json({ message: "Nom, prix et categorie sont obligatoires" });
   }
 
   try {
+    if (!(await categoryExists(normalizedCategoryId))) {
+      return res.status(400).json({ message: "Categorie invalide ou introuvable" });
+    }
+
     const connection = await db.getConnection();
 
     try {
@@ -114,7 +124,7 @@ exports.createProduct = async (req, res) => {
       const [result] = await connection.query(
         `INSERT INTO products (name, description, price, stock, category_id, image)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [name, description || null, price, stock || 0, category_id, image || null]
+        [name, description || null, price, stock || 0, normalizedCategoryId, image || null]
       );
 
       const locations = await getLocations(connection);
@@ -123,7 +133,7 @@ exports.createProduct = async (req, res) => {
 
       await connection.commit();
       const product = await fetchProductById(result.insertId);
-      res.status(201).json(product);
+      res.status(201).json({ message: "Produit ajoute avec succes", product });
     } catch (error) {
       await connection.rollback();
       throw error;
@@ -138,8 +148,9 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   const { name, description, price, stock, category_id, image } = req.body;
   const location_stocks = parseLocationStocks(req.body.location_stocks);
+  const normalizedCategoryId = Number(category_id);
 
-  if (!name || !price || !category_id) {
+  if (!name || !price || !normalizedCategoryId) {
     return res.status(400).json({ message: "Nom, prix et categorie sont obligatoires" });
   }
 
@@ -148,6 +159,10 @@ exports.updateProduct = async (req, res) => {
 
     if (!product) {
       return res.status(404).json({ message: "Produit introuvable" });
+    }
+
+    if (!(await categoryExists(normalizedCategoryId))) {
+      return res.status(400).json({ message: "Categorie invalide ou introuvable" });
     }
 
     const connection = await db.getConnection();
@@ -162,7 +177,7 @@ exports.updateProduct = async (req, res) => {
           SET name = ?, description = ?, price = ?, category_id = ?, image = ?
           WHERE id = ?
         `,
-        [name, description || null, price, category_id, image || null, req.params.id]
+        [name, description || null, price, normalizedCategoryId, image || null, req.params.id]
       );
 
       const locations = await getLocations(connection);
@@ -233,5 +248,62 @@ exports.createCategory = async (req, res) => {
     res.status(201).json({ message: "Categorie ajoutee", category: rows[0] });
   } catch (error) {
     res.status(500).json({ message: "Impossible d'ajouter la categorie", error: error.message });
+  }
+};
+
+exports.updateCategory = async (req, res) => {
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ message: "Le nom de la categorie est obligatoire" });
+  }
+
+  try {
+    const [currentRows] = await db.query("SELECT * FROM categories WHERE id = ? LIMIT 1", [req.params.id]);
+
+    if (!currentRows.length) {
+      return res.status(404).json({ message: "Categorie introuvable" });
+    }
+
+    const [existingRows] = await db.query("SELECT id FROM categories WHERE LOWER(name) = LOWER(?) AND id <> ?", [
+      name,
+      req.params.id
+    ]);
+
+    if (existingRows.length) {
+      return res.status(409).json({ message: "Cette categorie existe deja" });
+    }
+
+    await db.query("UPDATE categories SET name = ? WHERE id = ?", [name, req.params.id]);
+    const [rows] = await db.query("SELECT * FROM categories WHERE id = ?", [req.params.id]);
+
+    res.json({ message: "Categorie mise a jour", category: rows[0] });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de modifier la categorie", error: error.message });
+  }
+};
+
+exports.deleteCategory = async (req, res) => {
+  try {
+    const [currentRows] = await db.query("SELECT * FROM categories WHERE id = ? LIMIT 1", [req.params.id]);
+
+    if (!currentRows.length) {
+      return res.status(404).json({ message: "Categorie introuvable" });
+    }
+
+    const [[linkedProducts]] = await db.query("SELECT COUNT(*) AS total FROM products WHERE category_id = ?", [
+      req.params.id
+    ]);
+
+    if (Number(linkedProducts.total) > 0) {
+      return res.status(400).json({
+        message: "Cette categorie contient deja des produits. Deplace ou supprime les produits avant."
+      });
+    }
+
+    await db.query("DELETE FROM categories WHERE id = ?", [req.params.id]);
+    res.json({ message: "Categorie supprimee" });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de supprimer la categorie", error: error.message });
   }
 };

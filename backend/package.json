@@ -6,6 +6,9 @@
   "scripts": {
     "migrate": "node scripts/migrate-db.js",
     "smoke": "node scripts/smoke-test.js",
+    "cleanup:proofs": "node scripts/cleanup-payment-proofs.js",
+    "audit:images": "node scripts/audit-product-images.js",
+    "reset:test": "node scripts/reset-test-state.js",
     "dev": "nodemon server.js",
     "start": "node server.js"
   },
@@ -22,7 +25,8 @@
     "multer": "^2.1.1",
     "mysql2": "^3.22.3",
     "qr-scanner": "^1.4.2",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "twilio": "^5.6.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
