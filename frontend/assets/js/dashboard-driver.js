@@ -27,6 +27,9 @@ function driverActionButtons(order) {
     buttons.push(
       `<button class="btn admin-btn-success" type="button" onclick="updateDriverDeliveryStatus(${order.id}, 'delivered')">Marquer livree</button>`
     );
+    buttons.push(
+      `<button class="btn admin-btn-warning" type="button" onclick="markDriverReturn(${order.id})">Client absent / retour</button>`
+    );
   }
 
   buttons.push(
@@ -39,17 +42,23 @@ function driverTimeline(order) {
   const steps = [
     ["assigned", "Assignee"],
     ["out_for_delivery", "En route"],
+    ["return_to_branch", "Retour"],
     ["delivered", "Livree"]
   ];
-
-  const currentIndex = steps.findIndex(step => step[0] === order.delivery_status);
+  const activeMap = {
+    assigned: ["assigned"],
+    out_for_delivery: ["assigned", "out_for_delivery"],
+    return_to_branch: ["assigned", "out_for_delivery", "return_to_branch"],
+    delivered: ["assigned", "out_for_delivery", "delivered"]
+  };
+  const activeStatuses = activeMap[order.delivery_status] || [];
 
   return `
     <div class="driver-timeline">
       ${steps
         .map(
           ([status, label], index) => `
-            <span class="driver-timeline-step ${index <= currentIndex ? "active" : ""}">
+            <span class="driver-timeline-step ${activeStatuses.includes(status) ? "active" : ""} ${status === "return_to_branch" && order.delivery_status === "return_to_branch" ? "warning" : ""}">
               ${label}
             </span>
           `
@@ -74,13 +83,14 @@ function renderDriverStats(orders) {
     ["Mes livraisons", orders.length],
     ["A demarrer", orders.filter(order => order.delivery_status === "assigned").length],
     ["En route", orders.filter(order => order.delivery_status === "out_for_delivery").length],
+    ["Retours", orders.filter(order => order.delivery_status === "return_to_branch").length],
     ["Livrees aujourd'hui", deliveredToday]
   ];
 
   container.innerHTML = cards
     .map(
       ([label, value], index) => `
-        <article class="admin-stat-card admin-stat-${["orange", "red", "gold", "white"][index]}">
+        <article class="admin-stat-card admin-stat-${["orange", "red", "gold", "white", "orange"][index]}">
           <small>${label}</small>
           <h2>${value}</h2>
         </article>
@@ -129,6 +139,7 @@ function renderQuickActions(user, orders) {
   if (!container) return;
 
   const activeOrder = orders.find(order => order.delivery_status === "out_for_delivery") || orders[0];
+  const returnedOrder = orders.find(order => order.delivery_status === "return_to_branch");
   const cards = [
     {
       title: "Mes livraisons",
@@ -148,6 +159,15 @@ function renderQuickActions(user, orders) {
       action: activeOrder?.customer_phone
         ? `<a class="btn btn-light" href="tel:${activeOrder.customer_phone}">Appeler</a>`
         : `<span class="muted">Aucun appel prioritaire</span>`
+    },
+    {
+      title: "Retour a traiter",
+      body: returnedOrder
+        ? `La commande #${returnedOrder.id} est revenue au point chaud. Le manager peut la replanifier.`
+        : "Aucun retour client a signaler sur ta tournee actuelle.",
+      action: returnedOrder
+        ? `<a class="btn btn-light" href="./deliveries.html">Voir le retour</a>`
+        : `<span class="muted">Rien a traiter</span>`
     }
   ];
 
@@ -188,7 +208,7 @@ function renderDriverOrderCard(order) {
 
       <div class="admin-delivery-hint">
         <strong>${order.customer_name}</strong>
-        <p>${order.notes || "Aucune note particuliere pour cette commande."}</p>
+        <p>${order.delivery_status === "return_to_branch" ? order.return_note || "Client absent au moment de la livraison." : order.notes || "Aucune note particuliere pour cette commande."}</p>
       </div>
 
       <div class="admin-action-group">
@@ -204,7 +224,9 @@ function renderDriverLists(orders) {
   if (!activeContainer || !completedContainer) return;
 
   const activeOrders = orders.filter(order => ["assigned", "out_for_delivery"].includes(order.delivery_status));
-  const completedOrders = orders.filter(order => order.delivery_status === "delivered" || order.status === "completed");
+  const completedOrders = orders.filter(
+    order => ["delivered", "return_to_branch"].includes(order.delivery_status) || order.status === "completed"
+  );
 
   activeContainer.innerHTML = activeOrders.length
     ? activeOrders.map(renderDriverOrderCard).join("")
@@ -220,6 +242,23 @@ async function updateDriverDeliveryStatus(orderId, deliveryStatus) {
     const data = await apiRequest(`/orders/${orderId}/delivery-status`, {
       method: "PATCH",
       body: JSON.stringify({ delivery_status: deliveryStatus })
+    });
+    showMessage("driver-dashboard-message", "success", data.message);
+    await renderDriverDashboard();
+  } catch (error) {
+    showMessage("driver-dashboard-message", "error", error.message);
+  }
+}
+
+async function markDriverReturn(orderId) {
+  const returnNote =
+    window.prompt("Motif du retour au point chaud", "Client indisponible a la livraison") ||
+    "Client indisponible a la livraison";
+
+  try {
+    const data = await apiRequest(`/orders/${orderId}/delivery-status`, {
+      method: "PATCH",
+      body: JSON.stringify({ delivery_status: "return_to_branch", return_note: returnNote })
     });
     showMessage("driver-dashboard-message", "success", data.message);
     await renderDriverDashboard();
@@ -266,6 +305,7 @@ async function renderDriverDashboard() {
 }
 
 window.updateDriverDeliveryStatus = updateDriverDeliveryStatus;
+window.markDriverReturn = markDriverReturn;
 window.openDriverOrderDetail = openDriverOrderDetail;
 
 document.addEventListener("DOMContentLoaded", () => {

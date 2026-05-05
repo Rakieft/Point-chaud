@@ -247,11 +247,22 @@ function resolveProductImage(product) {
   }
 
   const slug = slugifyText(product?.name || "");
-  return slug ? `../assets/images/products/${slug}.jpg` : buildProductPlaceholder(product);
+  return slug ? `../assets/images/products/${slug}.webp` : buildProductPlaceholder(product);
 }
 
 function handleProductImageError(imageElement, productName, categoryName) {
   if (!imageElement || imageElement.dataset.fallbackApplied === "true") {
+    return;
+  }
+
+  const currentSrc = imageElement.getAttribute("src") || "";
+  if (currentSrc.endsWith(".webp")) {
+    imageElement.src = currentSrc.replace(/\.webp$/i, ".jpg");
+    return;
+  }
+
+  if (currentSrc.endsWith(".jpg")) {
+    imageElement.src = currentSrc.replace(/\.jpg$/i, ".png");
     return;
   }
 

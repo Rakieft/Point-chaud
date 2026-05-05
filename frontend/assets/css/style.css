@@ -646,6 +646,11 @@ input[type="submit"]:hover {
   color: var(--danger);
 }
 
+.admin-btn-warning {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  color: #fff;
+}
+
 .btn-light {
   background: rgba(255, 255, 255, 0.96);
   color: var(--text);
@@ -816,6 +821,11 @@ label {
 .status.out_for_delivery {
   background: rgba(59, 130, 246, 0.14);
   color: #1d4ed8;
+}
+
+.status.return_to_branch {
+  background: rgba(217, 119, 6, 0.16);
+  color: #b45309;
 }
 
 .status.delivered {
@@ -2897,6 +2907,13 @@ label {
   background: linear-gradient(135deg, #f97316, #ef4444);
   color: #fff;
   box-shadow: 0 10px 22px rgba(239, 68, 68, 0.22);
+}
+
+.driver-timeline-step.warning,
+.driver-timeline-step.active.warning {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(217, 119, 6, 0.24);
 }
 
 .driver-focus-panel {

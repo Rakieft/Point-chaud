@@ -42,6 +42,7 @@ function backofficeStatusLabel(status) {
     pending_assignment: "En attente d'affectation",
     assigned: "Livreur assigne",
     out_for_delivery: "En livraison",
+    return_to_branch: "Retour au point chaud",
     delivered: "Livree",
     pending: "A verifier",
     confirmed: "Confirme",
@@ -161,6 +162,7 @@ function openBackofficeOrderDetail(order) {
                 <span>Adresse: ${order.delivery_address || "A renseigner"}</span>
                 <span>Livreur: ${order.driver_name || "Non assigne"}</span>
                 <span>Livraison: ${backofficeStatusLabel(order.delivery_status)}</span>
+                ${order.return_note ? `<span>Motif retour: ${order.return_note}</span>` : ""}
               `
               : ""
           }

@@ -531,10 +531,10 @@ exports.assignDriver = async (req, res) => {
 
     const reassignment = order.assigned_driver_id && Number(order.assigned_driver_id) !== Number(driver_id);
 
-    await db.query("UPDATE orders SET assigned_driver_id = ?, delivery_status = 'assigned' WHERE id = ?", [
-      driver_id,
-      req.params.id
-    ]);
+    await db.query(
+      "UPDATE orders SET assigned_driver_id = ?, delivery_status = 'assigned', return_note = NULL, returned_at = NULL WHERE id = ?",
+      [driver_id, req.params.id]
+    );
 
     await createNotificationForUser(
       order.user_id,
@@ -581,9 +581,9 @@ exports.assignDriver = async (req, res) => {
 };
 
 exports.updateDeliveryStatus = async (req, res) => {
-  const { delivery_status } = req.body;
+  const { delivery_status, return_note } = req.body;
 
-  if (!["assigned", "out_for_delivery", "delivered"].includes(delivery_status)) {
+  if (!["assigned", "out_for_delivery", "delivered", "return_to_branch"].includes(delivery_status)) {
     return res.status(400).json({ message: "Statut de livraison invalide" });
   }
 
@@ -606,25 +606,59 @@ exports.updateDeliveryStatus = async (req, res) => {
       return res.status(403).json({ message: "Cette livraison ne vous est pas attribuee" });
     }
 
-    const nextStatus = delivery_status === "delivered" ? "completed" : order.status;
+    if (delivery_status === "out_for_delivery" && order.delivery_status !== "assigned") {
+      return res.status(400).json({ message: "La livraison doit d'abord etre assignee avant de partir en route" });
+    }
+
+    if (delivery_status === "delivered" && order.delivery_status !== "out_for_delivery") {
+      return res.status(400).json({ message: "La livraison doit etre en route avant d'etre marquee livree" });
+    }
+
+    if (delivery_status === "return_to_branch" && order.delivery_status !== "out_for_delivery") {
+      return res.status(400).json({
+        message: "Le retour au point chaud ne peut etre lance que pour une livraison deja en route"
+      });
+    }
+
+    const nextStatus = delivery_status === "delivered" ? "completed" : "paid";
     const deliveredAt = delivery_status === "delivered" ? "NOW()" : "NULL";
+    const returnedAt = delivery_status === "return_to_branch" ? "NOW()" : "NULL";
+    const returnNote = delivery_status === "return_to_branch" ? (return_note || "Client indisponible a la livraison") : null;
 
     await db.query(
       `UPDATE orders
-       SET delivery_status = ?, status = ?, delivered_at = ${deliveredAt}
+       SET delivery_status = ?, status = ?, delivered_at = ${deliveredAt}, returned_at = ${returnedAt}, return_note = ?
        WHERE id = ?`,
-      [delivery_status, nextStatus, req.params.id]
+      [delivery_status, nextStatus, returnNote, req.params.id]
     );
 
     const messages = {
       assigned: `Votre commande #${order.id} est assignee a un livreur.`,
       out_for_delivery: `Votre commande #${order.id} est en route pour la livraison.`,
-      delivered: `Votre commande #${order.id} a ete livree avec succes.`
+      delivered: `Votre commande #${order.id} a ete livree avec succes.`,
+      return_to_branch: `Le livreur n'a pas pu remettre votre commande #${order.id}. Retour au point chaud en cours.`
     };
 
     await createNotificationForUser(order.user_id, messages[delivery_status]);
+    if (delivery_status === "return_to_branch") {
+      await createNotificationForManagersAtLocation(
+        order.location_id,
+        `La commande #${order.id} est de retour au point chaud. Motif: ${returnNote}.`
+      );
+    }
     const customerContact = await getUserContact(order.user_id);
-    await sendSmsNotification(customerContact?.phone, `Point Chaud: ${messages[delivery_status]}`);
+    const managerContacts =
+      delivery_status === "return_to_branch" ? await getManagersAtLocation(order.location_id) : [];
+
+    await Promise.all([
+      sendSmsNotification(customerContact?.phone, `Point Chaud: ${messages[delivery_status]}`),
+      ...managerContacts.map(manager =>
+        sendSmsNotification(
+          manager.phone,
+          `Point Chaud: commande #${order.id} retournee au point chaud. Motif: ${returnNote}.`
+        )
+      )
+    ]);
 
     const [updatedOrders] = await db.query(`${orderSelect} WHERE o.id = ?`, [req.params.id]);
     const updatedOrder = await mapOrder(updatedOrders[0]);

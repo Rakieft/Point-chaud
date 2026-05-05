@@ -9,13 +9,14 @@ function renderDeliveriesStats(orders) {
     ["Livraisons totales", orders.length],
     ["A affecter", orders.filter(order => order.status === "paid" && order.delivery_status === "pending_assignment").length],
     ["En livraison", orders.filter(order => order.delivery_status === "out_for_delivery").length],
+    ["Retours", orders.filter(order => order.delivery_status === "return_to_branch").length],
     ["Livrees", orders.filter(order => order.delivery_status === "delivered" || order.status === "completed").length]
   ];
 
   container.innerHTML = cards
     .map(
       ([label, value], index) => `
-        <article class="admin-stat-card admin-stat-${["orange", "red", "gold", "white"][index]}">
+        <article class="admin-stat-card admin-stat-${["orange", "red", "gold", "white", "orange"][index]}">
           <small>${label}</small>
           <h2>${value}</h2>
         </article>
@@ -45,6 +46,10 @@ function deliveryStateCopy(order) {
     return "Livraison en cours: le livreur est deja en route.";
   }
 
+  if (order.delivery_status === "return_to_branch") {
+    return `Retour au point chaud en cours. Motif: ${order.return_note || "client indisponible"}.`;
+  }
+
   return "Livraison terminee.";
 }
 
@@ -70,7 +75,7 @@ function driverOptionsHtml(order) {
 }
 
 function canManagerAssign(order) {
-  return order.status === "paid" && ["pending_assignment", "assigned"].includes(order.delivery_status);
+  return order.status === "paid" && ["pending_assignment", "assigned", "return_to_branch"].includes(order.delivery_status);
 }
 
 function renderDriverSummary(user, orders) {
@@ -100,6 +105,9 @@ function renderDriverSummary(user, orders) {
               Number(order.assigned_driver_id) === Number(driver.id) &&
               (order.delivery_status === "delivered" || order.status === "completed")
           ).length;
+          const returnedCount = orders.filter(
+            order => Number(order.assigned_driver_id) === Number(driver.id) && order.delivery_status === "return_to_branch"
+          ).length;
 
           return `
             <article class="admin-driver-card">
@@ -117,6 +125,7 @@ function renderDriverSummary(user, orders) {
               <div class="admin-driver-metrics">
                 <span><strong>${assignedCount}</strong> a preparer</span>
                 <span><strong>${onRoadCount}</strong> en route</span>
+                <span><strong>${returnedCount}</strong> retours</span>
                 <span><strong>${completedCount}</strong> livrees</span>
               </div>
             </article>
@@ -150,7 +159,7 @@ function renderAssignmentCard(order) {
       </div>
 
       <div class="admin-delivery-hint">
-        <strong>${hasAssignedDriver ? "Reaffectation possible" : "Affectation requise"}</strong>
+        <strong>${order.delivery_status === "return_to_branch" ? "Retour a relancer" : hasAssignedDriver ? "Reaffectation possible" : "Affectation requise"}</strong>
         <p>${deliveryStateCopy(order)}</p>
       </div>
 
@@ -199,6 +208,9 @@ function renderDeliveryCard(order, user) {
     actions.push(
       `<button class="btn admin-btn-success" type="button" onclick="updateDeliveryStatus(${order.id}, 'delivered')">Marquer livree</button>`
     );
+    actions.push(
+      `<button class="btn admin-btn-warning" type="button" onclick="markDeliveryReturn(${order.id})">Client absent / retour</button>`
+    );
   }
 
   if (!isDriver && order.delivery_status === "assigned") {
@@ -210,6 +222,9 @@ function renderDeliveryCard(order, user) {
   if (!isDriver && order.delivery_status === "out_for_delivery") {
     actions.push(
       `<button class="btn admin-btn-success" type="button" onclick="updateDeliveryStatus(${order.id}, 'delivered')">Confirmer livree</button>`
+    );
+    actions.push(
+      `<button class="btn admin-btn-warning" type="button" onclick="markDeliveryReturn(${order.id})">Retour point chaud</button>`
     );
   }
 
@@ -319,6 +334,23 @@ async function updateDeliveryStatus(orderId, deliveryStatus) {
   }
 }
 
+async function markDeliveryReturn(orderId) {
+  const returnNote =
+    window.prompt("Motif du retour au point chaud", "Client indisponible a la livraison") ||
+    "Client indisponible a la livraison";
+
+  try {
+    const data = await apiRequest(`/orders/${orderId}/delivery-status`, {
+      method: "PATCH",
+      body: JSON.stringify({ delivery_status: "return_to_branch", return_note: returnNote })
+    });
+    showMessage("deliveries-message", "success", data.message);
+    await renderDeliveriesPage();
+  } catch (error) {
+    showMessage("deliveries-message", "error", error.message);
+  }
+}
+
 async function renderDeliveriesPage() {
   try {
     const user = await loadBackofficeUser();
@@ -348,6 +380,7 @@ async function renderDeliveriesPage() {
 
 window.assignDriverToOrder = assignDriverToOrder;
 window.updateDeliveryStatus = updateDeliveryStatus;
+window.markDeliveryReturn = markDeliveryReturn;
 window.openDeliveryDetail = openDeliveryDetail;
 
 document.addEventListener("DOMContentLoaded", () => {

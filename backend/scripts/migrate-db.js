@@ -123,7 +123,13 @@ async function run() {
 
   if (!(await columnExists("orders", "delivery_status"))) {
     await db.query(
-      "ALTER TABLE orders ADD COLUMN delivery_status ENUM('pending_assignment', 'assigned', 'out_for_delivery', 'delivered') DEFAULT 'pending_assignment' AFTER delivery_fee"
+      "ALTER TABLE orders ADD COLUMN delivery_status ENUM('pending_assignment', 'assigned', 'out_for_delivery', 'delivered', 'return_to_branch') DEFAULT 'pending_assignment' AFTER delivery_fee"
+    );
+  }
+
+  if (!(await columnDefinitionIncludes("orders", "delivery_status", "'return_to_branch'"))) {
+    await db.query(
+      "ALTER TABLE orders MODIFY COLUMN delivery_status ENUM('pending_assignment', 'assigned', 'out_for_delivery', 'delivered', 'return_to_branch') DEFAULT 'pending_assignment'"
     );
   }
 
@@ -133,6 +139,14 @@ async function run() {
 
   if (!(await columnExists("orders", "delivered_at"))) {
     await db.query("ALTER TABLE orders ADD COLUMN delivered_at DATETIME NULL AFTER assigned_driver_id");
+  }
+
+  if (!(await columnExists("orders", "return_note"))) {
+    await db.query("ALTER TABLE orders ADD COLUMN return_note TEXT NULL AFTER delivered_at");
+  }
+
+  if (!(await columnExists("orders", "returned_at"))) {
+    await db.query("ALTER TABLE orders ADD COLUMN returned_at DATETIME NULL AFTER return_note");
   }
 
   if (!(await foreignKeyExists("users", "fk_users_location"))) {

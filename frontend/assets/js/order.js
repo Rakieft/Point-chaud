@@ -461,6 +461,16 @@ function getClientOrderState(order) {
           helper: "Votre commande est actuellement en livraison."
         };
       }
+
+      if (order.delivery_status === "return_to_branch") {
+        return {
+          badgeClass: "return_to_branch",
+          badgeText: "Retour au point chaud",
+          helper:
+            order.return_note ||
+            "Le livreur n'a pas pu remettre votre commande. L'equipe du point chaud va vous recontacter."
+        };
+      }
     }
 
     return {
@@ -492,6 +502,7 @@ function renderClientTimeline(order) {
   const isCancelled = order.status === "cancelled";
   const isRejectedPayment = order.status === "awaiting_payment" && order.payment_status === "rejected";
   const isDelivery = order.order_type === "delivery";
+  const isReturnedDelivery = isDelivery && order.delivery_status === "return_to_branch";
 
   const steps = [
     { label: "Commande envoyee", state: "done" },
@@ -528,10 +539,12 @@ function renderClientTimeline(order) {
       state: isCancelled
         ? "upcoming muted"
         : isDelivery
-          ? order.delivery_status === "delivered" || order.status === "completed"
-            ? "done"
-            : order.delivery_status === "out_for_delivery"
-              ? "current success"
+          ? isReturnedDelivery
+            ? "current danger"
+            : order.delivery_status === "delivered" || order.status === "completed"
+              ? "done"
+              : order.delivery_status === "out_for_delivery"
+                ? "current success"
               : order.delivery_status === "assigned" || order.delivery_status === "pending_assignment"
                 ? "current"
                 : "upcoming"
@@ -610,6 +623,7 @@ function formatDeliveryStatusLabel(status) {
     pending_assignment: "En attente d'affectation",
     assigned: "Livreur assigne",
     out_for_delivery: "En livraison",
+    return_to_branch: "Retour au point chaud",
     delivered: "Livree"
   };
 
@@ -622,6 +636,7 @@ let latestClientBankAccounts = [];
 function clientOrderSectionLabel(order) {
   if (order.status === "cancelled") return "Refusee";
   if (order.status === "completed") return order.order_type === "delivery" ? "Livree" : "Archivee";
+  if (order.delivery_status === "return_to_branch") return "Retour";
   return "En cours";
 }
 
@@ -647,6 +662,7 @@ function openClientOrderDetail(orderId) {
           <span>Mode: ${order.order_type === "delivery" ? "Livraison" : "Retrait"}</span>
           <span>${order.order_type === "delivery" ? "Adresse" : "Point chaud"}: ${order.order_type === "delivery" ? order.delivery_address || "Adresse non renseignee" : order.location_name}</span>
           <span>Retrait / livraison: ${formatDateTime(order.pickup_date, order.pickup_time)}</span>
+          ${order.return_note ? `<span>Motif retour: ${order.return_note}</span>` : ""}
         </div>
       </section>
 
@@ -791,7 +807,7 @@ function renderClientOrders(container, orders, bankAccounts) {
     order =>
       order.status === "paid" &&
       (order.order_type === "pickup" ||
-        ["pending_assignment", "assigned", "out_for_delivery", "delivered"].includes(order.delivery_status))
+        ["pending_assignment", "assigned", "out_for_delivery", "return_to_branch", "delivered"].includes(order.delivery_status))
   ).length;
   const confirmedTotal = orders
     .filter(order => ["paid", "completed"].includes(order.status))
