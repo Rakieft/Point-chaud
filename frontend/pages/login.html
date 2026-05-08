@@ -23,6 +23,20 @@
             <label>Mot de passe <input name="password" type="password" required /></label>
             <button class="btn-primary" type="submit">Se connecter</button>
           </form>
+          <div id="verification-help" class="stack" hidden></div>
+
+          <section id="social-auth-panel" class="social-auth-panel" hidden>
+            <div class="social-auth-divider"><span>ou continuer avec</span></div>
+            <div class="social-auth-stack">
+              <div id="google-auth-slot" class="social-auth-slot">
+                <div id="google-auth-button"></div>
+              </div>
+              <button id="apple-auth-button" class="btn btn-light social-apple-button" type="button" hidden>
+                <span class="social-apple-mark" aria-hidden="true"></span>
+                <span>Continuer avec Apple</span>
+              </button>
+            </div>
+          </section>
 
           <p class="muted">Pas encore de compte ? <a href="./register.html">Inscris-toi</a>.</p>
           <!-- <p class="muted">Comptes de demo: admin `admin123`, manager `manager123`.</p> -->

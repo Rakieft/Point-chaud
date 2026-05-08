@@ -63,6 +63,8 @@ exports.getScopedUser = async userId => {
         u.id,
         u.name,
         u.email,
+        u.email_verified,
+        u.email_verified_at,
         u.phone,
         u.bio,
         u.avatar_url,

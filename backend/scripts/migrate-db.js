@@ -89,6 +89,30 @@ async function run() {
     await db.query("ALTER TABLE users ADD COLUMN title VARCHAR(100) NULL AFTER avatar_url");
   }
 
+  if (!(await columnExists("users", "oauth_provider"))) {
+    await db.query("ALTER TABLE users ADD COLUMN oauth_provider ENUM('google', 'apple') NULL AFTER title");
+  }
+
+  if (!(await columnExists("users", "oauth_subject"))) {
+    await db.query("ALTER TABLE users ADD COLUMN oauth_subject VARCHAR(255) NULL AFTER oauth_provider");
+  }
+
+  if (!(await columnExists("users", "email_verified"))) {
+    await db.query("ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE AFTER oauth_subject");
+  }
+
+  if (!(await columnExists("users", "email_verified_at"))) {
+    await db.query("ALTER TABLE users ADD COLUMN email_verified_at DATETIME NULL AFTER email_verified");
+  }
+
+  if (!(await columnExists("users", "email_verification_token_hash"))) {
+    await db.query("ALTER TABLE users ADD COLUMN email_verification_token_hash VARCHAR(255) NULL AFTER email_verified_at");
+  }
+
+  if (!(await columnExists("users", "email_verification_expires_at"))) {
+    await db.query("ALTER TABLE users ADD COLUMN email_verification_expires_at DATETIME NULL AFTER email_verification_token_hash");
+  }
+
   if (!(await columnExists("users", "assigned_location_id"))) {
     await db.query("ALTER TABLE users ADD COLUMN assigned_location_id INT NULL AFTER role");
   }
@@ -96,6 +120,26 @@ async function run() {
   if (!(await columnExists("users", "is_active"))) {
     await db.query("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE AFTER assigned_location_id");
   }
+
+  await db.query(
+    `
+      UPDATE users
+      SET email_verified = TRUE,
+          email_verified_at = COALESCE(email_verified_at, NOW())
+      WHERE role IN ('admin', 'manager', 'driver')
+        AND (email_verified IS NULL OR email_verified = FALSE)
+    `
+  );
+
+  await db.query(
+    `
+      UPDATE users
+      SET email_verified = TRUE,
+          email_verified_at = COALESCE(email_verified_at, NOW())
+      WHERE email IN ('client@pointchaud.com')
+        AND (email_verified IS NULL OR email_verified = FALSE)
+    `
+  );
 
   if (!(await columnExists("orders", "transaction_reference"))) {
     await db.query("ALTER TABLE orders ADD COLUMN transaction_reference VARCHAR(120) NULL AFTER payment_proof");

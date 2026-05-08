@@ -340,15 +340,117 @@ function renderNotifications(container, notifications) {
     ? notifications
         .map(
           notification => `
-            <div class="notification-item">
+            <button
+              class="notification-item notification-item-button"
+              type="button"
+              data-notification-id="${notification.id}"
+              data-notification-status="${notification.is_read ? "Lu" : "Nouveau"}"
+              data-notification-message="${encodeURIComponent(notification.message || "")}"
+              data-notification-date="${encodeURIComponent(formatTimestamp(notification.created_at))}">
               <strong>${notification.is_read ? "Lu" : "Nouveau"}</strong>
               <span>${notification.message}</span>
               <small>${formatTimestamp(notification.created_at)}</small>
-            </div>
+            </button>
           `
         )
         .join("")
     : `<div class="empty-state"><p>Aucune notification pour l'instant.</p></div>`;
+
+  container.querySelectorAll(".notification-item-button").forEach(button => {
+    button.addEventListener("click", () => {
+      const notificationId = Number(button.dataset.notificationId);
+      openNotificationDetail({
+        id: notificationId,
+        status: button.dataset.notificationStatus,
+        message: decodeURIComponent(button.dataset.notificationMessage || ""),
+        createdAtLabel: decodeURIComponent(button.dataset.notificationDate || "")
+      });
+      markClientNotificationAsRead(notificationId, button);
+    });
+  });
+}
+
+async function markClientNotificationAsRead(notificationId, button) {
+  if (!notificationId || button?.dataset.notificationRead === "true") return;
+
+  try {
+    await apiRequest(`/notifications/${notificationId}/read`, {
+      method: "PATCH"
+    });
+
+    if (button) {
+      button.dataset.notificationRead = "true";
+      button.dataset.notificationStatus = "Lu";
+      const label = button.querySelector("strong");
+      if (label) label.textContent = "Lu";
+    }
+  } catch (error) {
+    // Keep the detail flow usable even if the read flag update fails.
+  }
+}
+
+function ensureNotificationModal() {
+  let modal = document.getElementById("notification-detail-modal");
+  if (modal) return modal;
+
+  modal = document.createElement("div");
+  modal.id = "notification-detail-modal";
+  modal.className = "admin-modal hidden";
+  modal.innerHTML = `
+    <div class="admin-modal-backdrop" data-notification-close></div>
+    <div class="admin-modal-card notification-modal-card">
+      <div class="admin-modal-head">
+        <div>
+          <p class="admin-eyebrow">Notification</p>
+          <h2 id="notification-detail-title">Detail de la notification</h2>
+        </div>
+        <button class="btn-light" type="button" data-notification-close>Fermer</button>
+      </div>
+      <div class="notification-detail-stack">
+        <div class="client-meta-item">
+          <small>Etat</small>
+          <strong id="notification-detail-status">Nouveau</strong>
+        </div>
+        <div class="client-meta-item">
+          <small>Recu le</small>
+          <strong id="notification-detail-date">-</strong>
+        </div>
+        <div class="client-meta-item notification-detail-message-box">
+          <small>Message</small>
+          <strong id="notification-detail-message">-</strong>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal.querySelectorAll("[data-notification-close]").forEach(element => {
+    element.addEventListener("click", closeNotificationDetail);
+  });
+
+  return modal;
+}
+
+function openNotificationDetail(notification) {
+  const modal = ensureNotificationModal();
+  const statusEl = document.getElementById("notification-detail-status");
+  const dateEl = document.getElementById("notification-detail-date");
+  const messageEl = document.getElementById("notification-detail-message");
+
+  if (statusEl) statusEl.textContent = notification.status || "Notification";
+  if (dateEl) dateEl.textContent = notification.createdAtLabel || "-";
+  if (messageEl) messageEl.textContent = notification.message || "Aucun detail disponible.";
+
+  modal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+}
+
+function closeNotificationDetail() {
+  const modal = document.getElementById("notification-detail-modal");
+  if (!modal) return;
+  modal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
 }
 
 async function renderClientOrdersPage() {

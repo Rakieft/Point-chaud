@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verification email | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body>
+    <main class="auth-shell">
+      <section class="container">
+        <div id="verification-pending-card" class="auth-card">
+          <span class="badge">Verification email</span>
+          <h1>Presque fini</h1>
+          <p class="muted">
+            Nous avons cree ton compte. Verifie maintenant <strong id="verification-pending-email">ton email</strong>
+            pour activer la connexion.
+          </p>
+
+          <div id="verification-pending-message" class="message-box"></div>
+
+          <div class="stack">
+            <div class="card compact-card">
+              <strong>Etape suivante</strong>
+              <p class="muted">Ouvre le message recu puis clique sur le lien de verification.</p>
+            </div>
+
+            <div id="verification-preview-box" class="card compact-card" hidden>
+              <strong>Lien de test local</strong>
+              <p class="muted">Comme l'envoi email reel n'est pas encore branche, utilise ce lien pour tester :</p>
+              <a id="verification-preview-link" class="verification-link" href="#"></a>
+            </div>
+
+            <button id="verification-pending-resend" class="btn-primary" type="button">Renvoyer le lien</button>
+            <a class="btn btn-light" href="./login.html">Retour a la connexion</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/auth.js"></script>
+  </body>
+</html>

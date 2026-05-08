@@ -1,0 +1,122 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGlow" x1="166" y1="96" x2="1017" y2="816" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF4E8"/>
+      <stop offset="0.52" stop-color="#FFE0C3"/>
+      <stop offset="1" stop-color="#FFD0A8"/>
+    </linearGradient>
+    <linearGradient id="deviceDark" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#4A2619"/>
+      <stop offset="1" stop-color="#24110B"/>
+    </linearGradient>
+    <linearGradient id="screenWarm" x1="244" y1="183" x2="807" y2="613" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF6EF"/>
+      <stop offset="0.44" stop-color="#FFE8D4"/>
+      <stop offset="1" stop-color="#FFD5B5"/>
+    </linearGradient>
+    <linearGradient id="phoneScreen" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFF9F5"/>
+      <stop offset="1" stop-color="#FFE1C5"/>
+    </linearGradient>
+    <linearGradient id="accentOrange" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FF9B4D"/>
+      <stop offset="1" stop-color="#C94A1F"/>
+    </linearGradient>
+    <linearGradient id="accentRed" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#D94A2E"/>
+      <stop offset="1" stop-color="#8D2419"/>
+    </linearGradient>
+    <filter id="shadowSoft" x="90" y="80" width="1020" height="760" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="28"/>
+      <feGaussianBlur stdDeviation="34"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.47451 0 0 0 0 0.188235 0 0 0 0 0.0784314 0 0 0 0.16 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+    <filter id="shadowCard" x="118" y="38" width="942" height="786" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="34"/>
+      <feGaussianBlur stdDeviation="30"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.533333 0 0 0 0 0.243137 0 0 0 0 0.0941176 0 0 0 0.18 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadowSoft)">
+    <rect x="156" y="116" width="888" height="652" rx="52" fill="url(#bgGlow)"/>
+    <circle cx="912" cy="176" r="86" fill="#FFF0E0" fill-opacity="0.82"/>
+    <circle cx="285" cy="668" r="110" fill="#FFD9BA" fill-opacity="0.72"/>
+    <circle cx="1030" cy="566" r="58" fill="#FFD4B4" fill-opacity="0.8"/>
+  </g>
+
+  <g filter="url(#shadowCard)">
+    <rect x="242" y="236" width="562" height="354" rx="32" fill="url(#deviceDark)"/>
+    <rect x="268" y="260" width="510" height="300" rx="22" fill="url(#screenWarm)"/>
+    <rect x="301" y="296" width="188" height="18" rx="9" fill="#F6C9A4"/>
+    <rect x="301" y="329" width="156" height="14" rx="7" fill="#F9D7B8"/>
+    <rect x="301" y="366" width="214" height="112" rx="24" fill="white" fill-opacity="0.72"/>
+    <rect x="534" y="366" width="210" height="112" rx="24" fill="#FFF2E6"/>
+    <rect x="534" y="493" width="210" height="48" rx="18" fill="url(#accentOrange)"/>
+    <rect x="301" y="493" width="214" height="48" rx="18" fill="#7E2018" fill-opacity="0.08"/>
+    <path d="M226 596H820L864 648H181L226 596Z" fill="#3A1A12"/>
+    <rect x="165" y="648" width="720" height="34" rx="17" fill="#4B2416"/>
+  </g>
+
+  <g transform="translate(694 188) rotate(6)">
+    <rect x="0" y="0" width="186" height="352" rx="34" fill="url(#deviceDark)"/>
+    <rect x="14" y="16" width="158" height="320" rx="26" fill="url(#phoneScreen)"/>
+    <rect x="68" y="10" width="52" height="8" rx="4" fill="#623124"/>
+    <rect x="31" y="48" width="94" height="12" rx="6" fill="#EBC39E"/>
+    <rect x="31" y="73" width="72" height="10" rx="5" fill="#F6DCC7"/>
+    <rect x="31" y="104" width="124" height="98" rx="22" fill="#FFFFFF" fill-opacity="0.78"/>
+    <rect x="31" y="219" width="124" height="84" rx="22" fill="#FFF0E4"/>
+    <rect x="49" y="236" width="88" height="20" rx="10" fill="#D14D25" fill-opacity="0.1"/>
+    <rect x="49" y="265" width="54" height="12" rx="6" fill="#F1CAB1"/>
+  </g>
+
+  <g transform="translate(508 128)">
+    <ellipse cx="108" cy="126" rx="92" ry="56" fill="#C54E22" fill-opacity="0.12"/>
+    <path d="M81 39C112 19 150 17 185 32L228 51C246 59 258 77 258 97C258 126 234 150 205 150H81C42 150 11 119 11 80C11 58 24 38 45 29L81 39Z" fill="url(#accentOrange)"/>
+    <path d="M69 50C97 32 136 31 167 47L209 67C221 73 229 86 229 100C229 119 213 135 194 135H83C52 135 27 110 27 79C27 66 34 53 45 44L69 50Z" fill="#F5AA58"/>
+    <path d="M77 58C94 47 115 44 135 49L188 63C197 66 203 74 203 84C203 96 193 106 181 106H92C74 106 60 92 60 74C60 67 66 61 77 58Z" fill="#7E1F17"/>
+    <path d="M110 88C120 83 131 84 142 88L173 99C176 100 178 103 178 106C178 110 175 113 171 113H111C101 113 93 105 93 95C93 92 95 90 110 88Z" fill="#8DC15C"/>
+    <circle cx="142" cy="78" r="9" fill="#F4D083"/>
+    <circle cx="116" cy="76" r="7" fill="#F4D083"/>
+    <circle cx="164" cy="84" r="7" fill="#F4D083"/>
+  </g>
+
+  <g transform="translate(370 132) rotate(-7)">
+    <path d="M0 54C0 28 21 7 47 7H128C154 7 175 28 175 54V84C175 110 154 131 128 131H47C21 131 0 110 0 84V54Z" fill="#8E2419"/>
+    <path d="M18 56C18 39 32 25 49 25H127C144 25 158 39 158 56V83C158 100 144 114 127 114H49C32 114 18 100 18 83V56Z" fill="#D5572B"/>
+    <path d="M33 59C33 51 39 45 47 45H111C119 45 125 51 125 59V81C125 89 119 95 111 95H47C39 95 33 89 33 81V59Z" fill="#F3C66C"/>
+    <path d="M126 36C140 46 151 60 159 77" stroke="#FFF2E2" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(844 436) rotate(12)">
+    <path d="M25 0H121C142 0 160 17 160 39V61C160 82 142 100 121 100H25C11 100 0 89 0 75V25C0 11 11 0 25 0Z" fill="#E9B34A"/>
+    <path d="M38 13H120C134 13 145 24 145 38V60C145 74 134 85 120 85H38C24 85 13 74 13 60V38C13 24 24 13 38 13Z" fill="#F5D67D"/>
+    <path d="M41 44H118" stroke="#D4632C" stroke-width="12" stroke-linecap="round"/>
+    <path d="M52 28H107" stroke="#FFEFC6" stroke-width="7" stroke-linecap="round"/>
+    <path d="M52 60H107" stroke="#FFEFC6" stroke-width="7" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(642 508)">
+    <circle cx="48" cy="48" r="48" fill="#FFFFFF" fill-opacity="0.82"/>
+    <path d="M25 50C25 34 38 21 54 21C70 21 83 34 83 50C83 66 70 79 54 79C38 79 25 66 25 50Z" fill="#FFE4C2"/>
+    <path d="M18 47H89" stroke="#C94720" stroke-width="11" stroke-linecap="round"/>
+    <path d="M35 33H72" stroke="#8CC05E" stroke-width="8" stroke-linecap="round"/>
+    <path d="M39 64H69" stroke="#8CC05E" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(889 242)">
+    <rect x="0" y="0" width="106" height="146" rx="24" fill="#FFF7EF"/>
+    <rect x="16" y="16" width="74" height="24" rx="12" fill="#F7D6BA"/>
+    <rect x="20" y="55" width="66" height="66" rx="18" fill="url(#accentRed)"/>
+    <path d="M39 74C46 67 60 67 67 74L74 81C81 88 81 102 74 109L67 116C60 123 46 123 39 116L32 109C25 102 25 88 32 81L39 74Z" fill="#FFF0E5"/>
+    <rect x="22" y="128" width="62" height="8" rx="4" fill="#EDC6A5"/>
+  </g>
+</svg>

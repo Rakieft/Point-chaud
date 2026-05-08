@@ -16,6 +16,7 @@
           <span class="badge">Creation de compte client</span>
           <h1>Rejoindre Point Chaud</h1>
           <p class="muted">Commande en ligne, validation manager, paiement differe et retrait securise.</p>
+          <p class="muted">Une verification d'email est maintenant demandee pour activer les comptes clients.</p>
           <div id="form-message" class="message-box"></div>
 
           <form id="register-form" class="stack">
@@ -25,6 +26,19 @@
             <label>Mot de passe <input name="password" type="password" required /></label>
             <button class="btn-primary" type="submit">Creer mon compte</button>
           </form>
+
+          <section id="social-auth-panel" class="social-auth-panel" hidden>
+            <div class="social-auth-divider"><span>ou creer avec</span></div>
+            <div class="social-auth-stack">
+              <div id="google-auth-slot" class="social-auth-slot">
+                <div id="google-auth-button"></div>
+              </div>
+              <button id="apple-auth-button" class="btn btn-light social-apple-button" type="button" hidden>
+                <span class="social-apple-mark" aria-hidden="true"></span>
+                <span>Continuer avec Apple</span>
+              </button>
+            </div>
+          </section>
 
           <p class="muted">Tu as deja un compte ? <a href="./login.html">Connecte-toi ici</a>.</p>
         </div>

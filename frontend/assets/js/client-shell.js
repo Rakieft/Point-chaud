@@ -35,6 +35,30 @@ function bindClientMenu() {
   closeBtn?.addEventListener("click", closeClientMenu);
 }
 
+function navigateToClientProfile() {
+  if (window.location.pathname.endsWith("/client-profile.html")) return;
+  window.location.href = "./client-profile.html";
+}
+
+function bindClientProfileShortcuts() {
+  document.querySelectorAll(".client-topbar-user, .client-sidebar-user").forEach(element => {
+    if (element.dataset.profileShortcutBound === "true") return;
+
+    element.dataset.profileShortcutBound = "true";
+    element.setAttribute("role", "link");
+    element.setAttribute("tabindex", "0");
+    element.setAttribute("aria-label", "Ouvrir mon profil");
+
+    element.addEventListener("click", navigateToClientProfile);
+    element.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        navigateToClientProfile();
+      }
+    });
+  });
+}
+
 async function initClientShell() {
   if (!document.body.classList.contains("client-body")) return null;
 
@@ -60,6 +84,7 @@ async function initClientShell() {
   });
 
   bindClientMenu();
+  bindClientProfileShortcuts();
   document.querySelectorAll(".client-sidebar-nav a").forEach(link => {
     link.addEventListener("click", () => {
       if (window.innerWidth <= 980) {

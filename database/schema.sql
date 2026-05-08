@@ -11,6 +11,12 @@ CREATE TABLE users (
     password VARCHAR(255),
     phone VARCHAR(30),
     role ENUM('client', 'admin', 'manager', 'driver') DEFAULT 'client',
+    oauth_provider ENUM('google', 'apple') NULL,
+    oauth_subject VARCHAR(255) NULL,
+    email_verified BOOLEAN DEFAULT FALSE,
+    email_verified_at DATETIME NULL,
+    email_verification_token_hash VARCHAR(255) NULL,
+    email_verification_expires_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

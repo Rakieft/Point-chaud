@@ -16,6 +16,11 @@ const frontendPagesRoot = path.join(frontendRoot, "pages");
 const uploadsRoot = path.join(__dirname, process.env.UPLOAD_PATH || "uploads");
 const isProduction = process.env.NODE_ENV === "production";
 
+function hasConfiguredValue(value) {
+  const normalized = String(value || "").trim();
+  return Boolean(normalized) && normalized !== "..." && normalized.toLowerCase() !== "change_me";
+}
+
 function parseCorsOrigins(value) {
   return String(value || "")
     .split(",")
@@ -69,6 +74,15 @@ app.get("/api/health", (req, res) => {
     status: "online",
     environment: process.env.NODE_ENV || "development",
     timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/api/public-config", (req, res) => {
+  res.json({
+    whatsappNumber: hasConfiguredValue(process.env.WHATSAPP_NUMBER) ? process.env.WHATSAPP_NUMBER : "",
+    whatsappMessage: hasConfiguredValue(process.env.WHATSAPP_MESSAGE)
+      ? process.env.WHATSAPP_MESSAGE
+      : "Bonjour Point Chaud, je veux plus d'informations."
   });
 });
 
