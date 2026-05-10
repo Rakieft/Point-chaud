@@ -63,6 +63,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(uploadsRoot));
 app.use("/assets", express.static(path.join(frontendRoot, "assets")));
 app.use("/pages", express.static(frontendPagesRoot));
+app.use(express.static(frontendPagesRoot));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(frontendPagesRoot, "index.html"));
