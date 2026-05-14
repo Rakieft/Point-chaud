@@ -1989,6 +1989,12 @@ html[data-theme="dark"] .text-danger {
   margin-bottom: 24px;
 }
 
+.client-topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .client-topbar h1,
 .client-hero h2 {
   margin: 0;
@@ -2555,6 +2561,12 @@ html[data-theme="dark"] .text-danger {
   .client-topbar {
     align-items: start;
     flex-direction: column;
+  }
+
+  .client-topbar-tools {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .client-topbar-user {
@@ -3469,6 +3481,18 @@ html[data-theme="dark"] .admin-category-form textarea {
   color: var(--muted);
 }
 
+.admin-alert-action {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-alert-action:hover {
+  transform: translateY(-2px);
+  border-color: rgba(233, 93, 22, 0.24);
+  box-shadow: 0 18px 34px rgba(102, 46, 22, 0.08);
+}
+
 .admin-product-chip {
   padding: 18px;
   display: grid;
@@ -3746,6 +3770,34 @@ html[data-theme="dark"] .admin-orders-table td {
   align-items: center;
   justify-content: center;
   min-height: 46px;
+}
+
+.driver-quick-actions-compact {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.driver-quick-action-card {
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid #f0d7ca;
+  background: rgba(255, 255, 255, 0.96);
+  display: grid;
+  gap: 12px;
+}
+
+.driver-quick-action-card strong {
+  color: #7f1d1d;
+}
+
+html[data-theme="dark"] .driver-quick-action-card {
+  background: rgba(36, 30, 25, 0.96);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .driver-quick-action-card strong {
+  color: var(--text);
 }
 
 .driver-timeline {
@@ -4084,6 +4136,10 @@ html[data-theme="dark"] .admin-orders-table td {
   .driver-nav-strip .btn {
     width: 100%;
     min-width: 0;
+  }
+
+  .driver-quick-actions-compact {
+    grid-template-columns: 1fr;
   }
 
   .driver-profile-avatar-wrap {

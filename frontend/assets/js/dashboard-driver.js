@@ -80,7 +80,6 @@ function renderDriverStats(orders) {
   }).length;
 
   const cards = [
-    ["Mes livraisons", orders.length],
     ["A demarrer", orders.filter(order => order.delivery_status === "assigned").length],
     ["En route", orders.filter(order => order.delivery_status === "out_for_delivery").length],
     ["Retours", orders.filter(order => order.delivery_status === "return_to_branch").length],
@@ -90,7 +89,7 @@ function renderDriverStats(orders) {
   container.innerHTML = cards
     .map(
       ([label, value], index) => `
-        <article class="admin-stat-card admin-stat-${["orange", "red", "gold", "white", "orange"][index]}">
+        <article class="admin-stat-card admin-stat-${["orange", "red", "gold", "white"][index]}">
           <small>${label}</small>
           <h2>${value}</h2>
         </article>
@@ -143,30 +142,22 @@ function renderQuickActions(user, orders) {
   const cards = [
     {
       title: "Mes livraisons",
-      body: "Ouvre la liste complete de tes commandes actives et archivees.",
-      action: `<a class="btn btn-light" href="./deliveries.html">Voir mes livraisons</a>`
+      action: `<a class="btn btn-light" href="./deliveries.html">Ouvrir</a>`
     },
     {
       title: "Mon profil",
-      body: "Mets a jour ton telephone, ton email et tes informations terrain.",
-      action: `<a class="btn btn-light" href="./driver-profile.html">Ouvrir mon profil</a>`
+      action: `<a class="btn btn-light" href="./driver-profile.html">Modifier</a>`
     },
     {
-      title: "Client du moment",
-      body: activeOrder?.customer_phone
-        ? `Contacte ${activeOrder.customer_name} avant l'arrivee si necessaire.`
-        : "Le numero du client apparaitra ici des qu'une livraison sera en cours.",
+      title: "Appel rapide",
       action: activeOrder?.customer_phone
         ? `<a class="btn btn-light" href="tel:${activeOrder.customer_phone}">Appeler</a>`
-        : `<span class="muted">Aucun appel prioritaire</span>`
+        : `<span class="muted">Aucun numero prioritaire</span>`
     },
     {
-      title: "Retour a traiter",
-      body: returnedOrder
-        ? `La commande #${returnedOrder.id} est revenue au point chaud. Le manager peut la replanifier.`
-        : "Aucun retour client a signaler sur ta tournee actuelle.",
+      title: "Retour",
       action: returnedOrder
-        ? `<a class="btn btn-light" href="./deliveries.html">Voir le retour</a>`
+        ? `<button class="btn admin-btn-warning" type="button" onclick="openDriverOrderDetail(${returnedOrder.id})">Voir</button>`
         : `<span class="muted">Rien a traiter</span>`
     }
   ];
@@ -174,11 +165,8 @@ function renderQuickActions(user, orders) {
   container.innerHTML = cards
     .map(
       card => `
-        <article class="admin-driver-card">
-          <div class="stack-sm">
-            <strong>${card.title}</strong>
-            <p>${card.body}</p>
-          </div>
+        <article class="driver-quick-action-card">
+          <strong>${card.title}</strong>
           <div class="admin-action-group">${card.action}</div>
         </article>
       `
@@ -287,7 +275,7 @@ async function renderDriverDashboard() {
       user.assigned_location_name || "Succursale de livraison";
     document.getElementById("driver-hero-note").textContent =
       orders.length
-        ? `${orders.length} livraison(s) te sont actuellement rattachees.`
+        ? `${orders.length} livraison(s) rattachee(s) a ta tournee.`
         : "Aucune livraison pour le moment. Le dashboard se mettra a jour automatiquement.";
 
     const priorityOrder =

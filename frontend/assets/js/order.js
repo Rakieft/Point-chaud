@@ -1,3 +1,5 @@
+let clientNotificationsCache = [];
+
 async function renderClientDashboard() {
   if (!document.getElementById("client-name")) return;
 
@@ -5,7 +7,6 @@ async function renderClientDashboard() {
   if (!user) return;
 
   const welcome = document.getElementById("client-name");
-  const notificationsList = document.getElementById("notifications-list");
 
   if (welcome) {
     welcome.textContent = user.name;
@@ -13,9 +14,10 @@ async function renderClientDashboard() {
 
   try {
     const [orders, notifications] = await Promise.all([apiRequest("/orders/my"), apiRequest("/notifications")]);
+    clientNotificationsCache = notifications;
     renderClientStats(orders, notifications);
     renderClientDashboardHighlights(orders, notifications);
-    renderNotifications(notificationsList, notifications);
+    syncClientNotificationsButton(notifications);
   } catch (error) {
     showMessage("dashboard-message", "error", error.message);
   }
@@ -370,6 +372,64 @@ function renderNotifications(container, notifications) {
   });
 }
 
+function ensureClientNotificationsModal() {
+  let modal = document.getElementById("client-notifications-modal");
+  if (modal) return modal;
+
+  modal = document.createElement("div");
+  modal.id = "client-notifications-modal";
+  modal.className = "admin-modal hidden";
+  modal.innerHTML = `
+    <div class="admin-modal-backdrop" data-client-notification-close></div>
+    <div class="admin-modal-card notification-modal-card">
+      <div class="admin-modal-head">
+        <div>
+          <p class="admin-eyebrow">Notifications client</p>
+          <h2>Messages recus</h2>
+        </div>
+        <button class="btn-light" type="button" data-client-notification-close>Fermer</button>
+      </div>
+      <div id="client-notifications-list" class="notification-detail-stack"></div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.querySelectorAll("[data-client-notification-close]").forEach(element => {
+    element.addEventListener("click", closeClientNotificationsModal);
+  });
+
+  return modal;
+}
+
+function closeClientNotificationsModal() {
+  const modal = document.getElementById("client-notifications-modal");
+  if (!modal) return;
+  modal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+}
+
+function renderClientNotificationsModalList() {
+  const container = document.getElementById("client-notifications-list");
+  if (!container) return;
+  renderNotifications(container, clientNotificationsCache);
+}
+
+function openClientNotificationsModal() {
+  ensureClientNotificationsModal();
+  renderClientNotificationsModalList();
+  const modal = document.getElementById("client-notifications-modal");
+  if (!modal) return;
+  modal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+}
+
+function syncClientNotificationsButton(notifications = clientNotificationsCache) {
+  const count = document.getElementById("client-notification-count");
+  if (count) {
+    count.textContent = String(notifications.filter(notification => !notification.is_read).length || 0);
+  }
+}
+
 async function markClientNotificationAsRead(notificationId, button) {
   if (!notificationId || button?.dataset.notificationRead === "true") return;
 
@@ -384,6 +444,10 @@ async function markClientNotificationAsRead(notificationId, button) {
       const label = button.querySelector("strong");
       if (label) label.textContent = "Lu";
     }
+    clientNotificationsCache = clientNotificationsCache.map(notification =>
+      Number(notification.id) === Number(notificationId) ? { ...notification, is_read: true } : notification
+    );
+    syncClientNotificationsButton();
   } catch (error) {
     // Keep the detail flow usable even if the read flag update fails.
   }
@@ -1373,6 +1437,9 @@ async function renderClientProfilePage() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const clientNotificationsButton = document.getElementById("client-notifications-button");
+  clientNotificationsButton?.addEventListener("click", openClientNotificationsModal);
+
   renderPublicCatalogPage();
   renderClientDashboard();
   renderClientOrdersPage();

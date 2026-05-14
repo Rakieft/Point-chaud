@@ -8,7 +8,7 @@ function renderDeliveriesStats(orders) {
   const cards = [
     ["Livraisons totales", orders.length],
     ["A affecter", orders.filter(order => order.status === "paid" && order.delivery_status === "pending_assignment").length],
-    ["En livraison", orders.filter(order => order.delivery_status === "out_for_delivery").length],
+    // ["En livraison", orders.filter(order => order.delivery_status === "out_for_delivery").length],
     ["Retours", orders.filter(order => order.delivery_status === "return_to_branch").length],
     ["Livrees", orders.filter(order => order.delivery_status === "delivered" || order.status === "completed").length]
   ];

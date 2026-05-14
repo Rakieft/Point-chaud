@@ -47,11 +47,17 @@
             <p class="admin-eyebrow">Accueil</p>
             <h1>Bienvenue, <span data-client-name>client</span></h1>
           </div>
-          <div class="client-topbar-user">
-            <div data-client-avatar class="client-topbar-avatar">CL</div>
-            <div>
-              <strong data-client-name>Client</strong>
-              <small data-client-phone>Telephone non renseigne</small>
+          <div class="client-topbar-tools">
+            <button id="client-notifications-button" class="admin-icon-btn" type="button">
+              <span aria-hidden="true">Notifications</span>
+              <span id="client-notification-count" class="admin-notification-count">0</span>
+            </button>
+            <div class="client-topbar-user">
+              <div data-client-avatar class="client-topbar-avatar">CL</div>
+              <div>
+                <strong data-client-name>Client</strong>
+                <small data-client-phone>Telephone non renseigne</small>
+              </div>
             </div>
           </div>
         </header>
@@ -138,16 +144,6 @@
                   <p>Retrouve rapidement tes informations et les consignes importantes.</p>
                 </a>
               </div>
-            </article>
-
-            <article class="panel client-panel">
-              <div class="section-head">
-                <div>
-                  <h2>Notifications</h2>
-                  <p>Messages utiles lies a tes commandes.</p>
-                </div>
-              </div>
-              <div id="notifications-list"></div>
             </article>
           </div>
         </section>

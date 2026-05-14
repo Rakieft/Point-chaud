@@ -271,17 +271,63 @@ function renderBackofficeNotificationsList() {
     : `<div class="empty-state"><p>Aucune notification pour l'instant.</p></div>`;
 
   container.querySelectorAll("[data-backoffice-notification-id]").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const notificationId = Number(button.dataset.backofficeNotificationId);
-      openNotificationDetail({
+      const notification = {
         id: notificationId,
         status: button.dataset.backofficeNotificationStatus,
         message: decodeURIComponent(button.dataset.backofficeNotificationMessage || ""),
         createdAtLabel: decodeURIComponent(button.dataset.backofficeNotificationDate || "")
-      });
-      markBackofficeNotificationAsRead(notificationId, button);
+      };
+
+      await markBackofficeNotificationAsRead(notificationId, button);
+      navigateFromBackofficeNotification(notification);
     });
   });
+}
+
+function getBackofficeNotificationTarget(notification) {
+  const message = String(notification?.message || "").toLowerCase();
+
+  if (
+    message.includes("preuve de paiement") ||
+    message.includes("paiement confirme") ||
+    message.includes("paiement rejete")
+  ) {
+    return "./orders-pending.html#payments-section";
+  }
+
+  if (
+    message.includes("livraison") ||
+    message.includes("livreur") ||
+    message.includes("retour au point chaud") ||
+    message.includes("reaffecte")
+  ) {
+    return "./deliveries.html";
+  }
+
+  if (
+    message.includes("nouvelle commande") ||
+    message.includes("validation") ||
+    message.includes("commande #")
+  ) {
+    return "./orders-pending.html";
+  }
+
+  return null;
+}
+
+function navigateFromBackofficeNotification(notification) {
+  const target = getBackofficeNotificationTarget(notification);
+
+  if (target) {
+    closeBackofficeNotificationsModal();
+    closeNotificationDetailModal();
+    window.location.href = target;
+    return;
+  }
+
+  openNotificationDetail(notification);
 }
 
 async function markBackofficeNotificationAsRead(notificationId, button) {
@@ -327,6 +373,34 @@ function closeBackofficeNotificationsModal() {
   if (!modal) return;
   modal.classList.add("hidden");
   document.body.classList.remove("modal-open");
+}
+
+async function openBackofficeNotificationByKeyword(keyword = "") {
+  if (!backofficeNotifications.length) {
+    await loadBackofficeNotifications();
+  }
+
+  const normalizedKeyword = String(keyword || "").trim().toLowerCase();
+  const match = normalizedKeyword
+    ? backofficeNotifications.find(notification =>
+        String(notification.message || "")
+          .toLowerCase()
+          .includes(normalizedKeyword)
+      )
+    : null;
+
+  if (match) {
+    openNotificationDetail({
+      id: Number(match.id),
+      status: match.is_read ? "Lu" : "Nouveau",
+      message: match.message || "",
+      createdAtLabel: formatTimestamp(match.created_at)
+    });
+    await markBackofficeNotificationAsRead(Number(match.id));
+    return;
+  }
+
+  openBackofficeNotificationsModal();
 }
 
 async function loadBackofficeNotifications() {
@@ -478,3 +552,5 @@ function closeOrderDetail() {
   modal.classList.add("hidden");
   document.body.classList.remove("modal-open");
 }
+
+window.openBackofficeNotificationByKeyword = openBackofficeNotificationByKeyword;

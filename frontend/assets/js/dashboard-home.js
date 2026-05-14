@@ -46,11 +46,11 @@ function renderDashboardPaymentsReview(orders) {
     ? paymentReviewOrders
         .map(
           order => `
-            <div class="admin-alert-item">
+            <button class="admin-alert-item admin-alert-action" type="button" onclick="openBackofficeNotificationByKeyword('commande #${order.id}')">
               <strong>Commande #${order.id}</strong>
               <p>${order.customer_name} a envoye une preuve pour ${formatMoney(order.total)}.</p>
               <small>${order.location_name} • ${formatDateTime(order.pickup_date, order.pickup_time)}</small>
-            </div>
+            </button>
           `
         )
         .join("")
@@ -67,14 +67,14 @@ function renderDashboardRecentOrders(orders) {
     ? recentOrders
         .map(
           order => `
-            <div class="admin-alert-item">
+            <button class="admin-alert-item admin-alert-action" type="button" onclick="openBackofficeNotificationByKeyword('commande #${order.id}')">
               <div class="toolbar">
                 <strong>Commande #${order.id}</strong>
                 <span class="status ${order.status}">${formatOrderStatusLabel(order.status)}</span>
               </div>
               <p>${order.customer_name} • ${order.location_name}</p>
               <small>${order.items.length} produit(s) • ${formatMoney(order.total)}</small>
-            </div>
+            </button>
           `
         )
         .join("")
@@ -90,9 +90,10 @@ function renderDashboardRecentActivity(pendingOrders, validatedOrders) {
   pendingOrders
     .filter(order => order.status === "pending_validation")
     .slice(0, 2)
-    .forEach(order => {
-      items.push({
-        title: `Nouvelle commande #${order.id}`,
+      .forEach(order => {
+        items.push({
+          keyword: `commande #${order.id}`,
+          title: `Nouvelle commande #${order.id}`,
         text: `${order.customer_name} attend une validation pour ${order.location_name}.`,
         meta: formatDateValue(order.created_at)
       });
@@ -101,9 +102,10 @@ function renderDashboardRecentActivity(pendingOrders, validatedOrders) {
   pendingOrders
     .filter(order => order.status === "awaiting_payment" && order.payment_proof && order.payment_status === "pending")
     .slice(0, 2)
-    .forEach(order => {
-      items.push({
-        title: `Preuve recue pour #${order.id}`,
+      .forEach(order => {
+        items.push({
+          keyword: `commande #${order.id}`,
+          title: `Preuve recue pour #${order.id}`,
         text: `Une preuve de paiement attend la verification du staff.`,
         meta: `${order.location_name} • ${formatMoney(order.total)}`
       });
@@ -112,9 +114,10 @@ function renderDashboardRecentActivity(pendingOrders, validatedOrders) {
   validatedOrders
     .filter(order => order.status === "paid")
     .slice(0, 2)
-    .forEach(order => {
-      items.push({
-        title: order.order_type === "delivery" ? `Livraison a organiser #${order.id}` : `Commande prete #${order.id}`,
+      .forEach(order => {
+        items.push({
+          keyword: `commande #${order.id}`,
+          title: order.order_type === "delivery" ? `Livraison a organiser #${order.id}` : `Commande prete #${order.id}`,
         text:
           order.order_type === "delivery"
             ? `${order.customer_name} attend l'affectation d'un livreur.`
@@ -128,11 +131,11 @@ function renderDashboardRecentActivity(pendingOrders, validatedOrders) {
         .slice(0, 6)
         .map(
           item => `
-            <div class="admin-alert-item">
+            <button class="admin-alert-item admin-alert-action" type="button" onclick="openBackofficeNotificationByKeyword('${item.keyword || ""}')">
               <strong>${item.title}</strong>
               <p>${item.text}</p>
               <small>${item.meta}</small>
-            </div>
+            </button>
           `
         )
         .join("")
@@ -244,10 +247,10 @@ function renderDashboardAlerts(orders, user, lowStockItems = [], lowStockThresho
   container.innerHTML = alerts
     .map(
       alert => `
-        <div class="admin-alert-item">
+        <button class="admin-alert-item admin-alert-action" type="button" onclick="openBackofficeNotificationsModal()">
           <strong>Priorite</strong>
           <p>${alert}</p>
-        </div>
+        </button>
       `
     )
     .join("");
