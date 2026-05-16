@@ -349,17 +349,22 @@ exports.getReports = async (req, res) => {
       return accumulator;
     }, {});
 
-    const reports = Object.values(grouped).map(report => {
-      const sorted = [...report.products].sort((a, b) => Number(b.quantity_sold) - Number(a.quantity_sold));
-      return {
-        ...report,
-        best_sellers: sorted.slice(0, 5),
-        low_sellers: [...sorted].reverse().slice(0, 5),
-        low_stock: report.products
-          .filter(product => Number(product.stock || 0) <= 5)
-          .sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0))
-          .slice(0, 5)
-      };
+      const reports = Object.values(grouped).map(report => {
+        const soldProducts = report.products
+          .filter(product => Number(product.quantity_sold || 0) > 0)
+          .sort((a, b) => Number(b.quantity_sold) - Number(a.quantity_sold));
+        const lowSellingProducts = [...soldProducts].sort((a, b) => Number(a.quantity_sold) - Number(b.quantity_sold));
+
+        return {
+          ...report,
+          has_sales: soldProducts.length > 0,
+          best_sellers: soldProducts.slice(0, 5),
+          low_sellers: lowSellingProducts.slice(0, 5),
+          low_stock: report.products
+            .filter(product => Number(product.stock || 0) <= 5)
+            .sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0))
+            .slice(0, 5)
+        };
     });
 
     res.json({ actor, reports });
@@ -374,7 +379,7 @@ exports.getPaymentProofMaintenance = async (req, res) => {
     res.json(stats);
   } catch (error) {
     res.status(500).json({
-      message: "Impossible de recuperer les informations de maintenance des preuves",
+      message: "Impossible de recuperer les informations de maintenance des commandes archivees",
       error: error.message
     });
   }
@@ -386,12 +391,12 @@ exports.runPaymentProofMaintenance = async (req, res) => {
     res.json({
       message: result.alreadyRunning
         ? result.message
-        : `${result.cleanedOrders} preuve(s) ancienne(s) nettoyee(s) avec succes.`,
+        : `${result.deletedOrders} commande(s) archivee(s), ${result.deletedNotifications} notification(s) et ${result.filesDeleted} preuve(s) nettoyee(s) avec succes.`,
       result
     });
   } catch (error) {
     res.status(500).json({
-      message: "Impossible de lancer le nettoyage des preuves",
+      message: "Impossible de lancer le nettoyage des commandes archivees",
       error: error.message
     });
   }

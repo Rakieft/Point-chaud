@@ -3,7 +3,7 @@ async function renderDashboardHome() {
     const user = await loadBackofficeUser();
     if (!user) return;
     if (user.role === "driver") {
-      window.location.href = "./deliveries.html";
+      window.location.href = "./dashboard-driver.html";
       return;
     }
 
@@ -15,7 +15,7 @@ async function renderDashboardHome() {
     renderQuickLinks(user);
     renderDashboardAlerts(pendingOrders, user, data.lowStockItems || [], data.lowStockThreshold || 5);
     renderDashboardPaymentsReview(pendingOrders);
-    renderDashboardRecentOrders(pendingOrders);
+    renderDashboardRecentOrders(pendingOrders, validatedOrders);
     renderDashboardRecentActivity(pendingOrders, validatedOrders);
 
     const locationLabel = document.getElementById("admin-location-label");
@@ -34,6 +34,23 @@ async function renderDashboardHome() {
   }
 }
 
+function buildDashboardOrderTarget(orderId, options = {}) {
+  const params = new URLSearchParams();
+  params.set("orderId", String(orderId));
+  params.set("fromNotification", "1");
+  if (options.focus) {
+    params.set("focus", options.focus);
+  }
+  return `./orders-pending.html?${params.toString()}`;
+}
+
+function buildDashboardDeliveryTarget(orderId) {
+  const params = new URLSearchParams();
+  params.set("orderId", String(orderId));
+  params.set("fromNotification", "1");
+  return `./deliveries.html?${params.toString()}`;
+}
+
 function renderDashboardPaymentsReview(orders) {
   const container = document.getElementById("dashboard-payments-review");
   if (!container) return;
@@ -46,35 +63,41 @@ function renderDashboardPaymentsReview(orders) {
     ? paymentReviewOrders
         .map(
           order => `
-            <button class="admin-alert-item admin-alert-action" type="button" onclick="openBackofficeNotificationByKeyword('commande #${order.id}')">
+            <a class="admin-alert-item admin-alert-action" href="${buildDashboardOrderTarget(order.id, { focus: "payments-section" })}">
               <strong>Commande #${order.id}</strong>
               <p>${order.customer_name} a envoye une preuve pour ${formatMoney(order.total)}.</p>
               <small>${order.location_name} • ${formatDateTime(order.pickup_date, order.pickup_time)}</small>
-            </button>
+            </a>
           `
         )
         .join("")
     : `<div class="empty-state"><p>Aucun paiement en attente de verification pour le moment.</p></div>`;
 }
 
-function renderDashboardRecentOrders(orders) {
+function renderDashboardRecentOrders(pendingOrders, validatedOrders) {
   const container = document.getElementById("dashboard-recent-orders");
   if (!container) return;
 
-  const recentOrders = [...orders].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, 3);
+  const recentOrders = [...pendingOrders, ...validatedOrders]
+    .filter(order => order.status !== "cancelled" && order.status !== "completed")
+    .filter((order, index, source) => source.findIndex(item => Number(item.id) === Number(order.id)) === index)
+    .sort((a, b) => Number(b.id) - Number(a.id))
+    .slice(0, 3);
 
   container.innerHTML = recentOrders.length
     ? recentOrders
         .map(
           order => `
-            <button class="admin-alert-item admin-alert-action" type="button" onclick="openBackofficeNotificationByKeyword('commande #${order.id}')">
+            <a
+              class="admin-alert-item admin-alert-action"
+              href="${order.order_type === "delivery" ? buildDashboardDeliveryTarget(order.id) : buildDashboardOrderTarget(order.id)}">
               <div class="toolbar">
                 <strong>Commande #${order.id}</strong>
                 <span class="status ${order.status}">${formatOrderStatusLabel(order.status)}</span>
               </div>
               <p>${order.customer_name} • ${order.location_name}</p>
               <small>${order.items.length} produit(s) • ${formatMoney(order.total)}</small>
-            </button>
+            </a>
           `
         )
         .join("")
@@ -90,10 +113,10 @@ function renderDashboardRecentActivity(pendingOrders, validatedOrders) {
   pendingOrders
     .filter(order => order.status === "pending_validation")
     .slice(0, 2)
-      .forEach(order => {
-        items.push({
-          keyword: `commande #${order.id}`,
-          title: `Nouvelle commande #${order.id}`,
+    .forEach(order => {
+      items.push({
+        href: buildDashboardOrderTarget(order.id),
+        title: `Nouvelle commande #${order.id}`,
         text: `${order.customer_name} attend une validation pour ${order.location_name}.`,
         meta: formatDateValue(order.created_at)
       });
@@ -102,11 +125,11 @@ function renderDashboardRecentActivity(pendingOrders, validatedOrders) {
   pendingOrders
     .filter(order => order.status === "awaiting_payment" && order.payment_proof && order.payment_status === "pending")
     .slice(0, 2)
-      .forEach(order => {
-        items.push({
-          keyword: `commande #${order.id}`,
-          title: `Preuve recue pour #${order.id}`,
-        text: `Une preuve de paiement attend la verification du staff.`,
+    .forEach(order => {
+      items.push({
+        href: buildDashboardOrderTarget(order.id, { focus: "payments-section" }),
+        title: `Preuve recue pour #${order.id}`,
+        text: "Une preuve de paiement attend la verification du staff.",
         meta: `${order.location_name} • ${formatMoney(order.total)}`
       });
     });
@@ -114,10 +137,10 @@ function renderDashboardRecentActivity(pendingOrders, validatedOrders) {
   validatedOrders
     .filter(order => order.status === "paid")
     .slice(0, 2)
-      .forEach(order => {
-        items.push({
-          keyword: `commande #${order.id}`,
-          title: order.order_type === "delivery" ? `Livraison a organiser #${order.id}` : `Commande prete #${order.id}`,
+    .forEach(order => {
+      items.push({
+        href: order.order_type === "delivery" ? buildDashboardDeliveryTarget(order.id) : buildDashboardOrderTarget(order.id),
+        title: order.order_type === "delivery" ? `Livraison a organiser #${order.id}` : `Commande prete #${order.id}`,
         text:
           order.order_type === "delivery"
             ? `${order.customer_name} attend l'affectation d'un livreur.`
@@ -131,11 +154,11 @@ function renderDashboardRecentActivity(pendingOrders, validatedOrders) {
         .slice(0, 6)
         .map(
           item => `
-            <button class="admin-alert-item admin-alert-action" type="button" onclick="openBackofficeNotificationByKeyword('${item.keyword || ""}')">
+            <a class="admin-alert-item admin-alert-action" href="${item.href}">
               <strong>${item.title}</strong>
               <p>${item.text}</p>
               <small>${item.meta}</small>
-            </button>
+            </a>
           `
         )
         .join("")
@@ -156,8 +179,6 @@ function formatOrderStatusLabel(status) {
 
 function renderDashboardStats(data) {
   const container = document.getElementById("stats-grid");
-  const notificationCount = document.getElementById("header-notification-count");
-
   if (!container) return;
 
   const cards = [
@@ -177,10 +198,6 @@ function renderDashboardStats(data) {
       `
     )
     .join("");
-
-  if (notificationCount) {
-    notificationCount.textContent = String((data.orders.pending_validation || 0) + (data.orders.awaiting_payment || 0));
-  }
 }
 
 function renderQuickLinks(user) {
@@ -218,9 +235,7 @@ function renderDashboardAlerts(orders, user, lowStockItems = [], lowStockThresho
   if (!container) return;
 
   const pending = orders.filter(order => order.status === "pending_validation");
-  const payments = orders.filter(
-    order => order.status === "awaiting_payment" && order.payment_status !== "rejected"
-  );
+  const payments = orders.filter(order => order.status === "awaiting_payment" && order.payment_status !== "rejected");
 
   const alerts = [];
 

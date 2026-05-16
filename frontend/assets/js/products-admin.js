@@ -1,4 +1,5 @@
 let adminProductsCatalog = null;
+let adminFilteredProducts = [];
 
 function getCategoryFormElements() {
   const form = document.getElementById("category-form");
@@ -85,6 +86,43 @@ function fillAdminCategoryOptions(categories) {
     .join("");
 }
 
+function fillAdminProductsFilterOptions(categories) {
+  const select = document.getElementById("admin-products-category-filter");
+  if (!select) return;
+
+  const previousValue = select.value || "";
+  select.innerHTML =
+    `<option value="">Toutes les categories</option>` +
+    categories.map(category => `<option value="${category.name}">${category.name}</option>`).join("");
+  select.value = categories.some(category => category.name === previousValue) ? previousValue : "";
+}
+
+function renderAdminProductsSummary(products) {
+  const container = document.getElementById("admin-products-summary");
+  if (!container) return;
+
+  const lowStock = products.filter(product => Number(product.stock || 0) <= 5).length;
+  const categoriesCount = new Set(products.map(product => product.category_name).filter(Boolean)).size;
+  const withImages = products.filter(product => Boolean(product.image)).length;
+
+  container.innerHTML = [
+    ["Produits visibles", products.length, "Catalogue actuellement charge"],
+    ["Categories actives", categoriesCount, "Categories ayant au moins un produit"],
+    ["Stock faible", lowStock, "Produits a reapprovisionner vite"],
+    ["Produits avec image", withImages, "Visuels deja renseignes"]
+  ]
+    .map(
+      ([label, value, text]) => `
+        <article class="admin-product-chip">
+          <strong>${label}</strong>
+          <span>${value}</span>
+          <small>${text}</small>
+        </article>
+      `
+    )
+    .join("");
+}
+
 function renderAdminCategoriesList(categories) {
   const container = document.getElementById("admin-categories-list");
   if (!container) return;
@@ -141,23 +179,82 @@ function resetProductForm() {
   }
 }
 
+function normalizeAdminProductValue(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function applyAdminProductsFilters() {
+  const searchValue = normalizeAdminProductValue(document.getElementById("admin-products-search")?.value || "");
+  const categoryValue = document.getElementById("admin-products-category-filter")?.value || "";
+  const stockValue = document.getElementById("admin-products-stock-filter")?.value || "";
+  const products = adminProductsCatalog?.products || [];
+
+  adminFilteredProducts = products.filter(product => {
+    const searchable = normalizeAdminProductValue(
+      `${product.name || ""} ${product.category_name || ""} ${product.description || ""}`
+    );
+    const matchesSearch = !searchValue || searchable.includes(searchValue);
+    const matchesCategory = !categoryValue || product.category_name === categoryValue;
+    const isLow = Number(product.stock || 0) <= 5;
+    const matchesStock = !stockValue || (stockValue === "low" ? isLow : !isLow);
+    return matchesSearch && matchesCategory && matchesStock;
+  });
+
+  renderAdminProductsSummary(products);
+  renderAdminProductsTable(adminFilteredProducts);
+}
+
 function renderAdminProductsTable(products) {
   const tbody = document.getElementById("admin-products-table-body");
+  const resultsCount = document.getElementById("admin-products-results-count");
+  const lowStockSummary = document.getElementById("admin-products-low-stock-summary");
   if (!tbody) return;
 
   const isAdmin = storage.user?.role === "admin";
+  const lowStockProducts = products.filter(product => Number(product.stock || 0) <= 5);
 
-  tbody.innerHTML = products
-    .map(
+  if (resultsCount) {
+    resultsCount.textContent = `${products.length} produit${products.length > 1 ? "s" : ""}`;
+  }
+
+  if (lowStockSummary) {
+    lowStockSummary.textContent = lowStockProducts.length
+      ? `Alerte stock: ${lowStockProducts.length} produit(s) demandent une attention rapide.`
+      : "Alerte stock: aucune tension de stock detectee pour le moment.";
+  }
+
+  tbody.innerHTML = products.length
+    ? products
+        .map(
       product => `
         <tr class="admin-mobile-row">
           <td data-label="Produit">
-            <strong>${product.name}</strong>
-            <div><small>${product.description || "Sans description"}</small></div>
+            <div class="admin-product-row">
+              <div class="admin-product-thumb-wrap">
+                <img
+                  class="admin-product-thumb"
+                  src="${resolveProductImage(product)}"
+                  alt="${product.name}"
+                  loading="lazy"
+                  onerror="handleProductImageError(this, '${String(product.name || "").replace(/'/g, "\\'")}', '${String(product.category_name || "Point Chaud").replace(/'/g, "\\'")}')" />
+              </div>
+              <div class="stack-sm">
+                <strong>${product.name}</strong>
+                <div><small>${product.description || "Sans description"}</small></div>
+              </div>
+            </div>
           </td>
           <td data-label="Categorie">${product.category_name || "Sans categorie"}</td>
           <td data-label="Prix">${formatMoney(product.price)}</td>
-          <td data-label="Stock total">${product.stock}</td>
+          <td data-label="Stock total">
+            <span class="product-stock-badge ${Number(product.stock || 0) <= 5 ? "low" : "ok"}">
+              ${Number(product.stock || 0) <= 5 ? `Faible (${product.stock})` : `OK (${product.stock})`}
+            </span>
+          </td>
           <td data-label="Par succursale">${(product.location_stocks || []).map(item => `${item.location_name}: ${item.stock}`).join("<br>")}</td>
           <td data-label="Actions">
             <div class="admin-action-group">
@@ -173,8 +270,15 @@ function renderAdminProductsTable(products) {
           </td>
         </tr>
       `
-    )
-    .join("");
+        )
+        .join("")
+    : `
+      <tr>
+        <td colspan="6" class="admin-table-empty">
+          <div class="empty-state"><p>Aucun produit ne correspond a ce filtre.</p></div>
+        </td>
+      </tr>
+    `;
 }
 
 async function renderAdminProductsPage() {
@@ -190,9 +294,10 @@ async function renderAdminProductsPage() {
     const catalog = await apiRequest("/products");
     adminProductsCatalog = catalog;
     fillAdminCategoryOptions(catalog.categories);
+    fillAdminProductsFilterOptions(catalog.categories);
     renderAdminCategoriesList(catalog.categories);
     renderLocationStockInputs(catalog.locations);
-    renderAdminProductsTable(catalog.products);
+    applyAdminProductsFilters();
 
     const createPanel = document.getElementById("admin-product-create-panel");
     const tableTitle = document.getElementById("products-table-title");
@@ -336,6 +441,25 @@ function bindProductForm() {
   form.dataset.bound = "true";
 }
 
+function bindAdminProductFilters() {
+  const search = document.getElementById("admin-products-search");
+  const category = document.getElementById("admin-products-category-filter");
+  const stock = document.getElementById("admin-products-stock-filter");
+  const reset = document.getElementById("admin-products-reset-filters");
+
+  const redraw = () => applyAdminProductsFilters();
+
+  search?.addEventListener("input", redraw);
+  category?.addEventListener("change", redraw);
+  stock?.addEventListener("change", redraw);
+  reset?.addEventListener("click", () => {
+    if (search) search.value = "";
+    if (category) category.value = "";
+    if (stock) stock.value = "";
+    redraw();
+  });
+}
+
 window.editProduct = editProduct;
 window.deleteProduct = deleteProduct;
 
@@ -374,5 +498,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   await renderAdminProductsPage();
   bindCategoryForm();
   bindProductForm();
+  bindAdminProductFilters();
   startLiveRefresh("products-admin", renderAdminProductsPage, 20000);
 });

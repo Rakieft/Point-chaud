@@ -1,4 +1,5 @@
 let staffListCache = [];
+let filteredStaffCache = [];
 
 async function renderStaffProfilePage() {
   try {
@@ -11,8 +12,9 @@ async function renderStaffProfilePage() {
       document.getElementById("admin-only-staff-section").style.display = "";
       const [staff, catalog] = await Promise.all([apiRequest("/users/staff"), apiRequest("/products")]);
       staffListCache = staff;
+      renderStaffSummary(staff);
       renderLocationOptions(catalog.locations);
-      renderStaffTable(staff);
+      applyStaffFilters();
     }
   } catch (error) {
     showMessage("profile-message", "error", error.message);
@@ -31,20 +33,90 @@ function fillProfileForm(user) {
 
 function renderLocationOptions(locations) {
   const select = document.getElementById("staff-location-select");
+  const filter = document.getElementById("staff-location-filter");
   if (!select) return;
   select.innerHTML =
     `<option value="">Aucune</option>` +
     locations.map(location => `<option value="${location.id}">${location.name}</option>`).join("");
+  if (filter) {
+    const previousValue = filter.value || "";
+    filter.innerHTML =
+      `<option value="">Toutes les succursales</option>` +
+      locations.map(location => `<option value="${location.id}">${location.name}</option>`).join("");
+    filter.value = locations.some(location => String(location.id) === previousValue) ? previousValue : "";
+  }
+}
+
+function normalizeStaffValue(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function renderStaffSummary(staff) {
+  const container = document.getElementById("staff-summary-grid");
+  if (!container) return;
+
+  const admins = staff.filter(member => member.role === "admin").length;
+  const managers = staff.filter(member => member.role === "manager").length;
+  const drivers = staff.filter(member => member.role === "driver").length;
+  const inactive = staff.filter(member => !member.is_active).length;
+
+  container.innerHTML = [
+    ["Admins", admins, "Comptes supervision"],
+    ["Managers", managers, "Responsables succursales"],
+    ["Livreurs", drivers, "Equipe terrain"],
+    ["Desactives", inactive, "Comptes inactifs"]
+  ]
+    .map(
+      ([label, value, text]) => `
+        <article class="admin-product-chip">
+          <strong>${label}</strong>
+          <span>${value}</span>
+          <small>${text}</small>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function applyStaffFilters() {
+  const search = normalizeStaffValue(document.getElementById("staff-search-input")?.value || "");
+  const role = document.getElementById("staff-role-filter")?.value || "";
+  const location = document.getElementById("staff-location-filter")?.value || "";
+  const status = document.getElementById("staff-status-filter")?.value || "";
+
+  filteredStaffCache = staffListCache.filter(member => {
+    const searchable = normalizeStaffValue(`${member.name || ""} ${member.email || ""} ${member.title || ""}`);
+    const matchesSearch = !search || searchable.includes(search);
+    const matchesRole = !role || member.role === role;
+    const matchesLocation = !location || String(member.assigned_location_id || "") === String(location);
+    const matchesStatus = !status || (status === "active" ? member.is_active : !member.is_active);
+    return matchesSearch && matchesRole && matchesLocation && matchesStatus;
+  });
+
+  const results = document.getElementById("staff-results-count");
+  if (results) {
+    results.textContent =
+      filteredStaffCache.length === staffListCache.length
+        ? `${staffListCache.length} membre${staffListCache.length > 1 ? "s" : ""}`
+        : `${filteredStaffCache.length} / ${staffListCache.length} membre${staffListCache.length > 1 ? "s" : ""}`;
+  }
+
+  renderStaffTable(filteredStaffCache);
 }
 
 function renderStaffTable(staff) {
   const tbody = document.getElementById("staff-table-body");
   if (!tbody) return;
 
-  tbody.innerHTML = staff
-    .map(
+  tbody.innerHTML = staff.length
+    ? staff
+        .map(
       member => `
-        <tr>
+        <tr class="admin-mobile-row">
           <td>
             <strong>${member.name}</strong>
             <div><small>${member.email}</small></div>
@@ -80,8 +152,15 @@ function renderStaffTable(staff) {
           </td>
         </tr>
       `
-    )
-    .join("");
+        )
+        .join("")
+    : `
+      <tr>
+        <td colspan="5" class="admin-table-empty">
+          <div class="empty-state"><p>Aucun membre ne correspond aux filtres actuels.</p></div>
+        </td>
+      </tr>
+    `;
 }
 
 async function updateStaffRole(staffId, role) {
@@ -230,10 +309,33 @@ function bindStaffEditForm() {
   });
 }
 
+function bindStaffFilters() {
+  const search = document.getElementById("staff-search-input");
+  const role = document.getElementById("staff-role-filter");
+  const location = document.getElementById("staff-location-filter");
+  const status = document.getElementById("staff-status-filter");
+  const reset = document.getElementById("staff-reset-filters");
+
+  const redraw = () => applyStaffFilters();
+
+  search?.addEventListener("input", redraw);
+  role?.addEventListener("change", redraw);
+  location?.addEventListener("change", redraw);
+  status?.addEventListener("change", redraw);
+  reset?.addEventListener("click", () => {
+    if (search) search.value = "";
+    if (role) role.value = "";
+    if (location) location.value = "";
+    if (status) status.value = "";
+    redraw();
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   bindProfileForm();
   bindStaffForm();
   bindStaffEditForm();
+  bindStaffFilters();
   renderStaffProfilePage();
   startLiveRefresh("staff-profile", renderStaffProfilePage, 20000);
 });

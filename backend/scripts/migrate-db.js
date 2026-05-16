@@ -185,8 +185,12 @@ async function run() {
     await db.query("ALTER TABLE orders ADD COLUMN delivered_at DATETIME NULL AFTER assigned_driver_id");
   }
 
+  if (!(await columnExists("orders", "customer_received_at"))) {
+    await db.query("ALTER TABLE orders ADD COLUMN customer_received_at DATETIME NULL AFTER delivered_at");
+  }
+
   if (!(await columnExists("orders", "return_note"))) {
-    await db.query("ALTER TABLE orders ADD COLUMN return_note TEXT NULL AFTER delivered_at");
+    await db.query("ALTER TABLE orders ADD COLUMN return_note TEXT NULL AFTER customer_received_at");
   }
 
   if (!(await columnExists("orders", "returned_at"))) {

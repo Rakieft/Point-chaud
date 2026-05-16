@@ -81,6 +81,40 @@
               </div>
             </div>
             <div id="staff-message" class="message-box"></div>
+            <div id="staff-summary-grid" class="admin-product-summary"></div>
+            <div class="admin-orders-toolbar">
+              <label>
+                Recherche
+                <input
+                  id="staff-search-input"
+                  type="search"
+                  placeholder="Nom, email ou poste"
+                  autocomplete="off" />
+              </label>
+              <label>
+                Role
+                <select id="staff-role-filter">
+                  <option value="">Tous les roles</option>
+                  <option value="admin">Admin</option>
+                  <option value="manager">Manager</option>
+                  <option value="driver">Livreur</option>
+                </select>
+              </label>
+              <label>
+                Succursale
+                <select id="staff-location-filter">
+                  <option value="">Toutes les succursales</option>
+                </select>
+              </label>
+              <label>
+                Etat
+                <select id="staff-status-filter">
+                  <option value="">Tous les etats</option>
+                  <option value="active">Actif</option>
+                  <option value="inactive">Desactive</option>
+                </select>
+              </label>
+            </div>
             <form id="staff-form" class="admin-staff-form">
               <label>Nom complet <input name="name" required /></label>
               <label>Email <input name="email" type="email" required /></label>
@@ -120,6 +154,10 @@
                 </thead>
                 <tbody id="staff-table-body"></tbody>
               </table>
+            </div>
+            <div class="admin-orders-toolbar-meta" style="margin-top:14px;">
+              <span id="staff-results-count" class="badge">0 resultat</span>
+              <button id="staff-reset-filters" class="btn btn-light" type="button">Reinitialiser</button>
             </div>
           </section>
         </section>

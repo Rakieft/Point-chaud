@@ -16,7 +16,6 @@
           <a class="brand" href="./index.html">POINT CHAUD</a>
           <nav class="nav-links">
             <a href="./index.html">Accueil</a>
-            <!-- <a href="./cart.html">Panier</a> -->
             <a href="./login.html">Connexion</a>
             <a href="./register.html">Inscription</a>
           </nav>
@@ -27,7 +26,7 @@
         <section class="container">
           <section class="catalog-hero public-catalog-hero">
             <div class="catalog-hero-copy">
-              <span class="badge" style="color: yellow;">Catalogue gourmand</span>
+              <span class="badge">Catalogue gourmand</span>
               <h1>Choisis ton envie du moment.</h1>
               <p>
                 Pains chauds, pates, pizzas, burgers, plats chauds et boissons. Parcours le menu, filtre
@@ -313,6 +312,46 @@
               </div>
             </section>
 
+            <section class="admin-panel admin-products-control-panel">
+              <div class="admin-section-head">
+                <div>
+                  <p class="admin-eyebrow">Pilotage catalogue</p>
+                  <h2>Rechercher, filtrer et surveiller le stock</h2>
+                </div>
+                <div class="admin-orders-toolbar-meta">
+                  <span id="admin-products-results-count" class="badge">0 produit</span>
+                  <button id="admin-products-reset-filters" class="btn btn-light" type="button">Reinitialiser</button>
+                </div>
+              </div>
+              <div class="admin-orders-toolbar">
+                <label>
+                  Recherche
+                  <input
+                    id="admin-products-search"
+                    type="search"
+                    placeholder="Nom produit, categorie ou description"
+                    autocomplete="off" />
+                </label>
+                <label>
+                  Categorie
+                  <select id="admin-products-category-filter">
+                    <option value="">Toutes les categories</option>
+                  </select>
+                </label>
+                <label>
+                  Stock
+                  <select id="admin-products-stock-filter">
+                    <option value="">Tous les niveaux</option>
+                    <option value="low">Stock faible</option>
+                    <option value="ok">Stock confortable</option>
+                  </select>
+                </label>
+              </div>
+              <div id="admin-products-low-stock-summary" class="admin-products-low-stock-summary muted">
+                Alerte stock: aucune tension de stock detectee pour le moment.
+              </div>
+            </section>
+
             <section class="admin-panel">
               <div class="admin-section-head">
                 <div>
@@ -320,6 +359,7 @@
                   <h2 id="products-table-title">Modifier ou supprimer les produits</h2>
                 </div>
               </div>
+              <div id="admin-products-summary" class="admin-product-summary"></div>
               <div class="admin-table-wrap">
                 <table class="admin-orders-table">
                   <thead>

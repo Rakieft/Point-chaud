@@ -63,7 +63,9 @@ const SUPPORT_CONFIG = {
   whatsappMessage:
     window.POINT_CHAUD_WHATSAPP_MESSAGE ||
     document.documentElement.dataset.whatsappMessage ||
-    "Bonjour Point Chaud, je veux plus d'informations."
+    "Bonjour Point Chaud, je veux plus d'informations.",
+  instagramUrl: window.POINT_CHAUD_INSTAGRAM_URL || document.documentElement.dataset.instagramUrl || "",
+  tiktokUrl: window.POINT_CHAUD_TIKTOK_URL || document.documentElement.dataset.tiktokUrl || ""
 };
 let publicConfigPromise = null;
 
@@ -404,6 +406,14 @@ async function loadPublicConfig() {
         SUPPORT_CONFIG.whatsappMessage = config.whatsappMessage;
       }
 
+      if (config?.instagramUrl) {
+        SUPPORT_CONFIG.instagramUrl = config.instagramUrl;
+      }
+
+      if (config?.tiktokUrl) {
+        SUPPORT_CONFIG.tiktokUrl = config.tiktokUrl;
+      }
+
       return SUPPORT_CONFIG;
     })
     .catch(() => SUPPORT_CONFIG);
@@ -446,10 +456,58 @@ async function injectWhatsAppSupportButton() {
   document.body.appendChild(anchor);
 }
 
+async function injectIndexSocialLinks() {
+  const container = document.getElementById("index-social-links");
+  if (!container) return;
+
+  await loadPublicConfig();
+
+  const links = [
+    {
+      key: "instagramUrl",
+      label: "Instagram",
+      icon: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="5" ry="5" fill="none" stroke="currentColor" stroke-width="1.9"></rect>
+          <circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="1.9"></circle>
+          <circle cx="17.3" cy="6.7" r="1.1" fill="currentColor"></circle>
+        </svg>
+      `
+    },
+    {
+      key: "tiktokUrl",
+      label: "TikTok",
+      icon: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M14.5 3c.3 1.7 1.3 3.1 2.8 4 .9.5 1.9.8 2.9.8v3.2c-1.4 0-2.8-.3-4-.9v5.8c0 3.1-2.5 5.6-5.6 5.6S5 19 5 15.9s2.5-5.6 5.6-5.6c.3 0 .7 0 1 .1v3.3c-.3-.1-.6-.2-1-.2-1.3 0-2.3 1-2.3 2.3s1 2.3 2.3 2.3 2.3-1 2.3-2.3V3h1.9Z"></path>
+        </svg>
+      `
+    }
+  ].filter(link => SUPPORT_CONFIG[link.key]);
+
+  if (!links.length) {
+    container.hidden = true;
+    return;
+  }
+
+  container.hidden = false;
+  container.innerHTML = links
+    .map(
+      link => `
+        <a class="social-link" href="${SUPPORT_CONFIG[link.key]}" target="_blank" rel="noopener noreferrer" aria-label="${link.label}">
+          <span class="social-link-icon">${link.icon}</span>
+          <span>${link.label}</span>
+        </a>
+      `
+    )
+    .join("");
+}
+
 window.API_BASE_URL = API_BASE_URL;
 
 document.addEventListener("DOMContentLoaded", () => {
   applyTheme(readStoredTheme());
   injectThemeToggle();
   injectWhatsAppSupportButton();
+  injectIndexSocialLinks();
 });

@@ -620,14 +620,14 @@ exports.updateDeliveryStatus = async (req, res) => {
       });
     }
 
-    const nextStatus = delivery_status === "delivered" ? "completed" : "paid";
+    const nextStatus = "paid";
     const deliveredAt = delivery_status === "delivered" ? "NOW()" : "NULL";
     const returnedAt = delivery_status === "return_to_branch" ? "NOW()" : "NULL";
     const returnNote = delivery_status === "return_to_branch" ? (return_note || "Client indisponible a la livraison") : null;
 
     await db.query(
       `UPDATE orders
-       SET delivery_status = ?, status = ?, delivered_at = ${deliveredAt}, returned_at = ${returnedAt}, return_note = ?
+       SET delivery_status = ?, status = ?, delivered_at = ${deliveredAt}, customer_received_at = NULL, returned_at = ${returnedAt}, return_note = ?
        WHERE id = ?`,
       [delivery_status, nextStatus, returnNote, req.params.id]
     );
@@ -635,7 +635,7 @@ exports.updateDeliveryStatus = async (req, res) => {
     const messages = {
       assigned: `Votre commande #${order.id} est assignee a un livreur.`,
       out_for_delivery: `Votre commande #${order.id} est en route pour la livraison.`,
-      delivered: `Votre commande #${order.id} a ete livree avec succes.`,
+      delivered: `Votre commande #${order.id} a ete marquee livree. Merci de confirmer la reception dans votre espace client.`,
       return_to_branch: `Le livreur n'a pas pu remettre votre commande #${order.id}. Retour au point chaud en cours.`
     };
 
@@ -666,5 +666,49 @@ exports.updateDeliveryStatus = async (req, res) => {
     res.json({ message: "Statut de livraison mis a jour", order: updatedOrder });
   } catch (error) {
     res.status(500).json({ message: "Impossible de mettre a jour la livraison", error: error.message });
+  }
+};
+
+exports.confirmDeliveryReceived = async (req, res) => {
+  try {
+    const [orders] = await db.query("SELECT * FROM orders WHERE id = ? AND user_id = ?", [req.params.id, req.user.id]);
+
+    if (!orders.length) {
+      return res.status(404).json({ message: "Commande introuvable" });
+    }
+
+    const order = orders[0];
+
+    if (order.order_type !== "delivery") {
+      return res.status(400).json({ message: "Cette commande n'est pas une livraison" });
+    }
+
+    if (order.delivery_status !== "delivered") {
+      return res.status(400).json({ message: "La livraison n'est pas encore marquee comme remise" });
+    }
+
+    if (order.status === "completed") {
+      return res.status(400).json({ message: "Cette livraison a deja ete confirmee" });
+    }
+
+    await db.query(
+      "UPDATE orders SET status = 'completed', customer_received_at = NOW() WHERE id = ?",
+      [req.params.id]
+    );
+
+    await createNotificationForManagersAtLocation(
+      order.location_id,
+      `Le client a confirme la reception de la livraison #${order.id}.`
+    );
+
+    const [updatedOrders] = await db.query(`${orderSelect} WHERE o.id = ?`, [req.params.id]);
+    const updatedOrder = await mapOrder(updatedOrders[0]);
+
+    res.json({
+      message: "Livraison confirmee avec succes",
+      order: updatedOrder
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de confirmer la reception", error: error.message });
   }
 };

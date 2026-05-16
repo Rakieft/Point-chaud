@@ -7,6 +7,7 @@
     "migrate": "node scripts/migrate-db.js",
     "smoke": "node scripts/smoke-test.js",
     "cleanup:proofs": "node scripts/cleanup-payment-proofs.js",
+    "cleanup:orders": "node scripts/cleanup-payment-proofs.js",
     "audit:images": "node scripts/audit-product-images.js",
     "reset:test": "node scripts/reset-test-state.js",
     "dev": "nodemon server.js",

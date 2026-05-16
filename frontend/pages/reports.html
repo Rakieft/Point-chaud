@@ -53,18 +53,44 @@
 
         <section class="admin-content">
           <div id="reports-message" class="message-box"></div>
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Vue rapide</p>
+                <h2>Performance des succursales</h2>
+              </div>
+            </div>
+            <div id="reports-summary-grid" class="admin-product-summary"></div>
+            <div class="admin-orders-toolbar">
+              <label>
+                Succursale
+                <select id="reports-location-filter">
+                  <option value="">Toutes les succursales</option>
+                </select>
+              </label>
+              <label>
+                Focus
+                <select id="reports-focus-filter">
+                  <option value="">Vue complete</option>
+                  <option value="best">Mettre en avant les meilleures ventes</option>
+                  <option value="low">Mettre en avant les moins vendus</option>
+                  <option value="stock">Montrer les stocks faibles</option>
+                </select>
+              </label>
+            </div>
+          </section>
           <section id="proof-maintenance-panel" class="admin-panel admin-only" style="display:none;">
             <div class="admin-section-head">
               <div>
-                <p class="admin-eyebrow">Maintenance des preuves</p>
-                <h2>Nettoyage automatique tous les 90 jours</h2>
+                <p class="admin-eyebrow">Maintenance automatique</p>
+                <h2>Suppression des commandes archivees apres 90 jours</h2>
               </div>
             </div>
             <div id="proof-maintenance-message" class="message-box"></div>
             <div id="proof-maintenance-grid" class="admin-maintenance-grid"></div>
             <div class="admin-action-group">
               <button id="run-proof-cleanup-btn" class="btn-primary" type="button">
-                Nettoyer les preuves anciennes maintenant
+                Lancer le nettoyage maintenant
               </button>
             </div>
           </section>

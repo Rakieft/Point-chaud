@@ -1,5 +1,7 @@
 let ordersCache = [];
 let catalogCache = null;
+let handledNotificationOrderFocus = false;
+let filteredOrdersCache = [];
 
 function currentOrdersGroup() {
   return document.body.dataset.ordersGroup || "pending";
@@ -17,12 +19,111 @@ async function renderOrdersPage() {
 
     ordersCache = orders;
     catalogCache = catalog;
+    filteredOrdersCache = applyOrdersFilters(orders, catalog);
 
-    renderOrdersTable(orders);
-    renderPaymentCards(orders);
+    populateOrdersFilters(orders, catalog);
+    renderOrdersTable(filteredOrdersCache);
+    renderPaymentCards(filteredOrdersCache);
+    updateOrdersResultsSummary(filteredOrdersCache.length, orders.length);
+    handleNotificationOrderFocus(filteredOrdersCache);
   } catch (error) {
     showMessage("orders-message", "error", error.message);
   }
+}
+
+function normalizeSearchValue(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function populateOrdersFilters(orders, catalog) {
+  const locationFilter = document.getElementById("orders-location-filter");
+  if (!locationFilter) return;
+
+  const previousValue = locationFilter.value || "";
+  const locationNames = new Set();
+  (catalog?.locations || []).forEach(location => {
+    if (location?.name) locationNames.add(location.name);
+  });
+  orders.forEach(order => {
+    if (order?.location_name) locationNames.add(order.location_name);
+  });
+
+  locationFilter.innerHTML =
+    `<option value="">Toutes les succursales</option>` +
+    [...locationNames]
+      .sort((a, b) => String(a).localeCompare(String(b), "fr"))
+      .map(name => `<option value="${name}">${name}</option>`)
+      .join("");
+
+  locationFilter.value = [...locationNames].includes(previousValue) ? previousValue : "";
+}
+
+function applyOrdersFilters(orders, catalog) {
+  const searchValue = normalizeSearchValue(document.getElementById("orders-search-input")?.value || "");
+  const locationValue = document.getElementById("orders-location-filter")?.value || "";
+  const statusValue = document.getElementById("orders-status-filter")?.value || "";
+  const paymentValue = document.getElementById("orders-payment-filter")?.value || "";
+
+  return orders.filter(order => {
+    const searchable = normalizeSearchValue(
+      `#${order.id} ${order.customer_name || ""} ${order.location_name || ""} ${order.notes || ""} ${order.order_type || ""}`
+    );
+
+    const matchesSearch = !searchValue || searchable.includes(searchValue);
+    const matchesLocation = !locationValue || order.location_name === locationValue;
+    const matchesStatus = !statusValue || order.status === statusValue;
+    const effectivePaymentStatus =
+      order.status === "cancelled" || (!order.payment_proof && !order.payment_status)
+        ? "none"
+        : String(order.payment_status || "").toLowerCase();
+    const matchesPayment = !paymentValue || effectivePaymentStatus === paymentValue;
+
+    return matchesSearch && matchesLocation && matchesStatus && matchesPayment;
+  });
+}
+
+function updateOrdersResultsSummary(filteredCount, totalCount) {
+  const badge = document.getElementById("orders-results-count");
+  if (!badge) return;
+
+  badge.textContent =
+    filteredCount === totalCount
+      ? `${totalCount} commande${totalCount > 1 ? "s" : ""}`
+      : `${filteredCount} / ${totalCount} commande${totalCount > 1 ? "s" : ""}`;
+}
+
+function handleNotificationOrderFocus(orders) {
+  if (handledNotificationOrderFocus) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const orderId = Number(params.get("orderId"));
+  const focus = params.get("focus");
+
+  if (!orderId && !focus) return;
+
+  handledNotificationOrderFocus = true;
+
+  if (focus) {
+    const targetSection = document.getElementById(focus);
+    targetSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  if (orderId) {
+    const order = orders.find(item => Number(item.id) === orderId);
+    if (order) {
+      openOrderDetailById(orderId);
+    } else {
+      showMessage("orders-message", "error", `La commande #${orderId} n'est pas visible dans cette page.`);
+    }
+  }
+
+  params.delete("fromNotification");
+  const nextQuery = params.toString();
+  history.replaceState({}, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`);
 }
 
 function renderOrdersTable(orders) {
@@ -82,11 +183,21 @@ function renderOrdersTable(orders) {
 
 function renderPaymentCards(orders) {
   const container = document.getElementById("payments-review-list");
+  const countBadge = document.getElementById("payments-review-count");
+  const copy = document.getElementById("payments-priority-copy");
   if (!container) return;
 
   const paymentOrders = orders.filter(
     order => order.status !== "cancelled" && order.payment_proof && order.payment_status === "pending"
   );
+  if (countBadge) {
+    countBadge.textContent = `${paymentOrders.length} a verifier`;
+  }
+  if (copy) {
+    copy.textContent = paymentOrders.length
+      ? `${paymentOrders.length} preuve(s) attendent une verification immediate du staff.`
+      : "Aucune preuve de paiement urgente pour le moment.";
+  }
   container.innerHTML = paymentOrders.length
     ? paymentOrders
         .map(
@@ -125,7 +236,7 @@ function renderPaymentCards(orders) {
 }
 
 function openOrderDetailById(orderId) {
-  const order = ordersCache.find(item => item.id === orderId);
+  const order = ordersCache.find(item => item.id === orderId) || filteredOrdersCache.find(item => item.id === orderId);
   openBackofficeOrderDetail(order);
 }
 
@@ -206,6 +317,33 @@ async function scanQrToken(token) {
   }
 }
 
+function bindOrdersFilters() {
+  const search = document.getElementById("orders-search-input");
+  const location = document.getElementById("orders-location-filter");
+  const status = document.getElementById("orders-status-filter");
+  const payment = document.getElementById("orders-payment-filter");
+  const reset = document.getElementById("orders-reset-filters");
+
+  const redraw = () => {
+    filteredOrdersCache = applyOrdersFilters(ordersCache, catalogCache);
+    renderOrdersTable(filteredOrdersCache);
+    renderPaymentCards(filteredOrdersCache);
+    updateOrdersResultsSummary(filteredOrdersCache.length, ordersCache.length);
+  };
+
+  search?.addEventListener("input", redraw);
+  location?.addEventListener("change", redraw);
+  status?.addEventListener("change", redraw);
+  payment?.addEventListener("change", redraw);
+  reset?.addEventListener("click", () => {
+    if (search) search.value = "";
+    if (location) location.value = "";
+    if (status) status.value = "";
+    if (payment) payment.value = "";
+    redraw();
+  });
+}
+
 function bindOrderEditForm() {
   const form = document.getElementById("order-edit-form");
   if (!form) return;
@@ -243,6 +381,7 @@ function bindOrderEditForm() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  bindOrdersFilters();
   bindOrderEditForm();
   renderOrdersPage();
   startLiveRefresh(`orders-${currentOrdersGroup()}`, renderOrdersPage, 12000);

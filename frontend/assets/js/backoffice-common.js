@@ -1,6 +1,11 @@
 let backofficeCurrentUser = null;
 let backofficeNotifications = [];
 
+function extractOrderIdFromNotificationMessage(message) {
+  const match = String(message || "").match(/(?:commande|livraison)\s*#(\d+)/i);
+  return match ? Number(match[1]) : null;
+}
+
 function getBackofficeProfilePath(role) {
   if (role === "driver") return "./driver-profile.html";
   return "./staff-profile.html";
@@ -288,13 +293,18 @@ function renderBackofficeNotificationsList() {
 
 function getBackofficeNotificationTarget(notification) {
   const message = String(notification?.message || "").toLowerCase();
+  const orderId = extractOrderIdFromNotificationMessage(notification?.message);
+  const query = orderId ? `?orderId=${orderId}&fromNotification=1` : "";
 
   if (
     message.includes("preuve de paiement") ||
     message.includes("paiement confirme") ||
     message.includes("paiement rejete")
   ) {
-    return "./orders-pending.html#payments-section";
+    return `./orders-pending.html${query}${orderId ? "&focus=payments-section" : "?focus=payments-section"}`.replace(
+      "?&",
+      "?"
+    );
   }
 
   if (
@@ -303,7 +313,7 @@ function getBackofficeNotificationTarget(notification) {
     message.includes("retour au point chaud") ||
     message.includes("reaffecte")
   ) {
-    return "./deliveries.html";
+    return `./deliveries.html${query}`;
   }
 
   if (
@@ -311,7 +321,7 @@ function getBackofficeNotificationTarget(notification) {
     message.includes("validation") ||
     message.includes("commande #")
   ) {
-    return "./orders-pending.html";
+    return `./orders-pending.html${query}`;
   }
 
   return null;
@@ -321,8 +331,31 @@ function navigateFromBackofficeNotification(notification) {
   const target = getBackofficeNotificationTarget(notification);
 
   if (target) {
+    const orderId = extractOrderIdFromNotificationMessage(notification?.message);
+    const [targetPath, targetQuery = ""] = target.split("?");
+    const isSamePage = window.location.pathname.endsWith(targetPath.replace("./", "/"));
+
     closeBackofficeNotificationsModal();
     closeNotificationDetailModal();
+
+    if (isSamePage) {
+      const params = new URLSearchParams(targetQuery);
+      const focus = params.get("focus");
+      if (focus) {
+        document.getElementById(focus)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      if (orderId && typeof window.openDeliveryDetail === "function" && targetPath.includes("deliveries")) {
+        window.openDeliveryDetail(orderId);
+        return;
+      }
+
+      if (orderId && typeof window.openOrderDetailById === "function" && targetPath.includes("orders-pending")) {
+        window.openOrderDetailById(orderId);
+        return;
+      }
+    }
+
     window.location.href = target;
     return;
   }

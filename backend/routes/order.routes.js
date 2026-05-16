@@ -11,6 +11,7 @@ router.get("/deliveries", auth, role("driver", "manager", "admin"), orderControl
 router.get("/", auth, role("manager", "admin"), orderController.getAllOrders);
 router.patch("/:id", auth, role("manager", "admin"), orderController.updateOrderByStaff);
 router.patch("/:id/validate", auth, role("manager", "admin"), orderController.validateOrder);
+router.patch("/:id/confirm-received", auth, role("client"), orderController.confirmDeliveryReceived);
 router.patch("/:id/assign-driver", auth, role("manager", "admin"), orderController.assignDriver);
 router.patch("/:id/delivery-status", auth, role("driver", "manager", "admin"), orderController.updateDeliveryStatus);
 router.post("/scan/:token", auth, role("manager", "admin"), orderController.scanOrder);

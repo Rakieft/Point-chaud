@@ -8,7 +8,7 @@ const { runPaymentProofCleanup } = require("../services/payment-proof-cleanup.se
     console.log(JSON.stringify(result, null, 2));
     process.exit(0);
   } catch (error) {
-    console.error("Impossible de nettoyer les preuves de paiement:", error.message);
+    console.error("Impossible de nettoyer les commandes archivees et leurs fichiers associes:", error.message);
     process.exit(1);
   }
 })();

@@ -1,5 +1,43 @@
 let clientNotificationsCache = [];
 
+function extractOrderIdFromNotificationMessage(message) {
+  const match = String(message || "").match(/(?:commande|livraison)\s*#(\d+)/i);
+  return match ? Number(match[1]) : null;
+}
+
+function closeClientNotificationAndDetailModals() {
+  closeClientNotificationsModal();
+  closeNotificationDetail();
+}
+
+function navigateFromClientNotification(notification) {
+  const orderId = extractOrderIdFromNotificationMessage(notification?.message);
+
+  if (!orderId) {
+    openNotificationDetail(notification);
+    return;
+  }
+
+  const targetPath = "./client-orders.html";
+  const params = new URLSearchParams(window.location.search);
+  params.set("orderId", String(orderId));
+  params.set("fromNotification", "1");
+  const targetUrl = `${targetPath}?${params.toString()}`;
+
+  closeClientNotificationAndDetailModals();
+
+  if (window.location.pathname.endsWith("/client-orders.html")) {
+    const order = clientOrdersCache.find(item => Number(item.id) === Number(orderId));
+    if (order) {
+      openClientOrderDetail(orderId);
+      history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+      return;
+    }
+  }
+
+  window.location.href = targetUrl;
+}
+
 async function renderClientDashboard() {
   if (!document.getElementById("client-name")) return;
 
@@ -175,11 +213,20 @@ function renderCatalog(products, options = {}) {
     return;
   }
 
-  const categories = [...new Set(products.map(product => product.category_name).filter(Boolean))];
+  const categories = Array.isArray(options.categories) && options.categories.length
+    ? options.categories
+        .map(categoryItem => String(categoryItem?.name || "").trim())
+        .filter(Boolean)
+    : [...new Set(products.map(product => String(product.category_name || "").trim()).filter(Boolean))];
+  const previousCategory = category?.value || "";
 
-  if (category && !category.dataset.loaded) {
-    category.innerHTML += categories.map(name => `<option value="${name}">${name}</option>`).join("");
-    category.dataset.loaded = "true";
+  if (category) {
+    const defaultLabel = category.dataset.defaultLabel || category.options[0]?.textContent || "Toutes les categories";
+    category.dataset.defaultLabel = defaultLabel;
+    category.innerHTML =
+      `<option value="">${defaultLabel}</option>` +
+      categories.map(name => `<option value="${name}">${name}</option>`).join("");
+    category.value = categories.includes(previousCategory) ? previousCategory : "";
   }
 
   const updateCartSummary = () => {
@@ -196,12 +243,12 @@ function renderCatalog(products, options = {}) {
     }
   };
 
-  if (chips && !chips.dataset.loaded) {
+  if (chips) {
     chips.innerHTML = `
-      <button class="category-chip active" type="button" data-category-chip="">Tous</button>
+      <button class="category-chip ${category?.value ? "" : "active"}" type="button" data-category-chip="">Tous</button>
       ${categories
         .map(
-          name => `<button class="category-chip" type="button" data-category-chip="${name}">${name}</button>`
+          name => `<button class="category-chip ${category?.value === name ? "active" : ""}" type="button" data-category-chip="${name}">${name}</button>`
         )
         .join("")}
     `;
@@ -217,11 +264,9 @@ function renderCatalog(products, options = {}) {
           chip.classList.toggle("active", chip === button);
         });
 
-        draw();
+          draw();
+        });
       });
-    });
-
-    chips.dataset.loaded = "true";
   }
 
   const syncActiveChip = value => {
@@ -241,7 +286,7 @@ function renderCatalog(products, options = {}) {
         const matchesText =
           product.name.toLowerCase().includes(term) ||
           (product.description || "").toLowerCase().includes(term);
-        const matchesCategory = !selectedCategory || product.category_name === selectedCategory;
+          const matchesCategory = !selectedCategory || String(product.category_name || "").trim() === selectedCategory;
         return matchesText && matchesCategory;
       })
       .sort((a, b) => {
@@ -325,12 +370,18 @@ function renderCatalog(products, options = {}) {
     });
   };
 
-  search?.addEventListener("input", draw);
-  category?.addEventListener("change", () => {
-    syncActiveChip(category.value || "");
-    draw();
-  });
-  sort?.addEventListener("change", draw);
+  if (search) {
+    search.oninput = draw;
+  }
+  if (category) {
+    category.onchange = () => {
+      syncActiveChip(category.value || "");
+      draw();
+    };
+  }
+  if (sort) {
+    sort.onchange = draw;
+  }
   updateCartSummary();
   draw();
 }
@@ -359,15 +410,16 @@ function renderNotifications(container, notifications) {
     : `<div class="empty-state"><p>Aucune notification pour l'instant.</p></div>`;
 
   container.querySelectorAll(".notification-item-button").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const notificationId = Number(button.dataset.notificationId);
-      openNotificationDetail({
+      const notification = {
         id: notificationId,
         status: button.dataset.notificationStatus,
         message: decodeURIComponent(button.dataset.notificationMessage || ""),
         createdAtLabel: decodeURIComponent(button.dataset.notificationDate || "")
-      });
-      markClientNotificationAsRead(notificationId, button);
+      };
+      await markClientNotificationAsRead(notificationId, button);
+      navigateFromClientNotification(notification);
     });
   });
 }
@@ -543,12 +595,13 @@ async function renderClientProductsPage() {
   const user = (await initClientShell?.()) || requireAuth(["client"]);
   if (!user) return;
 
-  try {
-    const catalog = await apiRequest("/products");
-    renderCatalog(catalog.products, {
-      gridId: "client-products-grid",
-      searchId: "client-product-search",
-      categoryId: "client-category-filter",
+    try {
+      const catalog = await apiRequest("/products");
+      renderCatalog(catalog.products, {
+        categories: catalog.categories,
+        gridId: "client-products-grid",
+        searchId: "client-product-search",
+        categoryId: "client-category-filter",
       sortId: "client-product-sort",
       chipsId: "client-category-chips",
       resultsCountId: "client-results-count",
@@ -602,9 +655,9 @@ function getClientOrderState(order) {
     };
   }
 
-  if (order.status === "paid") {
-    if (order.order_type === "delivery") {
-      if (order.delivery_status === "pending_assignment") {
+    if (order.status === "paid") {
+      if (order.order_type === "delivery") {
+        if (order.delivery_status === "pending_assignment") {
         return {
           badgeClass: "validated",
           badgeText: "Paiement confirme - livreur a affecter",
@@ -620,17 +673,25 @@ function getClientOrderState(order) {
         };
       }
 
-      if (order.delivery_status === "out_for_delivery") {
-        return {
-          badgeClass: "confirmed",
-          badgeText: "Commande en route",
-          helper: "Votre commande est actuellement en livraison."
-        };
-      }
+        if (order.delivery_status === "out_for_delivery") {
+          return {
+            badgeClass: "confirmed",
+            badgeText: "Commande en route",
+            helper: "Votre commande est actuellement en livraison."
+          };
+        }
 
-      if (order.delivery_status === "return_to_branch") {
-        return {
-          badgeClass: "return_to_branch",
+        if (order.delivery_status === "delivered") {
+          return {
+            badgeClass: "confirmed",
+            badgeText: "Livree - confirmation requise",
+            helper: "Le livreur a marque la commande comme livree. Merci de confirmer la reception dans le detail."
+          };
+        }
+
+        if (order.delivery_status === "return_to_branch") {
+          return {
+            badgeClass: "return_to_branch",
           badgeText: "Retour au point chaud",
           helper:
             order.return_note ||
@@ -639,12 +700,12 @@ function getClientOrderState(order) {
       }
     }
 
-    return {
-      badgeClass: "confirmed",
-      badgeText: "Commande confirmee / prete",
-      helper: "Votre commande est prete a etre recuperee. Presentez le QR code au point chaud."
-    };
-  }
+      return {
+        badgeClass: "confirmed",
+        badgeText: "Commande confirmee / prete",
+        helper: "Votre commande est prete a etre recuperee. Presentez le QR code au point chaud."
+      };
+    }
 
   if (order.status === "completed") {
     return {
@@ -691,22 +752,22 @@ function renderClientTimeline(order) {
             : "upcoming"
     },
     {
-      label: "Confirmation paiement",
-      state: isCancelled
-        ? "upcoming muted"
-        : order.status === "paid" || order.status === "completed"
+        label: "Confirmation paiement",
+        state: isCancelled
+          ? "upcoming muted"
+          : order.status === "paid" || order.status === "completed"
           ? "done"
           : order.status === "awaiting_payment" && order.payment_proof && order.payment_status === "pending"
             ? "current"
             : "upcoming"
     },
     {
-      label: isDelivery ? "Affectation / livraison" : order.status === "completed" ? "Commande retiree" : "QR code & recuperation",
-      state: isCancelled
-        ? "upcoming muted"
-        : isDelivery
-          ? isReturnedDelivery
-            ? "current danger"
+        label: isDelivery ? "Affectation / livraison" : order.status === "completed" ? "Commande retiree" : "QR code & recuperation",
+        state: isCancelled
+          ? "upcoming muted"
+          : isDelivery
+            ? isReturnedDelivery
+              ? "current danger"
             : order.delivery_status === "delivered" || order.status === "completed"
               ? "done"
               : order.delivery_status === "out_for_delivery"
@@ -718,11 +779,25 @@ function renderClientTimeline(order) {
           ? "done"
           : order.status === "paid"
             ? "current success"
-            : "upcoming"
-    }
-  ];
+              : "upcoming"
+      }
+    ];
 
-  return `
+    if (isDelivery) {
+      steps.push({
+        label: order.status === "completed" ? "Reception confirmee" : "Confirmation client",
+        state:
+          isCancelled || isReturnedDelivery
+            ? "upcoming muted"
+            : order.status === "completed"
+              ? "done"
+              : order.delivery_status === "delivered"
+                ? "current success"
+                : "upcoming"
+      });
+    }
+
+    return `
     <div class="client-order-timeline">
       ${steps
         .map(
@@ -916,18 +991,36 @@ function openClientOrderDetail(orderId) {
             : ""
         }
         ${
-          order.status === "awaiting_payment" && order.payment_proof && order.payment_status === "pending"
-            ? `
-              <div class="client-order-note">
+            order.status === "awaiting_payment" && order.payment_proof && order.payment_status === "pending"
+              ? `
+                <div class="client-order-note">
                 <strong>Preuve envoyee</strong>
                 <p>Votre preuve de paiement a bien ete transmise. Le manager la verifiera avant de generer le QR code.</p>
               </div>
-            `
-            : ""
-        }
-        ${
-          order.qrCode
-            ? `
+              `
+              : ""
+          }
+          ${
+            order.order_type === "delivery" && order.delivery_status === "delivered" && order.status !== "completed"
+              ? `
+                <div class="client-payment-panel">
+                  <div class="section-head">
+                    <div>
+                      <h4>Confirmer la reception</h4>
+                      <p>Si tu as bien recu la commande, confirme-la ici pour cloturer la livraison.</p>
+                    </div>
+                  </div>
+                  <div id="delivery-confirm-message-${order.id}" class="message-box"></div>
+                  <button class="btn-primary" type="button" onclick="confirmClientDeliveryReceived(${order.id})">
+                    J'ai bien recu ma commande
+                  </button>
+                </div>
+              `
+              : ""
+          }
+          ${
+            order.qrCode
+              ? `
               <div class="qr-box" style="margin-top:16px;">
                 <img src="${order.qrCode.image}" alt="QR commande ${order.id}" />
                 <small>${order.qrCode.token}</small>
@@ -949,6 +1042,22 @@ function closeClientOrderDetail() {
   if (!modal) return;
   modal.classList.add("hidden");
   document.body.classList.remove("modal-open");
+}
+
+async function confirmClientDeliveryReceived(orderId) {
+  try {
+    const data = await apiRequest(`/orders/${orderId}/confirm-received`, {
+      method: "PATCH"
+    });
+
+    showMessage(`delivery-confirm-message-${orderId}`, "success", data.message);
+    setTimeout(() => {
+      renderClientOrdersPage();
+      renderClientDashboard();
+    }, 700);
+  } catch (error) {
+    showMessage(`delivery-confirm-message-${orderId}`, "error", error.message);
+  }
 }
 
 function renderClientOrders(container, orders, bankAccounts) {
@@ -984,7 +1093,7 @@ function renderClientOrders(container, orders, bankAccounts) {
       ["Total commandes", orders.length, "Toutes tes commandes depuis la creation du compte"],
       ["En cours", activeOrders.length, "Validation, paiement, preparation ou livraison"],
       ["Paiement requis", paymentPendingOrders, "Commandes validees qui attendent ton paiement"],
-      ["Pretes / confirmees", readyOrders, "QR ou livraison en preparation"],
+        ["Pretes / confirmees", readyOrders, "QR, livraison en preparation ou confirmation client en attente"],
       ["Archivees", archivedOrders.length, "Commandes completees ou deja retirees"],
       ["Refusees", rejectedOrders.length, "Aucun paiement requis pour ces commandes"],
       ["Montant confirme", formatMoney(confirmedTotal), "Total des commandes deja confirmees"]
@@ -1106,6 +1215,17 @@ function renderClientOrders(container, orders, bankAccounts) {
       }
     });
   });
+
+  const params = new URLSearchParams(window.location.search);
+  const orderId = Number(params.get("orderId"));
+  if (orderId) {
+    const targetOrder = orders.find(order => Number(order.id) === orderId);
+    if (targetOrder) {
+      openClientOrderDetail(orderId);
+      params.delete("fromNotification");
+      history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`.replace(/\?$/, ""));
+    }
+  }
 }
 
 function bindClientPaymentForms() {
@@ -1353,7 +1473,9 @@ async function renderPublicCatalogPage() {
 
   try {
     const catalog = await apiRequest("/products");
-    renderCatalog(catalog.products);
+    renderCatalog(catalog.products, {
+      categories: catalog.categories
+    });
   } catch (error) {
     showMessage("dashboard-message", "error", error.message);
   }
@@ -1454,4 +1576,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (document.getElementById("orders-list")) {
     startLiveRefresh("client-orders", renderClientOrdersPage, 12000);
   }
+
+  if (document.getElementById("products-grid")) {
+    startLiveRefresh("public-products", renderPublicCatalogPage, 20000);
+  }
+
+  if (document.getElementById("client-products-grid")) {
+    startLiveRefresh("client-products", renderClientProductsPage, 20000);
+  }
 });
+
+window.confirmClientDeliveryReceived = confirmClientDeliveryReceived;

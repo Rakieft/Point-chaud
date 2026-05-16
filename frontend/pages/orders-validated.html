@@ -57,6 +57,55 @@
             <a href="./orders-pending.html">A traiter</a>
             <a class="active" href="./orders-validated.html">Validees & archivees</a>
           </div>
+
+          <section class="admin-panel admin-orders-control-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Recherche rapide</p>
+                <h2>Retrouver une commande archivee</h2>
+              </div>
+              <div class="admin-orders-toolbar-meta">
+                <span id="orders-results-count" class="badge">0 resultat</span>
+                <button id="orders-reset-filters" class="btn btn-light" type="button">Reinitialiser</button>
+              </div>
+            </div>
+            <div class="admin-orders-toolbar">
+              <label>
+                Recherche
+                <input
+                  id="orders-search-input"
+                  type="search"
+                  placeholder="Commande #12, nom client, point chaud..."
+                  autocomplete="off" />
+              </label>
+              <label>
+                Point chaud
+                <select id="orders-location-filter">
+                  <option value="">Toutes les succursales</option>
+                </select>
+              </label>
+              <label>
+                Statut commande
+                <select id="orders-status-filter">
+                  <option value="">Tous les statuts</option>
+                  <option value="paid">Confirmee / prete</option>
+                  <option value="completed">Terminee</option>
+                  <option value="cancelled">Refusee</option>
+                </select>
+              </label>
+              <label>
+                Statut paiement
+                <select id="orders-payment-filter">
+                  <option value="">Tous les paiements</option>
+                  <option value="pending">Preuve en attente</option>
+                  <option value="confirmed">Paiement confirme</option>
+                  <option value="rejected">Paiement rejete</option>
+                  <option value="none">Non requis</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
           <section class="admin-panel">
             <div class="admin-section-head">
               <div>

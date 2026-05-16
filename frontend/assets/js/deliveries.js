@@ -1,5 +1,6 @@
 let deliveriesCache = [];
 let driversCache = [];
+let handledDeliveryNotificationFocus = false;
 
 function renderDeliveriesStats(orders) {
   const container = document.getElementById("deliveries-stats");
@@ -8,7 +9,7 @@ function renderDeliveriesStats(orders) {
   const cards = [
     ["Livraisons totales", orders.length],
     ["A affecter", orders.filter(order => order.status === "paid" && order.delivery_status === "pending_assignment").length],
-    // ["En livraison", orders.filter(order => order.delivery_status === "out_for_delivery").length],
+    ["En livraison", orders.filter(order => order.delivery_status === "out_for_delivery").length],
     ["Retours", orders.filter(order => order.delivery_status === "return_to_branch").length],
     ["Livrees", orders.filter(order => order.delivery_status === "delivered" || order.status === "completed").length]
   ];
@@ -373,9 +374,32 @@ async function renderDeliveriesPage() {
     renderDeliveriesStats(orders);
     renderDriverSummary(user, orders);
     renderDeliveries(orders, user);
+    handleDeliveryNotificationFocus(orders);
   } catch (error) {
     showMessage("deliveries-message", "error", error.message);
   }
+}
+
+function handleDeliveryNotificationFocus(orders) {
+  if (handledDeliveryNotificationFocus) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const orderId = Number(params.get("orderId"));
+
+  if (!orderId) return;
+
+  handledDeliveryNotificationFocus = true;
+
+  const order = orders.find(item => Number(item.id) === orderId);
+  if (order) {
+    openDeliveryDetail(orderId);
+  } else {
+    showMessage("deliveries-message", "error", `La livraison #${orderId} n'est pas visible dans cette page.`);
+  }
+
+  params.delete("fromNotification");
+  const nextQuery = params.toString();
+  history.replaceState({}, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`);
 }
 
 window.assignDriverToOrder = assignDriverToOrder;

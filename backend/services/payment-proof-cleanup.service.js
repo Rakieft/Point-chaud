@@ -12,12 +12,12 @@ const cleanupState = {
 };
 
 function getRetentionDays() {
-  const parsed = Number(process.env.PROOF_RETENTION_DAYS || 90);
+  const parsed = Number(process.env.ORDER_RETENTION_DAYS || process.env.PROOF_RETENTION_DAYS || 90);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 90;
 }
 
 function getIntervalHours() {
-  const parsed = Number(process.env.PROOF_CLEANUP_INTERVAL_HOURS || 24);
+  const parsed = Number(process.env.ORDER_CLEANUP_INTERVAL_HOURS || process.env.PROOF_CLEANUP_INTERVAL_HOURS || 24);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 24;
 }
 
@@ -31,6 +31,19 @@ function getCutoffDate(retentionDays = getRetentionDays()) {
   return cutoff;
 }
 
+function getFinalizedOrderDateExpression() {
+  return `
+    COALESCE(
+      customer_received_at,
+      returned_at,
+      delivered_at,
+      confirmed_at,
+      validated_at,
+      created_at
+    )
+  `;
+}
+
 async function countFilesOnDisk() {
   try {
     const entries = await fs.readdir(getUploadDir(), { withFileTypes: true });
@@ -41,27 +54,28 @@ async function countFilesOnDisk() {
   }
 }
 
-async function listCleanupCandidates(retentionDays = getRetentionDays()) {
+async function listOrderCleanupCandidates(retentionDays = getRetentionDays()) {
   const cutoffDate = getCutoffDate(retentionDays);
+  const finalizedDateExpression = getFinalizedOrderDateExpression();
+
   const [rows] = await db.query(
     `
       SELECT
         id,
-        payment_proof,
         status,
-        payment_status,
         delivery_status,
+        payment_proof,
+        created_at,
+        validated_at,
         confirmed_at,
-        created_at
+        delivered_at,
+        returned_at,
+        customer_received_at,
+        ${finalizedDateExpression} AS finalized_at
       FROM orders
-      WHERE payment_proof IS NOT NULL
-        AND payment_proof <> ''
-        AND COALESCE(confirmed_at, created_at) < ?
-        AND (
-          status IN ('completed', 'cancelled')
-          OR delivery_status = 'delivered'
-        )
-      ORDER BY COALESCE(confirmed_at, created_at) ASC, id ASC
+      WHERE status IN ('completed', 'cancelled')
+        AND ${finalizedDateExpression} < ?
+      ORDER BY ${finalizedDateExpression} ASC, id ASC
     `,
     [cutoffDate]
   );
@@ -69,36 +83,58 @@ async function listCleanupCandidates(retentionDays = getRetentionDays()) {
   return rows;
 }
 
+function buildNotificationRegex(orderIds) {
+  const uniqueIds = [...new Set(orderIds.map(id => Number(id)).filter(Number.isFinite))];
+  if (!uniqueIds.length) return null;
+  return `#(?:${uniqueIds.join("|")})([^0-9]|$)`;
+}
+
 async function getPaymentProofCleanupStats() {
   const retentionDays = getRetentionDays();
   const intervalHours = getIntervalHours();
   const cutoffDate = getCutoffDate(retentionDays);
+  const finalizedDateExpression = getFinalizedOrderDateExpression();
 
   const [[orderCounts]] = await db.query(
     `
       SELECT
+        COUNT(*) AS total_orders,
+        SUM(CASE WHEN status IN ('pending_validation', 'validated', 'awaiting_payment', 'paid') THEN 1 ELSE 0 END) AS active_orders,
+        SUM(CASE WHEN status IN ('completed', 'cancelled') THEN 1 ELSE 0 END) AS finalized_orders,
         SUM(CASE WHEN payment_proof IS NOT NULL AND payment_proof <> '' THEN 1 ELSE 0 END) AS proofs_referenced,
         SUM(
           CASE
-            WHEN payment_proof IS NOT NULL
-              AND payment_proof <> ''
-              AND COALESCE(confirmed_at, created_at) < ?
-              AND (status IN ('completed', 'cancelled') OR delivery_status = 'delivered')
+            WHEN status IN ('completed', 'cancelled')
+             AND ${finalizedDateExpression} < ?
             THEN 1
             ELSE 0
           END
-        ) AS eligible_cleanup
+        ) AS eligible_order_cleanup,
+        SUM(
+          CASE
+            WHEN status IN ('completed', 'cancelled')
+             AND payment_proof IS NOT NULL
+             AND payment_proof <> ''
+             AND ${finalizedDateExpression} < ?
+            THEN 1
+            ELSE 0
+          END
+        ) AS eligible_proof_cleanup
       FROM orders
     `,
-    [cutoffDate]
+    [cutoffDate, cutoffDate]
   );
 
   return {
     retentionDays,
     intervalHours,
     uploadPath: getUploadDir(),
+    totalOrders: Number(orderCounts.total_orders || 0),
+    activeOrders: Number(orderCounts.active_orders || 0),
+    finalizedOrders: Number(orderCounts.finalized_orders || 0),
     proofsReferenced: Number(orderCounts.proofs_referenced || 0),
-    eligibleCleanup: Number(orderCounts.eligible_cleanup || 0),
+    eligibleOrderCleanup: Number(orderCounts.eligible_order_cleanup || 0),
+    eligibleProofCleanup: Number(orderCounts.eligible_proof_cleanup || 0),
     filesOnDisk: await countFilesOnDisk(),
     scheduler: {
       startedAt: cleanupState.startedAt,
@@ -110,11 +146,38 @@ async function getPaymentProofCleanupStats() {
   };
 }
 
+async function deletePaymentProofFile(uploadDir, proofPath) {
+  const safeFilename = path.basename(proofPath || "");
+  if (!safeFilename) {
+    return { deleted: false, missing: false, failed: false, skipped: true, file: "" };
+  }
+
+  const absolutePath = path.join(uploadDir, safeFilename);
+
+  try {
+    await fs.unlink(absolutePath);
+    return { deleted: true, missing: false, failed: false, skipped: false, file: safeFilename };
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return { deleted: false, missing: true, failed: false, skipped: false, file: safeFilename };
+    }
+
+    return {
+      deleted: false,
+      missing: false,
+      failed: true,
+      skipped: false,
+      file: safeFilename,
+      error: error.message
+    };
+  }
+}
+
 async function runPaymentProofCleanup(options = {}) {
   if (cleanupState.running) {
     return {
       alreadyRunning: true,
-      message: "Un nettoyage des preuves est deja en cours.",
+      message: "Un nettoyage automatique est deja en cours.",
       scheduler: {
         startedAt: cleanupState.startedAt,
         nextRunAt: cleanupState.nextRunAt,
@@ -129,45 +192,80 @@ async function runPaymentProofCleanup(options = {}) {
   const uploadDir = getUploadDir();
 
   try {
-    const candidates = await listCleanupCandidates(retentionDays);
+    const candidates = await listOrderCleanupCandidates(retentionDays);
+    const orderIdsToDelete = [];
+    const failures = [];
     let filesDeleted = 0;
     let filesMissing = 0;
     let filesFailed = 0;
-    const cleanedOrderIds = [];
-    const failures = [];
 
     for (const order of candidates) {
-      const safeFilename = path.basename(order.payment_proof || "");
-      if (!safeFilename) continue;
+      if (order.payment_proof) {
+        const fileResult = await deletePaymentProofFile(uploadDir, order.payment_proof);
 
-      const absolutePath = path.join(uploadDir, safeFilename);
-
-      try {
-        await fs.unlink(absolutePath);
-        filesDeleted += 1;
-      } catch (error) {
-        if (error.code === "ENOENT") {
+        if (fileResult.deleted) {
+          filesDeleted += 1;
+        } else if (fileResult.missing) {
           filesMissing += 1;
-        } else {
+        } else if (fileResult.failed) {
           filesFailed += 1;
-          failures.push({ orderId: order.id, file: safeFilename, error: error.message });
+          failures.push({ orderId: Number(order.id), file: fileResult.file, error: fileResult.error });
           continue;
         }
       }
 
-      cleanedOrderIds.push(Number(order.id));
+      orderIdsToDelete.push(Number(order.id));
     }
 
-    if (cleanedOrderIds.length) {
-      const placeholders = cleanedOrderIds.map(() => "?").join(", ");
-      await db.query(
-        `
-          UPDATE orders
-          SET payment_proof = NULL
-          WHERE id IN (${placeholders})
-        `,
-        cleanedOrderIds
-      );
+    let notificationsDeleted = 0;
+    let ordersDeleted = 0;
+    let orderItemsDeleted = 0;
+
+    if (orderIdsToDelete.length) {
+      const connection = await db.getConnection();
+
+      try {
+        await connection.beginTransaction();
+
+        const notificationRegex = buildNotificationRegex(orderIdsToDelete);
+        if (notificationRegex) {
+          const [notificationResult] = await connection.query(
+            `
+              DELETE FROM notifications
+              WHERE message REGEXP ?
+            `,
+            [notificationRegex]
+          );
+          notificationsDeleted = Number(notificationResult.affectedRows || 0);
+        }
+
+        const orderItemsPlaceholders = orderIdsToDelete.map(() => "?").join(", ");
+        const [orderItemResult] = await connection.query(
+          `
+            DELETE FROM order_items
+            WHERE order_id IN (${orderItemsPlaceholders})
+          `,
+          orderIdsToDelete
+        );
+        orderItemsDeleted = Number(orderItemResult.affectedRows || 0);
+
+        const orderPlaceholders = orderIdsToDelete.map(() => "?").join(", ");
+        const [orderResult] = await connection.query(
+          `
+            DELETE FROM orders
+            WHERE id IN (${orderPlaceholders})
+          `,
+          orderIdsToDelete
+        );
+        ordersDeleted = Number(orderResult.affectedRows || 0);
+
+        await connection.commit();
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
     }
 
     const result = {
@@ -176,7 +274,9 @@ async function runPaymentProofCleanup(options = {}) {
       finishedAt: new Date().toISOString(),
       retentionDays,
       scannedOrders: candidates.length,
-      cleanedOrders: cleanedOrderIds.length,
+      deletedOrders: ordersDeleted,
+      deletedOrderItems: orderItemsDeleted,
+      deletedNotifications: notificationsDeleted,
       filesDeleted,
       filesMissing,
       filesFailed,
@@ -212,7 +312,7 @@ function startPaymentProofCleanupScheduler() {
         finishedAt: cleanupState.lastRunAt,
         error: error.message
       };
-      console.error("Erreur nettoyage automatique des preuves:", error.message);
+      console.error("Erreur nettoyage automatique des commandes archivees:", error.message);
     } finally {
       cleanupState.nextRunAt = new Date(Date.now() + intervalMs).toISOString();
     }

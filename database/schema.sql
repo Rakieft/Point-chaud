@@ -98,6 +98,7 @@ CREATE TABLE orders (
     delivery_status ENUM('pending_assignment', 'assigned', 'out_for_delivery', 'delivered', 'return_to_branch') DEFAULT 'pending_assignment',
     assigned_driver_id INT NULL,
     delivered_at DATETIME NULL,
+    customer_received_at DATETIME NULL,
     return_note TEXT NULL,
     returned_at DATETIME NULL,
 
