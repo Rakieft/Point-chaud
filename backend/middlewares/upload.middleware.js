@@ -18,10 +18,21 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   const allowed = [".png", ".jpg", ".jpeg", ".pdf"];
+  const allowedMimeTypes = {
+    ".png": ["image/png"],
+    ".jpg": ["image/jpeg"],
+    ".jpeg": ["image/jpeg"],
+    ".pdf": ["application/pdf"]
+  };
   const extension = path.extname(file.originalname || "").toLowerCase();
+  const mimeType = String(file.mimetype || "").toLowerCase();
 
   if (!allowed.includes(extension)) {
     return cb(new Error("Format non autorise. Utilisez PNG, JPG, JPEG ou PDF."));
+  }
+
+  if (!allowedMimeTypes[extension]?.includes(mimeType)) {
+    return cb(new Error("Le type de fichier ne correspond pas au format attendu."));
   }
 
   cb(null, true);

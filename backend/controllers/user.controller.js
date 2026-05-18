@@ -544,3 +544,62 @@ exports.getAnalyticsOverview = async (req, res) => {
     res.status(500).json({ message: "Impossible de recuperer les analyses", error: error.message });
   }
 };
+
+exports.getSecurityEvents = async (req, res) => {
+  try {
+    const [[summaryRow]] = await db.query(
+      `
+        SELECT
+          COUNT(*) AS total_events,
+          SUM(CASE WHEN severity = 'info' THEN 1 ELSE 0 END) AS info_events,
+          SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) AS warning_events,
+          SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) AS critical_events
+        FROM security_events
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      `
+    );
+
+    const [rows] = await db.query(
+      `
+        SELECT
+          id,
+          event_type,
+          severity,
+          user_id,
+          email,
+          ip_address,
+          details,
+          created_at
+        FROM security_events
+        ORDER BY id DESC
+        LIMIT 20
+      `
+    );
+
+    const events = rows.map(row => ({
+      ...row,
+      details:
+        typeof row.details === "string"
+          ? (() => {
+              try {
+                return JSON.parse(row.details);
+              } catch (error) {
+                return row.details;
+              }
+            })()
+          : row.details
+    }));
+
+    res.json({
+      summary: {
+        total_events: Number(summaryRow.total_events || 0),
+        info_events: Number(summaryRow.info_events || 0),
+        warning_events: Number(summaryRow.warning_events || 0),
+        critical_events: Number(summaryRow.critical_events || 0)
+      },
+      events
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de recuperer les evenements de securite", error: error.message });
+  }
+};

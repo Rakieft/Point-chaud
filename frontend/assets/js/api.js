@@ -255,7 +255,6 @@ function slugifyText(value) {
 
 function buildProductPlaceholder(product) {
   const name = product?.name || "Produit";
-  const category = product?.category_name || "Point Chaud";
   const primary = "#b93821";
   const secondary = "#ef6b2f";
   const svg = `
@@ -269,7 +268,6 @@ function buildProductPlaceholder(product) {
       <rect width="640" height="420" rx="36" fill="url(#g)" />
       <circle cx="520" cy="92" r="78" fill="rgba(255,255,255,0.12)" />
       <circle cx="118" cy="330" r="92" fill="rgba(255,255,255,0.08)" />
-      <text x="44" y="92" fill="#fff4e8" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">${category}</text>
       <text x="44" y="188" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800">${name}</text>
       <text x="44" y="248" fill="#fff4e8" font-family="Segoe UI, Arial, sans-serif" font-size="24">Apercu produit Point Chaud</text>
     </svg>

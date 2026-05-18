@@ -17,6 +17,8 @@ CREATE TABLE users (
     email_verified_at DATETIME NULL,
     email_verification_token_hash VARCHAR(255) NULL,
     email_verification_expires_at DATETIME NULL,
+    password_reset_token_hash VARCHAR(255) NULL,
+    password_reset_expires_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -112,6 +114,7 @@ CREATE TABLE orders (
 
     -- QR Code
     qr_code_token VARCHAR(255),
+    UNIQUE KEY uk_orders_qr_code_token (qr_code_token),
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -147,4 +150,20 @@ CREATE TABLE notifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- =========================
+-- SECURITY EVENTS
+-- =========================
+CREATE TABLE security_events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    event_type VARCHAR(100) NOT NULL,
+    severity ENUM('info', 'warning', 'critical') DEFAULT 'info',
+    user_id INT NULL,
+    email VARCHAR(100) NULL,
+    ip_address VARCHAR(80) NULL,
+    details JSON NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );

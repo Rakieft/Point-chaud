@@ -128,6 +128,30 @@
             </div>
             <div id="dashboard-recent-activity" class="stack"></div>
           </section>
+
+          <section id="security-events-panel" class="admin-panel admin-only" hidden>
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Securite</p>
+                <h2>Surveillance recente</h2>
+              </div>
+            </div>
+            <div id="security-events-summary" class="admin-stats-grid security-stats-grid"></div>
+            <div class="table-wrap">
+              <table class="security-events-table">
+                <thead>
+                  <tr>
+                    <th>Niveau</th>
+                    <th>Evenement</th>
+                    <th>Compte / email</th>
+                    <th>IP</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="security-events-body"></tbody>
+              </table>
+            </div>
+          </section>
         </section>
       </main>
     </div>

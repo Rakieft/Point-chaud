@@ -323,11 +323,10 @@ function renderCatalog(products, options = {}) {
                   src="${resolveProductImage(product)}"
                   alt="${product.name}"
                   loading="lazy"
-                  onerror="handleProductImageError(this, '${String(product.name || "").replace(/'/g, "\\'")}', '${String(product.category_name || "Point Chaud").replace(/'/g, "\\'")}')"
+                  onerror="handleProductImageError(this, '${String(product.name || "").replace(/'/g, "\\'")}', '')"
                 />
                 <div class="product-meta">
                   <div class="product-card-head">
-                    <span class="badge">${product.category_name || "Produit"}</span>
                     <span class="product-stock-badge ${Number(product.stock || 0) <= 5 ? "low" : "ok"}">
                       ${Number(product.stock || 0) <= 5 ? "Stock limite" : "Disponible"}
                     </span>
@@ -819,14 +818,14 @@ function renderBankAccountList(bankAccounts) {
   }
 
   const mobileMethods = `
-    <div class="client-payment-methods">
-      <div class="client-payment-method">
+    <div class="client-payment-method-grid">
+      <div class="client-payment-method-card">
         <strong>MonCash</strong>
-        <span>Compte Point Chaud</span>
+        <span>Rapide pour les paiements mobile.</span>
       </div>
-      <div class="client-payment-method">
+      <div class="client-payment-method-card">
         <strong>NatCash</strong>
-        <span>Compte Point Chaud</span>
+        <span>Pratique si tu utilises deja NatCash.</span>
       </div>
     </div>
   `;
@@ -837,16 +836,178 @@ function renderBankAccountList(bankAccounts) {
       ${bankAccounts
         .map(
           account => `
-            <div class="client-bank-item">
-              <strong>${account.bank_name}</strong>
-              <span>${account.account_name}</span>
-              <small>${account.account_number}</small>
+            <div class="client-bank-item client-payment-account-card">
+              <div class="client-payment-account-head">
+                <strong>${account.bank_name}</strong>
+                <span class="badge">${account.account_type || "Paiement"}</span>
+              </div>
+              <div class="client-payment-account-meta">
+                <span>${account.account_name}</span>
+                <small class="client-payment-account-number">${account.account_number}</small>
+              </div>
+              <div class="client-payment-account-actions">
+                <button class="client-copy-button" type="button" data-copy-value="${account.account_number}" data-copy-label="Numero de compte">
+                  Copier le numero
+                </button>
+                <button class="client-copy-button" type="button" data-copy-value="${account.account_name}" data-copy-label="Nom du compte">
+                  Copier le nom
+                </button>
+              </div>
             </div>
           `
         )
         .join("")}
     </div>
   `;
+}
+
+function bindPaymentCopyButtons(root = document) {
+  root.querySelectorAll("[data-copy-value]").forEach(button => {
+    if (button.dataset.boundCopy === "true") return;
+    button.dataset.boundCopy = "true";
+    button.addEventListener("click", async () => {
+      const value = button.dataset.copyValue || "";
+      const label = button.dataset.copyLabel || "Information";
+
+      try {
+        await navigator.clipboard.writeText(value);
+        const originalText = button.textContent.trim();
+        button.textContent = `${label} copie`;
+        window.setTimeout(() => {
+          button.textContent = originalText;
+        }, 1600);
+      } catch (error) {
+        button.textContent = "Copie impossible";
+      }
+    });
+  });
+}
+
+function paymentMethodHelperCopy(method) {
+  const helpers = {
+    moncash: {
+      title: "MonCash selectionne",
+      text: "Regle avec MonCash, puis colle la reference exacte avant d'envoyer ta capture."
+    },
+    natcash: {
+      title: "NatCash selectionne",
+      text: "Regle avec NatCash, puis colle la reference finale avant d'envoyer ta preuve."
+    },
+    bank_transfer: {
+      title: "Virement bancaire selectionne",
+      text: "Utilise un compte Point Chaud, puis ajoute la reference du depot ou du virement."
+    }
+  };
+
+  return helpers[method] || helpers.moncash;
+}
+
+function renderPaymentMethodDetails(method, bankAccounts = []) {
+  if (method === "bank_transfer") {
+    if (!bankAccounts.length) {
+      return `
+        <div class="client-payment-detail-card">
+          <strong>Comptes bancaires</strong>
+          <p>Les coordonnees bancaires seront ajoutees prochainement.</p>
+        </div>
+      `;
+    }
+
+    return bankAccounts
+      .map(
+        account => `
+          <div class="client-payment-detail-card">
+            <div class="client-payment-detail-head">
+              <strong>${account.bank_name}</strong>
+              <span class="badge">${account.account_type || "Paiement"}</span>
+            </div>
+            <p>Titulaire: ${account.account_name}</p>
+            <div class="client-payment-detail-number">${account.account_number}</div>
+            <div class="client-payment-account-actions">
+              <button class="client-copy-button" type="button" data-copy-value="${account.account_number}" data-copy-label="Numero de compte">
+                Copier le numero
+              </button>
+            </div>
+          </div>
+        `
+      )
+      .join("");
+  }
+
+  const labels = {
+    moncash: {
+      title: "Paiement MonCash",
+      text: "Une fois le paiement envoye, recopie la reference affichee dans le formulaire."
+    },
+    natcash: {
+      title: "Paiement NatCash",
+      text: "Une fois le transfert termine, recopie la reference finale dans le formulaire."
+    }
+  };
+
+  const selected = labels[method] || labels.moncash;
+  return `
+    <div class="client-payment-detail-card">
+      <strong>${selected.title}</strong>
+      <p>${selected.text}</p>
+    </div>
+  `;
+}
+
+function bindPaymentMethodSelectors(root = document) {
+  root.querySelectorAll(".client-payment-flow").forEach(flow => {
+    if (flow.dataset.boundPaymentFlow === "true") return;
+    flow.dataset.boundPaymentFlow = "true";
+
+    const hiddenInput = flow.querySelector('input[name="payment_method"]');
+    const helperBox = flow.querySelector("[data-payment-helper]");
+    const detailsBox = flow.querySelector("[data-payment-details]");
+    const proofForm = flow.querySelector(".client-proof-form, #payment-form");
+    const buttons = flow.querySelectorAll("[data-payment-method-choice]");
+    let bankAccounts = [];
+
+    try {
+      bankAccounts = JSON.parse(flow.dataset.bankAccounts || "[]");
+    } catch (error) {
+      bankAccounts = [];
+    }
+
+    const applyMethod = method => {
+      if (hiddenInput) {
+        hiddenInput.value = method;
+      }
+
+      buttons.forEach(button => {
+        button.classList.toggle("active", button.dataset.paymentMethodChoice === method);
+      });
+
+      if (helperBox) {
+        const helper = paymentMethodHelperCopy(method);
+        helper.innerHTML = `<strong>${helper.title}</strong><small>${helper.text}</small>`;
+      }
+
+      if (detailsBox) {
+        detailsBox.innerHTML = renderPaymentMethodDetails(method, bankAccounts);
+        detailsBox.hidden = false;
+        bindPaymentCopyButtons(detailsBox);
+      }
+
+      if (proofForm) {
+        proofForm.hidden = false;
+      }
+    };
+
+    buttons.forEach(button => {
+      button.addEventListener("click", () => {
+        applyMethod(button.dataset.paymentMethodChoice);
+      });
+    });
+
+    const initialMethod = hiddenInput?.value || "";
+    if (initialMethod && buttons.length === 1) {
+      applyMethod(initialMethod);
+    }
+  });
 }
 
 function formatPaymentMethod(method) {
@@ -952,39 +1113,56 @@ function openClientOrderDetail(orderId) {
                     <h3>Paiement de la commande</h3>
                     <p>Le paiement est disponible uniquement apres validation.</p>
                   </div>
-                  <a class="btn btn-light" href="../pages/checkout.html?orderId=${order.id}">Page paiement complete</a>
                 </div>
 
-                <div class="client-payment-grid">
-                  <div class="client-payment-info">
-                    <h4>Methodes disponibles</h4>
-                    ${renderBankAccountList(latestClientBankAccounts)}
-                  </div>
-
-                  <form class="client-proof-form stack" data-order-id="${order.id}" enctype="multipart/form-data">
-                    <label>
-                      Methode de paiement
-                      <select name="payment_method" required>
-                        <option value="moncash">MonCash</option>
-                        <option value="natcash">NatCash</option>
-                        <option value="bank_transfer">Virement bancaire</option>
-                      </select>
-                    </label>
-                    <label>
-                      Reference de transaction
-                      <input name="transaction_reference" required />
-                    </label>
-                    <label>
-                      Preuve de paiement
-                      <input name="proof" type="file" accept=".png,.jpg,.jpeg,.pdf" required />
-                    </label>
-                    <div class="card-actions">
-                      <button class="btn-primary" type="submit">
-                        ${order.payment_status === "rejected" ? "Renvoyer la preuve" : "Envoyer la preuve"}
+                <div class="client-payment-flow stack" data-bank-accounts='${JSON.stringify(latestClientBankAccounts || []).replace(/'/g, "&apos;")}'>
+                    <div class="client-payment-selector">
+                      <button class="client-payment-option" type="button" data-payment-method-choice="moncash">
+                        <strong>MonCash</strong>
+                        <span>Mobile money</span>
                       </button>
-                    </div>
-                    <div id="proof-message-${order.id}" class="message-box"></div>
-                  </form>
+                      <button class="client-payment-option" type="button" data-payment-method-choice="natcash">
+                        <strong>NatCash</strong>
+                        <span>Transfert mobile</span>
+                      </button>
+                      <button class="client-payment-option" type="button" data-payment-method-choice="bank_transfer">
+                        <strong>Virement bancaire</strong>
+                        <span>Depot ou virement</span>
+                      </button>
+                      </div>
+
+                      <div class="client-payment-stage" data-payment-helper>
+                        <strong>1. Choisis une methode</strong>
+                      </div>
+
+                      <div class="stack-sm" data-payment-details hidden></div>
+
+                      <form class="client-proof-form stack client-payment-form-card" data-order-id="${order.id}" enctype="multipart/form-data" hidden>
+                        <div class="client-payment-form-head">
+                          <span class="client-payment-step-chip">Etape 2</span>
+                          <strong>Envoyer la preuve</strong>
+                        </div>
+                        <input name="payment_method" type="hidden" value="" />
+                        <label>
+                          Reference de transaction
+                          <input name="transaction_reference" placeholder="Entre la reference du paiement choisi" required />
+                      </label>
+                      <label>
+                        Preuve de paiement
+                        <input name="proof" type="file" accept=".png,.jpg,.jpeg,.pdf" required />
+                      </label>
+                      <div class="client-payment-proof-checklist">
+                        <span>Montant exact.</span>
+                        <span>Reference correcte.</span>
+                        <span>Preuve lisible.</span>
+                      </div>
+                      <div class="card-actions">
+                        <button class="btn-primary" type="submit">
+                          ${order.payment_status === "rejected" ? "Renvoyer la preuve" : "Envoyer la preuve"}
+                        </button>
+                      </div>
+                      <div id="proof-message-${order.id}" class="message-box"></div>
+                    </form>
                 </div>
               </div>
             `
@@ -1034,6 +1212,8 @@ function openClientOrderDetail(orderId) {
 
   modal.classList.remove("hidden");
   document.body.classList.add("modal-open");
+  bindPaymentCopyButtons(modal);
+  bindPaymentMethodSelectors(modal);
   bindClientPaymentForms();
 }
 
@@ -1264,7 +1444,6 @@ async function renderCheckoutPage() {
 
   const orderId = new URLSearchParams(window.location.search).get("orderId");
   const form = document.getElementById("payment-form");
-  const bankAccountsBox = document.getElementById("bank-accounts");
   const locationSelect = document.getElementById("location_id");
   const orderForm = document.getElementById("checkout-order-form");
   const cartPreview = document.getElementById("checkout-cart-preview");
@@ -1273,7 +1452,54 @@ async function renderCheckoutPage() {
   const deliveryAddressInput = document.getElementById("delivery_address");
   const deliveryFeePreview = document.getElementById("delivery-fee-preview");
   const locationStockPreview = document.getElementById("checkout-location-stock-preview");
+  const paymentTargetCopy = document.getElementById("payment-order-target-copy");
+  const paymentOrderTotal = document.getElementById("payment-order-total");
+  const paymentOrderSchedule = document.getElementById("payment-order-schedule");
+  const paymentProofInput = document.getElementById("payment-proof-input");
+  const paymentProofFileName = document.getElementById("payment-proof-file-name");
+  const paymentMethodInput = document.getElementById("payment_method");
+  const paymentMethodHelper = document.getElementById("payment-method-helper");
+  const paymentMethodButtons = document.querySelectorAll("[data-payment-method]");
   let checkoutCatalog = null;
+
+  const renderPaymentTarget = order => {
+    if (!paymentTargetCopy || !paymentOrderTotal || !paymentOrderSchedule) return;
+
+    if (!order) {
+      paymentTargetCopy.textContent = "Aucune commande de paiement n'a encore ete choisie.";
+      paymentOrderTotal.textContent = "Le total exact s'affichera ici des qu'une commande sera ciblee.";
+      paymentOrderSchedule.textContent = "Retrait ou livraison, puis heure prevue.";
+      return;
+    }
+
+    paymentTargetCopy.textContent =
+      order.order_type === "delivery"
+        ? `Commande livraison pour ${order.customer_name} - ${order.delivery_address || "adresse a confirmer"}.`
+        : `Commande retrait a ${order.location_name} pour ${order.customer_name}.`;
+    paymentOrderTotal.textContent = `${formatMoney(order.total)} a regler avant verification du staff.`;
+    paymentOrderSchedule.textContent = `${order.order_type === "delivery" ? "Livraison" : "Retrait"} prevu(e) le ${formatDateTime(order.pickup_date, order.pickup_time)}.`;
+  };
+
+  const syncPaymentMethodSelection = method => {
+    const nextMethod = method || paymentMethodInput?.value || "moncash";
+    if (paymentMethodInput) {
+      paymentMethodInput.value = nextMethod;
+    }
+
+    paymentMethodButtons.forEach(button => {
+      button.classList.toggle("active", button.dataset.paymentMethod === nextMethod);
+    });
+
+    if (paymentMethodHelper) {
+      paymentMethodHelper.hidden = false;
+      const helper = paymentMethodHelperCopy(nextMethod);
+      paymentMethodHelper.innerHTML = `<strong>${helper.title}</strong><small>${helper.text}</small>`;
+    }
+
+    if (form) {
+      form.hidden = false;
+    }
+  };
 
   const renderCheckoutLocationStock = () => {
     if (!locationStockPreview || !checkoutCatalog || !locationSelect) return;
@@ -1347,21 +1573,9 @@ async function renderCheckoutPage() {
     syncDeliveryFields();
     renderCheckoutLocationStock();
 
-    if (bankAccountsBox) {
-      bankAccountsBox.innerHTML = catalog.bankAccounts
-        .map(
-          account => `
-            <article class="client-payment-account-card">
-              <div class="client-payment-account-head">
-                <strong>${account.bank_name}</strong>
-                <span class="badge">${account.account_type || "Paiement"}</span>
-              </div>
-              <span>${account.account_name}</span>
-              <small>${account.account_number}</small>
-            </article>
-          `
-        )
-        .join("");
+    const paymentFlow = document.getElementById("checkout-payment-flow");
+    if (paymentFlow) {
+      paymentFlow.dataset.bankAccounts = JSON.stringify(catalog.bankAccounts || []);
     }
   } catch (error) {
     showMessage("checkout-message", "error", error.message);
@@ -1396,6 +1610,17 @@ async function renderCheckoutPage() {
         `
       : `<div class="empty-state"><p>Le panier est vide.</p></div>`;
   }
+
+  if (paymentProofInput && paymentProofFileName) {
+    paymentProofInput.addEventListener("change", () => {
+      const file = paymentProofInput.files?.[0];
+      paymentProofFileName.textContent = file
+        ? `${file.name} - ${Math.max(1, Math.round(file.size / 1024))} Ko`
+        : "Aucun fichier choisi pour le moment.";
+    });
+  }
+
+  bindPaymentMethodSelectors(document);
 
   if (orderForm) {
     orderForm.addEventListener("submit", async event => {
@@ -1449,6 +1674,15 @@ async function renderCheckoutPage() {
 
   if (form && orderId) {
     document.getElementById("order-id").textContent = orderId;
+
+    try {
+      const orders = await apiRequest("/orders/my");
+      const targetOrder = orders.find(order => String(order.id) === String(orderId));
+      renderPaymentTarget(targetOrder);
+    } catch (error) {
+      renderPaymentTarget(null);
+    }
+
     form.addEventListener("submit", async event => {
       event.preventDefault();
 
@@ -1465,6 +1699,8 @@ async function renderCheckoutPage() {
         showMessage("payment-message", "error", error.message);
       }
     });
+  } else {
+    renderPaymentTarget(null);
   }
 }
 

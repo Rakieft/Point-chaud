@@ -24,6 +24,11 @@ function getVerificationUrl(token) {
   return `${String(config.appBaseUrl).replace(/\/$/, "")}/pages/verify-email.html?token=${encodeURIComponent(token)}`;
 }
 
+function getPasswordResetUrl(token) {
+  const config = getEmailConfig();
+  return `${String(config.appBaseUrl).replace(/\/$/, "")}/pages/reset-password.html?token=${encodeURIComponent(token)}`;
+}
+
 function getTransporter() {
   if (cachedTransporter) {
     return cachedTransporter;
@@ -142,6 +147,45 @@ async function sendVerificationEmail({ email, name, token }) {
   });
 }
 
+async function sendPasswordResetEmail({ email, name, token }) {
+  const resetUrl = getPasswordResetUrl(token);
+  const safeName = name || "Client";
+  const resetHours = Number(process.env.PASSWORD_RESET_TOKEN_HOURS || 2);
+  const subject = "Reinitialiser ton mot de passe - Point Chaud";
+  const text = [
+    `Bonjour ${safeName},`,
+    "",
+    "Une demande de reinitialisation du mot de passe Point Chaud a ete recue.",
+    "Si tu es bien a l'origine de cette demande, ouvre ce lien :",
+    resetUrl,
+    "",
+    `Ce lien expire dans ${resetHours} heure${resetHours > 1 ? "s" : ""}.`,
+    "Si tu n'as rien demande, ignore simplement ce message."
+  ].join("\n");
+
+  const html = `
+    <div style="font-family:Segoe UI,Arial,sans-serif;color:#2b1b12;line-height:1.6">
+      <h2 style="margin:0 0 16px;color:#b93821">Reinitialiser ton mot de passe</h2>
+      <p>Bonjour ${safeName},</p>
+      <p>Une demande de reinitialisation du mot de passe <strong>Point Chaud</strong> a ete recue.</p>
+      <p>Si tu es bien a l'origine de cette demande, clique sur le bouton ci-dessous :</p>
+      <p style="margin:24px 0">
+        <a href="${resetUrl}" style="background:#b93821;color:#fff;text-decoration:none;padding:14px 22px;border-radius:999px;display:inline-block;font-weight:700">Choisir un nouveau mot de passe</a>
+      </p>
+      <p>Si le bouton ne fonctionne pas, copie ce lien dans ton navigateur :</p>
+      <p><a href="${resetUrl}">${resetUrl}</a></p>
+      <p>Ce lien expire dans ${resetHours} heure${resetHours > 1 ? "s" : ""}.</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject,
+    text,
+    html
+  });
+}
+
 function getEmailProviderStatus() {
   const config = getEmailConfig();
   const ready =
@@ -159,6 +203,8 @@ module.exports = {
   hasConfiguredValue,
   getEmailConfig,
   getVerificationUrl,
+  getPasswordResetUrl,
   sendVerificationEmail,
+  sendPasswordResetEmail,
   getEmailProviderStatus
 };

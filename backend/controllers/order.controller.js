@@ -455,7 +455,22 @@ exports.scanOrder = async (req, res) => {
       return res.status(400).json({ message: "Le paiement n'est pas encore confirme" });
     }
 
-    await db.query("UPDATE orders SET status = 'completed' WHERE id = ?", [order.id]);
+    const [result] = await db.query(
+      "UPDATE orders SET status = 'completed' WHERE id = ? AND status = 'paid' AND qr_code_token = ?",
+      [order.id, req.params.token]
+    );
+
+    if (!result.affectedRows) {
+      const [freshOrders] = await db.query(`${orderSelect} WHERE o.id = ?`, [order.id]);
+      const freshOrder = freshOrders[0];
+
+      if (freshOrder?.status === "completed") {
+        return res.status(400).json({ message: "Cette commande a deja ete retiree" });
+      }
+
+      return res.status(400).json({ message: "Cette commande ne peut plus etre retiree avec ce QR code" });
+    }
+
     await createNotificationForUser(order.user_id, `Commande #${order.id} recuperee avec succes.`);
     const customerContact = await getUserContact(order.user_id);
     await sendSmsNotification(customerContact?.phone, `Point Chaud: commande #${order.id} remise avec succes.`);

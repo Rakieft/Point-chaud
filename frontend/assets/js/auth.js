@@ -15,6 +15,13 @@ function verificationPendingUrl(email, previewUrl = "") {
   return `../pages/email-verification-pending.html?${params.toString()}`;
 }
 
+function forgotPasswordPageUrl(email = "", previewUrl = "") {
+  const params = new URLSearchParams();
+  if (email) params.set("email", email);
+  if (previewUrl) params.set("preview", previewUrl);
+  return `../pages/forgot-password.html?${params.toString()}`;
+}
+
 function renderResendPrompt(email) {
   const container = document.getElementById("verification-help");
   if (!container || !email) return;
@@ -188,6 +195,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("login-form");
   const pendingCard = document.getElementById("verification-pending-card");
   const verifyCard = document.getElementById("verify-email-card");
+  const forgotPasswordForm = document.getElementById("forgot-password-form");
+  const resetPasswordCard = document.getElementById("reset-password-card");
 
   if (registerForm) {
     registerForm.addEventListener("submit", async event => {
@@ -278,6 +287,58 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  if (forgotPasswordForm) {
+    const params = new URLSearchParams(window.location.search);
+    const email = params.get("email") || "";
+    const previewUrl = params.get("preview") || "";
+    const emailInput = forgotPasswordForm.querySelector('input[name="email"]');
+    const previewBox = document.getElementById("forgot-password-preview-box");
+    const previewAnchor = document.getElementById("forgot-password-preview-link");
+
+    if (emailInput && email) {
+      emailInput.value = email;
+    }
+
+    if (previewUrl && previewBox && previewAnchor) {
+      previewBox.hidden = false;
+      previewAnchor.href = previewUrl;
+      previewAnchor.textContent = previewUrl;
+    }
+
+    forgotPasswordForm.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      const formData = new FormData(forgotPasswordForm);
+      const payload = Object.fromEntries(formData.entries());
+
+      try {
+        const data = await apiRequest("/auth/forgot-password", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        if (data.resetPreviewUrl && previewBox && previewAnchor) {
+          previewBox.hidden = false;
+          previewAnchor.href = data.resetPreviewUrl;
+          previewAnchor.textContent = data.resetPreviewUrl;
+        }
+
+        showMessage(
+          "forgot-password-message",
+          "success",
+          data.resetPreviewUrl
+            ? "Lien de reinitialisation genere. Utilise le lien de test ci-dessous."
+            : data.message || "Si un compte compatible existe, un lien a ete prepare."
+        );
+
+        const nextUrl = forgotPasswordPageUrl(payload.email, data.resetPreviewUrl || "");
+        window.history.replaceState({}, "", nextUrl);
+      } catch (error) {
+        showMessage("forgot-password-message", "error", error.message);
+      }
+    });
+  }
+
   if (verifyCard) {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token") || "";
@@ -299,6 +360,58 @@ document.addEventListener("DOMContentLoaded", () => {
         .catch(error => {
           showMessage("verify-email-message", "error", error.message);
         });
+    }
+  }
+
+  if (resetPasswordCard) {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token") || "";
+    const form = document.getElementById("reset-password-form");
+    const actions = document.getElementById("reset-password-actions");
+
+    if (!token) {
+      showMessage("reset-password-message", "error", "Lien de reinitialisation incomplet.");
+      form?.setAttribute("hidden", "hidden");
+    } else {
+      apiRequest("/auth/validate-reset-password", {
+        method: "POST",
+        body: JSON.stringify({ token })
+      })
+        .then(() => {
+          form?.removeAttribute("hidden");
+        })
+        .catch(error => {
+          showMessage("reset-password-message", "error", error.message);
+          form?.setAttribute("hidden", "hidden");
+        });
+
+      form?.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+        const payload = Object.fromEntries(formData.entries());
+
+        if (payload.password !== payload.password_confirm) {
+          showMessage("reset-password-message", "error", "Les deux mots de passe doivent etre identiques.");
+          return;
+        }
+
+        try {
+          const data = await apiRequest("/auth/reset-password", {
+            method: "POST",
+            body: JSON.stringify({
+              token,
+              password: payload.password
+            })
+          });
+
+          showMessage("reset-password-message", "success", data.message);
+          form.setAttribute("hidden", "hidden");
+          actions?.removeAttribute("hidden");
+        } catch (error) {
+          showMessage("reset-password-message", "error", error.message);
+        }
+      });
     }
   }
 

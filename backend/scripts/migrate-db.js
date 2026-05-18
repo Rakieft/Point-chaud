@@ -38,6 +38,21 @@ async function tableExists(table) {
   return rows.length > 0;
 }
 
+async function indexExists(table, indexName) {
+  const [rows] = await db.query(
+    `
+      SELECT INDEX_NAME
+      FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+        AND INDEX_NAME = ?
+    `,
+    [table, indexName]
+  );
+
+  return rows.length > 0;
+}
+
 async function columnDefinitionIncludes(table, column, fragment) {
   const [rows] = await db.query(
     `
@@ -54,6 +69,22 @@ async function columnDefinitionIncludes(table, column, fragment) {
 }
 
 async function run() {
+  if (!(await tableExists("security_events"))) {
+    await db.query(`
+      CREATE TABLE security_events (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        event_type VARCHAR(100) NOT NULL,
+        severity ENUM('info', 'warning', 'critical') DEFAULT 'info',
+        user_id INT NULL,
+        email VARCHAR(100) NULL,
+        ip_address VARCHAR(80) NULL,
+        details JSON NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_security_events_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+  }
+
   if (!(await tableExists("product_stocks"))) {
     await db.query(`
       CREATE TABLE product_stocks (
@@ -111,6 +142,14 @@ async function run() {
 
   if (!(await columnExists("users", "email_verification_expires_at"))) {
     await db.query("ALTER TABLE users ADD COLUMN email_verification_expires_at DATETIME NULL AFTER email_verification_token_hash");
+  }
+
+  if (!(await columnExists("users", "password_reset_token_hash"))) {
+    await db.query("ALTER TABLE users ADD COLUMN password_reset_token_hash VARCHAR(255) NULL AFTER email_verification_expires_at");
+  }
+
+  if (!(await columnExists("users", "password_reset_expires_at"))) {
+    await db.query("ALTER TABLE users ADD COLUMN password_reset_expires_at DATETIME NULL AFTER password_reset_token_hash");
   }
 
   if (!(await columnExists("users", "assigned_location_id"))) {
@@ -195,6 +234,10 @@ async function run() {
 
   if (!(await columnExists("orders", "returned_at"))) {
     await db.query("ALTER TABLE orders ADD COLUMN returned_at DATETIME NULL AFTER return_note");
+  }
+
+  if (!(await indexExists("orders", "uk_orders_qr_code_token"))) {
+    await db.query("ALTER TABLE orders ADD UNIQUE KEY uk_orders_qr_code_token (qr_code_token)");
   }
 
   if (!(await foreignKeyExists("users", "fk_users_location"))) {

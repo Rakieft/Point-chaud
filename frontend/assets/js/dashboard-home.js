@@ -10,6 +10,7 @@ async function renderDashboardHome() {
     const data = await apiRequest("/users/dashboard");
     const pendingOrders = await apiRequest("/orders?group=pending");
     const validatedOrders = await apiRequest("/orders?group=validated");
+    const securityData = user.role === "admin" ? await apiRequest("/users/security-events") : null;
 
     renderDashboardStats(data);
     renderQuickLinks(user);
@@ -17,6 +18,7 @@ async function renderDashboardHome() {
     renderDashboardPaymentsReview(pendingOrders);
     renderDashboardRecentOrders(pendingOrders, validatedOrders);
     renderDashboardRecentActivity(pendingOrders, validatedOrders);
+    renderSecurityEventsPanel(user, securityData);
 
     const locationLabel = document.getElementById("admin-location-label");
     const locationCopy = document.getElementById("admin-location-copy");
@@ -32,6 +34,91 @@ async function renderDashboardHome() {
   } catch (error) {
     showMessage("admin-message", "error", error.message);
   }
+}
+
+function formatSecurityEventLabel(eventType) {
+  const labels = {
+    login_invalid_password: "Mot de passe incorrect",
+    login_user_not_found: "Compte introuvable",
+    login_disabled_account: "Compte desactive",
+    login_unverified_email: "Email non verifie",
+    login_social_account_password_attempt: "Tentative sur compte social",
+    login_success: "Connexion reussie",
+    rate_limit_blocked: "Blocage anti-tentatives",
+    missing_bearer_token: "Jeton absent",
+    invalid_bearer_token: "Jeton invalide",
+    password_reset_requested: "Reset demande",
+    password_reset_completed: "Reset termine"
+  };
+
+  return labels[eventType] || String(eventType || "").replace(/_/g, " ");
+}
+
+function renderSecurityEventsPanel(user, data) {
+  const panel = document.getElementById("security-events-panel");
+  const summary = document.getElementById("security-events-summary");
+  const body = document.getElementById("security-events-body");
+
+  if (!panel || !summary || !body) return;
+
+  if (user.role !== "admin") {
+    panel.hidden = true;
+    return;
+  }
+
+  panel.hidden = false;
+
+  const counts = data?.summary || {
+    total_events: 0,
+    info_events: 0,
+    warning_events: 0,
+    critical_events: 0
+  };
+
+  const cards = [
+    ["Events 30 jours", counts.total_events || 0, "white"],
+    ["Infos", counts.info_events || 0, "gold"],
+    ["Alertes", counts.warning_events || 0, "orange"],
+    ["Critiques", counts.critical_events || 0, "red"]
+  ];
+
+  summary.innerHTML = cards
+    .map(
+      ([label, value, tone]) => `
+        <article class="admin-stat-card admin-stat-${tone}">
+          <small>${label}</small>
+          <h2>${value}</h2>
+        </article>
+      `
+    )
+    .join("");
+
+  const events = Array.isArray(data?.events) ? data.events : [];
+  body.innerHTML = events.length
+    ? events
+        .map(
+          event => `
+            <tr>
+              <td><span class="status ${event.severity}">${event.severity}</span></td>
+              <td>
+                <strong>${formatSecurityEventLabel(event.event_type)}</strong>
+                ${
+                  event.details && typeof event.details === "object"
+                    ? `<small>${Object.entries(event.details)
+                        .slice(0, 2)
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join(" • ")}</small>`
+                    : ""
+                }
+              </td>
+              <td>${event.email || (event.user_id ? `Utilisateur #${event.user_id}` : "Anonyme")}</td>
+              <td>${event.ip_address || "-"}</td>
+              <td>${formatTimestamp(event.created_at)}</td>
+            </tr>
+          `
+        )
+        .join("")
+    : `<tr><td colspan="5"><div class="empty-state"><p>Aucun evenement de securite a afficher.</p></div></td></tr>`;
 }
 
 function buildDashboardOrderTarget(orderId, options = {}) {

@@ -11,6 +11,39 @@ const { generateQrPayload } = require("../services/qr.service");
 const { fetchOrderByIdWithDetails } = require("../utils/helpers");
 const { sendSmsNotification } = require("../services/sms.service");
 
+async function assignUniqueQrToken(orderId, confirmerId) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const qrToken = crypto.randomUUID();
+
+    try {
+      const [result] = await db.query(
+        `UPDATE orders
+         SET payment_status = 'confirmed',
+             status = 'paid',
+             delivery_status = CASE WHEN order_type = 'delivery' THEN 'pending_assignment' ELSE delivery_status END,
+             confirmed_by = ?,
+             confirmed_at = NOW(),
+             qr_code_token = ?
+         WHERE id = ? AND status = 'awaiting_payment'`,
+        [confirmerId, qrToken, orderId]
+      );
+
+      if (!result.affectedRows) {
+        throw new Error("Cette commande n'attend plus de confirmation de paiement");
+      }
+
+      return qrToken;
+    } catch (error) {
+      if (error.code === "ER_DUP_ENTRY" && attempt < 4) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error("Impossible de generer un token QR unique");
+}
+
 exports.submitPaymentProof = async (req, res) => {
   const { payment_method, transaction_reference } = req.body;
 
@@ -95,18 +128,27 @@ exports.confirmPayment = async (req, res) => {
     }
 
     if (action === "confirm") {
-      const qrToken = order.order_type === "delivery" ? null : crypto.randomUUID();
-      await db.query(
-        `UPDATE orders
-         SET payment_status = 'confirmed',
-             status = 'paid',
-             delivery_status = CASE WHEN order_type = 'delivery' THEN 'pending_assignment' ELSE delivery_status END,
-             confirmed_by = ?,
-             confirmed_at = NOW(),
-             qr_code_token = ?
-         WHERE id = ?`,
-        [req.user.id, qrToken, req.params.orderId]
-      );
+      let qrToken = null;
+
+      if (order.order_type === "delivery") {
+        const [result] = await db.query(
+          `UPDATE orders
+           SET payment_status = 'confirmed',
+               status = 'paid',
+               delivery_status = 'pending_assignment',
+               confirmed_by = ?,
+               confirmed_at = NOW(),
+               qr_code_token = NULL
+           WHERE id = ? AND status = 'awaiting_payment'`,
+          [req.user.id, req.params.orderId]
+        );
+
+        if (!result.affectedRows) {
+          return res.status(400).json({ message: "Cette commande n'attend plus de confirmation de paiement" });
+        }
+      } else {
+        qrToken = await assignUniqueQrToken(req.params.orderId, req.user.id);
+      }
 
       await createNotificationForUser(
         order.user_id,
