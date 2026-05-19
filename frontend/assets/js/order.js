@@ -572,6 +572,11 @@ async function renderClientOrdersPage() {
   const container = document.getElementById("orders-list");
   if (!container || document.getElementById("client-name")) return;
 
+  const detailModal = document.getElementById("client-order-detail-modal");
+  if (detailModal && !detailModal.classList.contains("hidden")) {
+    return;
+  }
+
   const user = (await initClientShell?.()) || requireAuth(["client"]);
   if (!user) return;
 
@@ -1133,6 +1138,7 @@ function openClientOrderDetail(orderId) {
 
                       <div class="client-payment-stage" data-payment-helper>
                         <strong>1. Choisis une methode</strong>
+                        <small>Le formulaire s'affichera juste apres.</small>
                       </div>
 
                       <div class="stack-sm" data-payment-details hidden></div>
@@ -1222,6 +1228,13 @@ function closeClientOrderDetail() {
   if (!modal) return;
   modal.classList.add("hidden");
   document.body.classList.remove("modal-open");
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.has("orderId") || params.has("fromNotification")) {
+    params.delete("orderId");
+    params.delete("fromNotification");
+    history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`.replace(/\?$/, ""));
+  }
 }
 
 async function confirmClientDeliveryReceived(orderId) {
@@ -1342,7 +1355,7 @@ function renderClientOrders(container, orders, bankAccounts) {
       <div class="section-head">
         <div>
           <h2>Commandes en cours</h2>
-          <p>Commandes en validation, paiement ou pretes a etre recuperees.</p>
+          <p>Affiche seulement les commandes qui demandent encore une action ou un suivi.</p>
         </div>
       </div>
       <div class="client-orders-grid">
@@ -1355,35 +1368,49 @@ function renderClientOrders(container, orders, bankAccounts) {
     </section>
 
     <section class="client-order-section">
-      <div class="section-head">
-        <div>
-          <h2>Commandes archivees</h2>
-          <p>Commandes deja retirees ou completees.</p>
-        </div>
-      </div>
-      <div class="client-orders-grid">
-        ${
-          archivedOrders.length
-            ? archivedOrders.map(renderOrderCard).join("")
-            : `<div class="empty-state"><p>Aucune commande archivee pour le moment.</p></div>`
-        }
-      </div>
-    </section>
+      <details class="client-archive-shell">
+        <summary class="client-archive-summary">
+          <div>
+            <strong>Archives client</strong>
+            <small>${archivedOrders.length} completee(s) • ${rejectedOrders.length} refusee(s)</small>
+          </div>
+          <span class="client-archive-toggle" aria-hidden="true"></span>
+        </summary>
 
-    <section class="client-order-section">
-      <div class="section-head">
-        <div>
-          <h2>Commandes refusees</h2>
-          <p>Les commandes refusees sont archivees ici et n'attendent aucun paiement.</p>
+        <div class="client-archive-content">
+          <section class="client-archive-group">
+            <div class="section-head">
+              <div>
+                <h2>Commandes archivees</h2>
+                <p>Commandes deja retirees ou completees.</p>
+              </div>
+            </div>
+            <div class="client-orders-grid">
+              ${
+                archivedOrders.length
+                  ? archivedOrders.map(renderOrderCard).join("")
+                  : `<div class="empty-state"><p>Aucune commande archivee pour le moment.</p></div>`
+              }
+            </div>
+          </section>
+
+          <section class="client-archive-group">
+            <div class="section-head">
+              <div>
+                <h2>Commandes refusees</h2>
+                <p>Ces commandes sont gardees ici pour historique et n'attendent aucun paiement.</p>
+              </div>
+            </div>
+            <div class="client-orders-grid">
+              ${
+                rejectedOrders.length
+                  ? rejectedOrders.map(renderOrderCard).join("")
+                  : `<div class="empty-state"><p>Aucune commande refusee.</p></div>`
+              }
+            </div>
+          </section>
         </div>
-      </div>
-      <div class="client-orders-grid">
-        ${
-          rejectedOrders.length
-            ? rejectedOrders.map(renderOrderCard).join("")
-            : `<div class="empty-state"><p>Aucune commande refusee.</p></div>`
-        }
-      </div>
+      </details>
     </section>
   `;
 
@@ -1410,10 +1437,19 @@ function renderClientOrders(container, orders, bankAccounts) {
 
 function bindClientPaymentForms() {
   document.querySelectorAll(".client-proof-form").forEach(form => {
+    if (form.dataset.boundProofForm === "true") return;
+    form.dataset.boundProofForm = "true";
+
     form.addEventListener("submit", async event => {
       event.preventDefault();
 
       const orderId = form.dataset.orderId;
+      const selectedMethod = form.querySelector('input[name="payment_method"]')?.value;
+      if (!selectedMethod) {
+        showMessage(`proof-message-${orderId}`, "error", "Choisis d'abord une methode de paiement.");
+        return;
+      }
+
       const formData = new FormData(form);
 
       try {
@@ -1424,6 +1460,7 @@ function bindClientPaymentForms() {
 
         showMessage(`proof-message-${orderId}`, "success", data.message);
         setTimeout(() => {
+          closeClientOrderDetail();
           renderClientOrdersPage();
         }, 700);
       } catch (error) {
@@ -1457,9 +1494,6 @@ async function renderCheckoutPage() {
   const paymentOrderSchedule = document.getElementById("payment-order-schedule");
   const paymentProofInput = document.getElementById("payment-proof-input");
   const paymentProofFileName = document.getElementById("payment-proof-file-name");
-  const paymentMethodInput = document.getElementById("payment_method");
-  const paymentMethodHelper = document.getElementById("payment-method-helper");
-  const paymentMethodButtons = document.querySelectorAll("[data-payment-method]");
   let checkoutCatalog = null;
 
   const renderPaymentTarget = order => {
@@ -1478,27 +1512,6 @@ async function renderCheckoutPage() {
         : `Commande retrait a ${order.location_name} pour ${order.customer_name}.`;
     paymentOrderTotal.textContent = `${formatMoney(order.total)} a regler avant verification du staff.`;
     paymentOrderSchedule.textContent = `${order.order_type === "delivery" ? "Livraison" : "Retrait"} prevu(e) le ${formatDateTime(order.pickup_date, order.pickup_time)}.`;
-  };
-
-  const syncPaymentMethodSelection = method => {
-    const nextMethod = method || paymentMethodInput?.value || "moncash";
-    if (paymentMethodInput) {
-      paymentMethodInput.value = nextMethod;
-    }
-
-    paymentMethodButtons.forEach(button => {
-      button.classList.toggle("active", button.dataset.paymentMethod === nextMethod);
-    });
-
-    if (paymentMethodHelper) {
-      paymentMethodHelper.hidden = false;
-      const helper = paymentMethodHelperCopy(nextMethod);
-      paymentMethodHelper.innerHTML = `<strong>${helper.title}</strong><small>${helper.text}</small>`;
-    }
-
-    if (form) {
-      form.hidden = false;
-    }
   };
 
   const renderCheckoutLocationStock = () => {
@@ -1683,8 +1696,19 @@ async function renderCheckoutPage() {
       renderPaymentTarget(null);
     }
 
+    if (form.dataset.boundCheckoutPaymentForm === "true") {
+      return;
+    }
+    form.dataset.boundCheckoutPaymentForm = "true";
+
     form.addEventListener("submit", async event => {
       event.preventDefault();
+
+      const selectedMethod = form.querySelector('input[name="payment_method"]')?.value;
+      if (!selectedMethod) {
+        showMessage("payment-message", "error", "Choisis d'abord une methode de paiement.");
+        return;
+      }
 
       const formData = new FormData(form);
 

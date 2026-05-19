@@ -330,11 +330,25 @@ html[data-theme="dark"] .client-cart-summary-box,
 html[data-theme="dark"] .client-cart-note,
 html[data-theme="dark"] .analytics-summary-card,
 html[data-theme="dark"] .analytics-location-card,
-html[data-theme="dark"] .analytics-legend-item {
+html[data-theme="dark"] .analytics-legend-item,
+html[data-theme="dark"] .client-archive-shell {
   background: rgba(29, 24, 20, 0.94);
   border-color: var(--border);
   color: var(--text);
   box-shadow: var(--shadow);
+}
+
+html[data-theme="dark"] .client-archive-summary strong {
+  color: #fff0e5;
+}
+
+html[data-theme="dark"] .client-archive-summary small {
+  color: var(--muted);
+}
+
+html[data-theme="dark"] .client-archive-toggle {
+  background: rgba(255, 209, 167, 0.12);
+  color: #ffe0c2;
 }
 
 .hero-card {
@@ -2509,6 +2523,67 @@ html[data-theme="dark"] .text-danger {
   gap: 16px;
 }
 
+.client-archive-shell {
+  border: 1px solid rgba(233, 93, 22, 0.14);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(255, 255, 255, 0.98));
+  overflow: hidden;
+}
+
+.client-archive-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  cursor: pointer;
+}
+
+.client-archive-summary::-webkit-details-marker {
+  display: none;
+}
+
+.client-archive-summary strong {
+  display: block;
+  color: var(--primary-dark);
+}
+
+.client-archive-summary small {
+  color: var(--text-soft);
+}
+
+.client-archive-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 108px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(233, 93, 22, 0.10);
+  color: #9a3d12;
+  font-weight: 700;
+}
+
+.client-archive-shell[open] .client-archive-toggle::before {
+  content: "Fermer";
+}
+
+.client-archive-shell:not([open]) .client-archive-toggle::before {
+  content: "Ouvrir";
+}
+
+.client-archive-content {
+  display: grid;
+  gap: 24px;
+  padding: 0 22px 22px;
+}
+
+.client-archive-group {
+  display: grid;
+  gap: 16px;
+}
+
 .client-dashboard-hero {
   align-items: stretch;
 }
@@ -3137,15 +3212,15 @@ html[data-theme="dark"] .admin-body {
 }
 
 .admin-logo-mark {
-  width: 56px;
-  height: 56px;
+  width: 80px;
+  height: 80px;
   border-radius: 18px;
   display: block;
   background:
-    radial-gradient(circle at center, rgba(255, 255, 255, 0.92), rgba(255, 244, 232, 0.84)),
+    /* radial-gradient(circle at center, rgba(255, 255, 255, 0.92), rgba(255, 244, 232, 0.84)), */
     url("../images/logo-point.png") center/78% no-repeat;
-  box-shadow: 0 14px 24px rgba(90, 28, 18, 0.18);
-  font-size: 0;
+  /* box-shadow: 0 14px 24px rgba(90, 28, 18, 0.18); */
+  /* font-size: 0; */
 }
 
 .admin-nav {
@@ -3458,8 +3533,8 @@ html[data-theme="dark"] .admin-product-thumb-wrap {
 }
 
 .admin-badge {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fffefb;
+  background: rgba(123, 113, 113, 0.14);
+  color: #ff8a3d;
 }
 
 .admin-hero-panel {
