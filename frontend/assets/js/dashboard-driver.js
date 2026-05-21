@@ -25,7 +25,7 @@ function driverActionButtons(order) {
 
   if (order.delivery_status === "out_for_delivery") {
     buttons.push(
-      `<button class="btn admin-btn-success" type="button" onclick="updateDriverDeliveryStatus(${order.id}, 'delivered')">Marquer livree</button>`
+      `<button class="btn admin-btn-success" type="button" onclick="captureDriverDeliverySignature(${order.id})">Marquer livree</button>`
     );
     buttons.push(
       `<button class="btn admin-btn-warning" type="button" onclick="markDriverReturn(${order.id})">Client absent / retour</button>`
@@ -238,6 +238,23 @@ async function updateDriverDeliveryStatus(orderId, deliveryStatus) {
   }
 }
 
+async function captureDriverDeliverySignature(orderId) {
+  const order = driverOrdersCache.find(item => Number(item.id) === Number(orderId));
+  const signature = await openDeliverySignatureModal(order);
+  if (!signature) return;
+
+  try {
+    const data = await apiRequest(`/orders/${orderId}/delivery-status`, {
+      method: "PATCH",
+      body: JSON.stringify({ delivery_status: "delivered", ...signature })
+    });
+    showMessage("driver-dashboard-message", "success", data.message);
+    await renderDriverDashboard();
+  } catch (error) {
+    showMessage("driver-dashboard-message", "error", error.message);
+  }
+}
+
 async function markDriverReturn(orderId) {
   const returnNote =
     window.prompt("Motif du retour au point chaud", "Client indisponible a la livraison") ||
@@ -293,6 +310,7 @@ async function renderDriverDashboard() {
 }
 
 window.updateDriverDeliveryStatus = updateDriverDeliveryStatus;
+window.captureDriverDeliverySignature = captureDriverDeliverySignature;
 window.markDriverReturn = markDriverReturn;
 window.openDriverOrderDetail = openDriverOrderDetail;
 

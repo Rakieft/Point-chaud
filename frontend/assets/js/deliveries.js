@@ -207,7 +207,7 @@ function renderDeliveryCard(order, user) {
 
   if (isDriver && Number(order.assigned_driver_id) === Number(user.id) && order.delivery_status === "out_for_delivery") {
     actions.push(
-      `<button class="btn admin-btn-success" type="button" onclick="updateDeliveryStatus(${order.id}, 'delivered')">Marquer livree</button>`
+      `<button class="btn admin-btn-success" type="button" onclick="captureDeliverySignature(${order.id})">Marquer livree</button>`
     );
     actions.push(
       `<button class="btn admin-btn-warning" type="button" onclick="markDeliveryReturn(${order.id})">Client absent / retour</button>`
@@ -222,7 +222,7 @@ function renderDeliveryCard(order, user) {
 
   if (!isDriver && order.delivery_status === "out_for_delivery") {
     actions.push(
-      `<button class="btn admin-btn-success" type="button" onclick="updateDeliveryStatus(${order.id}, 'delivered')">Confirmer livree</button>`
+      `<button class="btn admin-btn-success" type="button" onclick="captureDeliverySignature(${order.id})">Enregistrer la remise</button>`
     );
     actions.push(
       `<button class="btn admin-btn-warning" type="button" onclick="markDeliveryReturn(${order.id})">Retour point chaud</button>`
@@ -335,6 +335,23 @@ async function updateDeliveryStatus(orderId, deliveryStatus) {
   }
 }
 
+async function captureDeliverySignature(orderId) {
+  const order = deliveriesCache.find(item => Number(item.id) === Number(orderId));
+  const signature = await openDeliverySignatureModal(order);
+  if (!signature) return;
+
+  try {
+    const data = await apiRequest(`/orders/${orderId}/delivery-status`, {
+      method: "PATCH",
+      body: JSON.stringify({ delivery_status: "delivered", ...signature })
+    });
+    showMessage("deliveries-message", "success", data.message);
+    await renderDeliveriesPage();
+  } catch (error) {
+    showMessage("deliveries-message", "error", error.message);
+  }
+}
+
 async function markDeliveryReturn(orderId) {
   const returnNote =
     window.prompt("Motif du retour au point chaud", "Client indisponible a la livraison") ||
@@ -404,6 +421,7 @@ function handleDeliveryNotificationFocus(orders) {
 
 window.assignDriverToOrder = assignDriverToOrder;
 window.updateDeliveryStatus = updateDeliveryStatus;
+window.captureDeliverySignature = captureDeliverySignature;
 window.markDeliveryReturn = markDeliveryReturn;
 window.openDeliveryDetail = openDeliveryDetail;
 

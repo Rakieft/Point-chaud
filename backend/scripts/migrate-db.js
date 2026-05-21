@@ -236,6 +236,20 @@ async function run() {
     await db.query("ALTER TABLE orders ADD COLUMN returned_at DATETIME NULL AFTER return_note");
   }
 
+  if (!(await columnExists("orders", "delivery_signature_name"))) {
+    await db.query("ALTER TABLE orders ADD COLUMN delivery_signature_name VARCHAR(255) NULL AFTER returned_at");
+  }
+
+  if (!(await columnExists("orders", "delivery_signature_data"))) {
+    await db.query("ALTER TABLE orders ADD COLUMN delivery_signature_data LONGTEXT NULL AFTER delivery_signature_name");
+  }
+
+  if (!(await columnExists("orders", "delivery_signature_captured_at"))) {
+    await db.query(
+      "ALTER TABLE orders ADD COLUMN delivery_signature_captured_at DATETIME NULL AFTER delivery_signature_data"
+    );
+  }
+
   if (!(await indexExists("orders", "uk_orders_qr_code_token"))) {
     await db.query("ALTER TABLE orders ADD UNIQUE KEY uk_orders_qr_code_token (qr_code_token)");
   }

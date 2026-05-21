@@ -158,22 +158,37 @@ function requireAuth(roles = []) {
   const user = storage.user;
 
   if (!user || !storage.token) {
-    window.location.href = "../pages/login.html";
+    window.location.href = "/login.html";
     return null;
   }
 
   if (roles.length && !roles.includes(user.role)) {
     const nextPage =
       user.role === "client"
-        ? "../pages/dashboard-client.html"
+        ? "/dashboard-client.html"
         : user.role === "driver"
-          ? "../pages/dashboard-driver.html"
-          : "../pages/dashboard-admin.html";
+          ? "/dashboard-driver.html"
+          : "/dashboard-admin.html";
     window.location.href = nextPage;
     return null;
   }
 
   return user;
+}
+
+function guardGuestCartLinks(root = document) {
+  root.querySelectorAll('a[href$="cart.html"], a[href$="/cart.html"]').forEach(link => {
+    if (link.dataset.cartGuardBound === "true") return;
+    link.dataset.cartGuardBound = "true";
+
+    link.addEventListener("click", event => {
+      const user = storage.user;
+      if (user?.role === "client" && storage.token) return;
+
+      event.preventDefault();
+      window.location.href = "/login.html";
+    });
+  });
 }
 
 function formatMoney(value) {
@@ -336,7 +351,7 @@ function showMessage(targetId, type, message) {
 
 function logout() {
   clearSession();
-  window.location.href = "../pages/login.html";
+  window.location.href = "/login.html";
 }
 
 function injectThemeToggle() {
@@ -501,6 +516,67 @@ async function injectIndexSocialLinks() {
     .join("");
 }
 
+async function renderHomepageFeaturedProducts() {
+  const container = document.getElementById("home-featured-products-grid");
+  if (!container) return;
+
+  try {
+    const catalog = await apiRequest("/products");
+    const products = Array.isArray(catalog?.products) ? catalog.products : [];
+    const preferredOrder = [
+      "Burger classique",
+      "Pate poulet",
+      "Pizza fromage",
+      "Jus orange",
+      "Pain chaud",
+      "Poulet frit",
+      "Riz + poulet"
+    ];
+
+    const rankedProducts = preferredOrder
+      .map(name => products.find(product => String(product.name || "").trim().toLowerCase() === name.toLowerCase()))
+      .filter(Boolean);
+
+    const fallbackProducts = products.filter(product => !rankedProducts.some(item => Number(item.id) === Number(product.id)));
+    const featuredProducts = [...rankedProducts, ...fallbackProducts].slice(0, 5);
+
+    container.innerHTML = featuredProducts
+      .map(product => {
+        const tagLabel = String(product.category_name || "Vedette");
+        const safeName = String(product.name || "").replace(/"/g, "&quot;");
+        const safeDescription = String(product.description || "Produit du moment Point Chaud.");
+
+        return `
+          <article class="home-product-showcase-card">
+            <div class="home-product-visual">
+              <img
+                src="${resolveProductImage(product)}"
+                alt="${safeName}"
+                loading="lazy"
+                onerror="handleProductImageError(this, '${String(product.name || "").replace(/'/g, "\\'")}', '')" />
+            </div>
+            <div class="home-product-copy">
+              <span class="home-product-tag">${tagLabel}</span>
+              <h3>${product.name}</h3>
+              <p>${safeDescription}</p>
+              <div class="home-product-meta">
+                <strong>${formatMoney(product.price)}</strong>
+              </div>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+  } catch (error) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>Produits vedettes indisponibles</h3>
+        <p>Le catalogue sera recharge automatiquement des que les donnees seront disponibles.</p>
+      </div>
+    `;
+  }
+}
+
 window.API_BASE_URL = API_BASE_URL;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -508,4 +584,5 @@ document.addEventListener("DOMContentLoaded", () => {
   injectThemeToggle();
   injectWhatsAppSupportButton();
   injectIndexSocialLinks();
+  renderHomepageFeaturedProducts();
 });

@@ -1,5 +1,9 @@
 let backofficeCurrentUser = null;
 let backofficeNotifications = [];
+let deliverySignatureResolver = null;
+let deliverySignaturePadReady = false;
+let deliverySignatureDrawing = false;
+let deliverySignatureContext = null;
 
 function extractOrderIdFromNotificationMessage(message) {
   const match = String(message || "").match(/(?:commande|livraison)\s*#(\d+)/i);
@@ -249,6 +253,203 @@ function closeNotificationDetailModal() {
   if (!modal) return;
   modal.classList.add("hidden");
   document.body.classList.remove("modal-open");
+}
+
+function ensureDeliverySignatureModal() {
+  let modal = document.getElementById("delivery-signature-modal");
+  if (modal) return modal;
+
+  modal = document.createElement("div");
+  modal.id = "delivery-signature-modal";
+  modal.className = "admin-modal hidden";
+  modal.innerHTML = `
+    <div class="admin-modal-backdrop" data-delivery-signature-close></div>
+    <div class="admin-modal-card delivery-signature-modal-card">
+      <div class="admin-modal-head">
+        <div>
+          <p class="admin-eyebrow">Preuve de remise</p>
+          <h2 id="delivery-signature-title">Signature du client</h2>
+        </div>
+        <button class="btn-light" type="button" data-delivery-signature-close>Fermer</button>
+      </div>
+      <div class="stack">
+        <div id="delivery-signature-message" class="message-box"></div>
+        <label>
+          Nom du client qui signe
+          <input id="delivery-signature-name" type="text" placeholder="Nom complet du client" />
+        </label>
+        <div class="delivery-signature-pad-shell">
+          <div class="delivery-signature-pad-head">
+            <strong>Signature manuscrite</strong>
+            <small>Demande au client de signer dans la zone ci-dessous.</small>
+          </div>
+          <canvas id="delivery-signature-canvas" class="delivery-signature-canvas"></canvas>
+          <div class="delivery-signature-pad-actions">
+            <button id="delivery-signature-clear" class="btn btn-light" type="button">Effacer</button>
+          </div>
+        </div>
+        <div class="delivery-signature-actions">
+          <button class="btn btn-light" type="button" data-delivery-signature-close>Annuler</button>
+          <button id="delivery-signature-save" class="btn admin-btn-success" type="button">Valider la remise</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.querySelectorAll("[data-delivery-signature-close]").forEach(element => {
+    element.addEventListener("click", () => closeDeliverySignatureModal(null));
+  });
+
+  initializeDeliverySignaturePad(modal);
+  return modal;
+}
+
+function resetDeliverySignatureCanvas() {
+  const canvas = document.getElementById("delivery-signature-canvas");
+  if (!canvas || !deliverySignatureContext) return;
+
+  const width = canvas.width / (window.devicePixelRatio || 1);
+  const height = canvas.height / (window.devicePixelRatio || 1);
+  deliverySignatureContext.fillStyle = "#ffffff";
+  deliverySignatureContext.fillRect(0, 0, width, height);
+  deliverySignatureContext.strokeStyle = "#7f1d1d";
+  deliverySignatureContext.lineWidth = 2.5;
+  deliverySignatureContext.lineCap = "round";
+  deliverySignatureContext.lineJoin = "round";
+  canvas.dataset.hasStroke = "false";
+}
+
+function resizeDeliverySignatureCanvas() {
+  const canvas = document.getElementById("delivery-signature-canvas");
+  if (!canvas) return;
+
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  const width = canvas.clientWidth || 320;
+  const height = canvas.clientHeight || 180;
+  canvas.width = Math.round(width * ratio);
+  canvas.height = Math.round(height * ratio);
+  deliverySignatureContext = canvas.getContext("2d");
+  deliverySignatureContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+  resetDeliverySignatureCanvas();
+}
+
+function getDeliverySignaturePoint(canvas, event) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
+  };
+}
+
+function initializeDeliverySignaturePad(modal) {
+  if (deliverySignaturePadReady) return;
+
+  const canvas = modal.querySelector("#delivery-signature-canvas");
+  const clearButton = modal.querySelector("#delivery-signature-clear");
+  if (!canvas || !clearButton) return;
+
+  resizeDeliverySignatureCanvas();
+
+  canvas.addEventListener("pointerdown", event => {
+    deliverySignatureDrawing = true;
+    const point = getDeliverySignaturePoint(canvas, event);
+    deliverySignatureContext.beginPath();
+    deliverySignatureContext.moveTo(point.x, point.y);
+    canvas.dataset.hasStroke = "true";
+    canvas.setPointerCapture(event.pointerId);
+  });
+
+  canvas.addEventListener("pointermove", event => {
+    if (!deliverySignatureDrawing) return;
+    const point = getDeliverySignaturePoint(canvas, event);
+    deliverySignatureContext.lineTo(point.x, point.y);
+    deliverySignatureContext.stroke();
+  });
+
+  const stopDrawing = event => {
+    if (!deliverySignatureDrawing) return;
+    deliverySignatureDrawing = false;
+    try {
+      canvas.releasePointerCapture(event.pointerId);
+    } catch (error) {
+      // no-op
+    }
+  };
+
+  canvas.addEventListener("pointerup", stopDrawing);
+  canvas.addEventListener("pointerleave", stopDrawing);
+  canvas.addEventListener("pointercancel", stopDrawing);
+  clearButton.addEventListener("click", resetDeliverySignatureCanvas);
+  window.addEventListener("resize", () => {
+    if (!document.getElementById("delivery-signature-modal")?.classList.contains("hidden")) {
+      resizeDeliverySignatureCanvas();
+    }
+  });
+
+  deliverySignaturePadReady = true;
+}
+
+function closeDeliverySignatureModal(result) {
+  const modal = document.getElementById("delivery-signature-modal");
+  if (!modal) return;
+  modal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+
+  const resolver = deliverySignatureResolver;
+  deliverySignatureResolver = null;
+  if (resolver) {
+    resolver(result);
+  }
+}
+
+function openDeliverySignatureModal(order) {
+  const modal = ensureDeliverySignatureModal();
+  const title = document.getElementById("delivery-signature-title");
+  const nameInput = document.getElementById("delivery-signature-name");
+  const saveButton = document.getElementById("delivery-signature-save");
+
+  if (title) {
+    title.textContent = order?.id
+      ? `Signature du client pour la commande #${order.id}`
+      : "Signature du client";
+  }
+
+  showMessage("delivery-signature-message", "info", "Fais signer le client avant de valider la remise.");
+  if (nameInput) {
+    nameInput.value = order?.customer_name || "";
+  }
+
+  modal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  window.requestAnimationFrame(() => {
+    resizeDeliverySignatureCanvas();
+    nameInput?.focus();
+  });
+
+  return new Promise(resolve => {
+    deliverySignatureResolver = resolve;
+
+    saveButton.onclick = () => {
+      const canvas = document.getElementById("delivery-signature-canvas");
+      const signatureName = String(nameInput?.value || "").trim();
+
+      if (!signatureName) {
+        showMessage("delivery-signature-message", "error", "Le nom du client est obligatoire.");
+        return;
+      }
+
+      if (!canvas || canvas.dataset.hasStroke !== "true") {
+        showMessage("delivery-signature-message", "error", "La signature du client est obligatoire.");
+        return;
+      }
+
+      closeDeliverySignatureModal({
+        signature_name: signatureName,
+        signature_data: canvas.toDataURL("image/png")
+      });
+    };
+  });
 }
 
 function renderBackofficeNotificationsList() {
@@ -551,6 +752,8 @@ function openBackofficeOrderDetail(order) {
                 <span>Adresse: ${order.delivery_address || "A renseigner"}</span>
                 <span>Livreur: ${order.driver_name || "Non assigne"}</span>
                 <span>Livraison: ${backofficeStatusLabel(order.delivery_status)}</span>
+                ${order.delivery_signature_name ? `<span>Signature recue: ${order.delivery_signature_name}</span>` : ""}
+                ${order.delivery_signature_captured_at ? `<span>Signee le: ${formatTimestamp(order.delivery_signature_captured_at)}</span>` : ""}
                 ${order.return_note ? `<span>Motif retour: ${order.return_note}</span>` : ""}
               `
               : ""
@@ -572,6 +775,20 @@ function openBackofficeOrderDetail(order) {
             : `<p class="muted">Le QR code sera visible apres confirmation du paiement.</p>`
         }
       </section>
+
+      ${
+        order.order_type === "delivery" && order.delivery_signature_data
+          ? `
+            <section class="admin-detail-panel">
+              <h4>Signature de remise</h4>
+              <div class="delivery-signature-proof">
+                <strong>${order.delivery_signature_name || "Signature client"}</strong>
+                <img src="${order.delivery_signature_data}" alt="Signature client commande ${order.id}" />
+              </div>
+            </section>
+          `
+          : ""
+      }
     </div>
   `;
 
@@ -587,3 +804,4 @@ function closeOrderDetail() {
 }
 
 window.openBackofficeNotificationByKeyword = openBackofficeNotificationByKeyword;
+window.openDeliverySignatureModal = openDeliverySignatureModal;

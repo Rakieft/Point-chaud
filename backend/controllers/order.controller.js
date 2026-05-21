@@ -1,5 +1,5 @@
 const db = require("../config/db");
-const { validateOrderPayload } = require("../validators/order.validator");
+const { validateOrderPayload, validateOrderSchedule } = require("../validators/order.validator");
 const {
   createNotificationForUser,
   createNotificationForManagersAtLocation,
@@ -34,14 +34,7 @@ const orderSelect = `
 
 function getDeliveryFee(locationId, orderType) {
   if (orderType !== "delivery") return 0;
-
-  const fees = {
-    1: 180,
-    2: 220,
-    3: 160
-  };
-
-  return fees[Number(locationId)] || 200;
+  return 500;
 }
 
 async function getOrderItems(orderId) {
@@ -342,11 +335,18 @@ exports.updateOrderByStaff = async (req, res) => {
       return res.status(400).json({ message: "Seules les commandes en attente peuvent etre ajustees" });
     }
 
-    if (!Array.isArray(items) || !items.length) {
-      return res.status(400).json({ message: "La commande doit contenir au moins un produit" });
-    }
+      if (!Array.isArray(items) || !items.length) {
+        return res.status(400).json({ message: "La commande doit contenir au moins un produit" });
+      }
 
-    await connection.beginTransaction();
+      const nextPickupDate = pickup_date || order.pickup_date;
+      const nextPickupTime = pickup_time || order.pickup_time;
+      const scheduleValidation = validateOrderSchedule(nextPickupDate, nextPickupTime);
+      if (!scheduleValidation.isValid) {
+        return res.status(400).json({ message: scheduleValidation.message });
+      }
+
+      await connection.beginTransaction();
 
     const [existingItems] = await connection.query(
       "SELECT product_id, quantity FROM order_items WHERE order_id = ?",
@@ -401,12 +401,12 @@ exports.updateOrderByStaff = async (req, res) => {
       );
     }
 
-    await syncProductTotalStocks(connection, [...existingItems.map(item => item.product_id), ...productIds]);
+      await syncProductTotalStocks(connection, [...existingItems.map(item => item.product_id), ...productIds]);
 
-    await connection.query(
-      "UPDATE orders SET pickup_date = ?, pickup_time = ?, notes = ? WHERE id = ?",
-      [pickup_date || order.pickup_date, pickup_time || order.pickup_time, notes || order.notes, req.params.id]
-    );
+      await connection.query(
+        "UPDATE orders SET pickup_date = ?, pickup_time = ?, notes = ? WHERE id = ?",
+        [nextPickupDate, nextPickupTime, notes || order.notes, req.params.id]
+      );
 
     await connection.commit();
 
@@ -596,7 +596,7 @@ exports.assignDriver = async (req, res) => {
 };
 
 exports.updateDeliveryStatus = async (req, res) => {
-  const { delivery_status, return_note } = req.body;
+  const { delivery_status, return_note, signature_name, signature_data } = req.body;
 
   if (!["assigned", "out_for_delivery", "delivered", "return_to_branch"].includes(delivery_status)) {
     return res.status(400).json({ message: "Statut de livraison invalide" });
@@ -635,26 +635,50 @@ exports.updateDeliveryStatus = async (req, res) => {
       });
     }
 
-    const nextStatus = "paid";
+    if (delivery_status === "delivered") {
+      if (!String(signature_name || "").trim()) {
+        return res.status(400).json({ message: "Le nom du client qui signe est obligatoire" });
+      }
+
+      if (!String(signature_data || "").startsWith("data:image/")) {
+        return res.status(400).json({ message: "Une signature client valide est obligatoire" });
+      }
+
+      if (String(signature_data).length > 400000) {
+        return res.status(400).json({ message: "La signature est trop lourde. Reessaie avec un trace plus simple." });
+      }
+    }
+
+    const nextStatus = delivery_status === "delivered" ? "completed" : "paid";
     const deliveredAt = delivery_status === "delivered" ? "NOW()" : "NULL";
+    const customerReceivedAt = delivery_status === "delivered" ? "NOW()" : "NULL";
     const returnedAt = delivery_status === "return_to_branch" ? "NOW()" : "NULL";
     const returnNote = delivery_status === "return_to_branch" ? (return_note || "Client indisponible a la livraison") : null;
+    const signatureName = delivery_status === "delivered" ? String(signature_name || "").trim() : null;
+    const signatureData = delivery_status === "delivered" ? String(signature_data || "") : null;
+    const signatureCapturedAt = delivery_status === "delivered" ? "NOW()" : "NULL";
 
     await db.query(
       `UPDATE orders
-       SET delivery_status = ?, status = ?, delivered_at = ${deliveredAt}, customer_received_at = NULL, returned_at = ${returnedAt}, return_note = ?
+       SET delivery_status = ?, status = ?, delivered_at = ${deliveredAt}, customer_received_at = ${customerReceivedAt}, returned_at = ${returnedAt}, return_note = ?, delivery_signature_name = ?, delivery_signature_data = ?, delivery_signature_captured_at = ${signatureCapturedAt}
        WHERE id = ?`,
-      [delivery_status, nextStatus, returnNote, req.params.id]
+      [delivery_status, nextStatus, returnNote, signatureName, signatureData, req.params.id]
     );
 
     const messages = {
       assigned: `Votre commande #${order.id} est assignee a un livreur.`,
       out_for_delivery: `Votre commande #${order.id} est en route pour la livraison.`,
-      delivered: `Votre commande #${order.id} a ete marquee livree. Merci de confirmer la reception dans votre espace client.`,
+      delivered: `Votre commande #${order.id} a ete remise avec succes et signee a la livraison.`,
       return_to_branch: `Le livreur n'a pas pu remettre votre commande #${order.id}. Retour au point chaud en cours.`
     };
 
     await createNotificationForUser(order.user_id, messages[delivery_status]);
+    if (delivery_status === "delivered") {
+      await createNotificationForManagersAtLocation(
+        order.location_id,
+        `La livraison #${order.id} a ete remise avec la signature de ${signatureName}.`
+      );
+    }
     if (delivery_status === "return_to_branch") {
       await createNotificationForManagersAtLocation(
         order.location_id,
@@ -663,14 +687,16 @@ exports.updateDeliveryStatus = async (req, res) => {
     }
     const customerContact = await getUserContact(order.user_id);
     const managerContacts =
-      delivery_status === "return_to_branch" ? await getManagersAtLocation(order.location_id) : [];
+      ["return_to_branch", "delivered"].includes(delivery_status) ? await getManagersAtLocation(order.location_id) : [];
 
     await Promise.all([
       sendSmsNotification(customerContact?.phone, `Point Chaud: ${messages[delivery_status]}`),
       ...managerContacts.map(manager =>
         sendSmsNotification(
           manager.phone,
-          `Point Chaud: commande #${order.id} retournee au point chaud. Motif: ${returnNote}.`
+          delivery_status === "delivered"
+            ? `Point Chaud: livraison #${order.id} remise avec signature de ${signatureName}.`
+            : `Point Chaud: commande #${order.id} retournee au point chaud. Motif: ${returnNote}.`
         )
       )
     ]);

@@ -1,7 +1,7 @@
 function nextPageForRole(role) {
-  if (role === "client") return "../pages/dashboard-client.html";
-  if (role === "driver") return "../pages/dashboard-driver.html";
-  return "../pages/dashboard-admin.html";
+  if (role === "client") return "/dashboard-client.html";
+  if (role === "driver") return "/dashboard-driver.html";
+  return "/dashboard-admin.html";
 }
 
 function socialMessageTarget() {
@@ -12,14 +12,14 @@ function verificationPendingUrl(email, previewUrl = "") {
   const params = new URLSearchParams();
   if (email) params.set("email", email);
   if (previewUrl) params.set("preview", previewUrl);
-  return `../pages/email-verification-pending.html?${params.toString()}`;
+  return `/email-verification-pending.html?${params.toString()}`;
 }
 
 function forgotPasswordPageUrl(email = "", previewUrl = "") {
   const params = new URLSearchParams();
   if (email) params.set("email", email);
   if (previewUrl) params.set("preview", previewUrl);
-  return `../pages/forgot-password.html?${params.toString()}`;
+  return `/forgot-password.html?${params.toString()}`;
 }
 
 function renderResendPrompt(email) {
@@ -84,6 +84,36 @@ function loadExternalScript(src) {
     );
     script.addEventListener("error", () => reject(new Error(`Impossible de charger ${src}`)), { once: true });
     document.head.appendChild(script);
+  });
+}
+
+function initializePasswordToggles(root = document) {
+  root.querySelectorAll('input[type="password"]').forEach(input => {
+    if (!input.name || input.dataset.passwordToggleBound === "true") return;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "password-input-wrap";
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "password-toggle-btn";
+    toggle.setAttribute("aria-label", "Afficher le mot de passe");
+    toggle.innerHTML = `
+      <span class="password-toggle-icon" aria-hidden="true">👁</span>
+    `;
+
+    toggle.addEventListener("click", () => {
+      const showPassword = input.type === "password";
+      input.type = showPassword ? "text" : "password";
+      toggle.setAttribute("aria-label", showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe");
+      toggle.classList.toggle("is-active", showPassword);
+      toggle.querySelector(".password-toggle-icon").textContent = "👁";
+    });
+
+    wrapper.appendChild(toggle);
+    input.dataset.passwordToggleBound = "true";
   });
 }
 
@@ -191,6 +221,8 @@ async function initSocialAuth() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  initializePasswordToggles();
+
   const registerForm = document.getElementById("register-form");
   const loginForm = document.getElementById("login-form");
   const pendingCard = document.getElementById("verification-pending-card");

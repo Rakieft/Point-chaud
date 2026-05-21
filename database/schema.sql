@@ -103,6 +103,9 @@ CREATE TABLE orders (
     customer_received_at DATETIME NULL,
     return_note TEXT NULL,
     returned_at DATETIME NULL,
+    delivery_signature_name VARCHAR(255) NULL,
+    delivery_signature_data LONGTEXT NULL,
+    delivery_signature_captured_at DATETIME NULL,
 
     -- Validation commande
     validated_by INT,

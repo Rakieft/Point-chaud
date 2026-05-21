@@ -9,14 +9,18 @@
     <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
-  <body>
-    <header class="topbar">
+  <body class="landing-page">
+    <header class="topbar landing-topbar">
       <div class="container topbar-inner">
         <a class="brand" href="./index.html">POINT CHAUD</a>
         <nav class="nav-links">
-          <a href="./products.html">Produits</a>
-          <a href="./login.html">Connexion</a>
-          <a class="btn btn-primary" href="./register.html">Creer un compte</a>
+          <a href="./index.html">Accueil</a>
+          <a href="./products.html">Menu</a>
+          <a href="#promotions">Promotions</a>
+          <a href="#points-de-vente">Nos points de vente</a>
+          <a href="#footer-point-chaud">A propos</a>
+          <a href="#footer-point-chaud">Contact</a>
+          <a class="btn btn-primary" href="./login.html">Se connecter</a>
         </nav>
       </div>
     </header>
@@ -55,7 +59,7 @@
           <div class="hero-visual">
             <div class="hero-visual-glow"></div>
             <div class="hero-visual-copy">
-              <span class="badge hero-visual-badge" style="color: yellow;">Fraicheur • Rapidite • Confiance</span>
+              <span class="badge hero-visual-badge" style="color: yellow;">Fraicheur - Rapidite - Confiance</span>
               <h2>Tout est pret pour commander plus vite.</h2>
             </div>
             <img
@@ -65,7 +69,7 @@
               loading="eager" />
             <div class="hero-floating-card hero-floating-top">
               <strong>Best sellers</strong>
-              <span>Pate poulet • Pain chaud • Pizza fromage</span>
+              <span>Pate poulet - Pain chaud - Pizza fromage</span>
             </div>
             <div class="hero-floating-card hero-floating-bottom">
               <strong>Recuperation rapide</strong>
@@ -75,139 +79,175 @@
         </div>
       </section>
 
-      <section class="section">
+      <section id="promotions" class="section home-section-soft">
         <div class="container">
-          <div class="section-head">
+          <div class="section-head home-section-head">
             <div>
-              <h2>Evenements du moment</h2>
+              <h2>Evenements & Promotions</h2>
+              <p>Les activations les plus visibles de la semaine, sans toucher au hero que tu gardes deja.</p>
             </div>
+            <a class="home-inline-link" href="./products.html">Voir toutes les promos</a>
           </div>
-          <div class="cards-grid home-event-grid">
-            <article class="card home-event-card home-event-primary">
-              <span class="badge">Burger Week</span>
-              <h3>Une semaine 100% burgers</h3>
-              <p>Menus speciaux, combos exclusifs et mise en avant des recettes qui font monter le panier moyen.</p>
-              <small>Parfait pour attirer vite l'attention sur l'accueil.</small>
+
+          <div class="home-promo-grid">
+            <article class="home-promo-card home-promo-card-primary">
+              <div class="home-promo-copy">
+                <span class="badge">Burger Week</span>
+                <h3>Burger Week</h3>
+                <small>Du 20 au 27 mai</small>
+                <p>Des burgers a prix speciaux toute la semaine avec un rendu premium et tres visible.</p>
+                <a class="btn btn-primary" href="./products.html">Voir les offres</a>
+              </div>
+              <div class="home-promo-visual">
+                <img src="../assets/images/home/burger-week-promo.png" alt="Visuel Burger Week Point Chaud" loading="lazy" />
+              </div>
             </article>
-            <article class="card home-event-card">
-              <span class="badge">Wing & Things</span>
-              <h3>Focus snacks & fritures</h3>
-              <p>Une campagne ideale pour booster les commandes du soir et les groupes qui veulent partager.</p>
-              <small>Tu peux changer ce contenu selon les promos du mois.</small>
-            </article>
-            <article class="card home-event-card">
-              <span class="badge">Offres ponctuelles</span>
-              <h3>Petit dej, lunch ou happy hour</h3>
-              <p>Une zone souple pour annoncer une formule du jour, un produit star ou une offre de livraison.</p>
-              <small>Ca reste visible sans perturber le reste du projet.</small>
+
+            <article class="home-promo-card home-promo-card-secondary">
+              <div class="home-promo-copy">
+                <span class="badge">Wing & Things</span>
+                <h3>Wing & Things</h3>
+                <small>Tous les vendredis</small>
+                <p>Wings, frites, boissons et bonne vibe pour pousser les commandes du soir.</p>
+                <a class="btn btn-primary" href="./products.html">J'en profite</a>
+              </div>
+              <div class="home-promo-visual">
+                <img src="../assets/images/home/wing-things-promo.png" alt="Visuel Wing and Things Point Chaud" loading="lazy" />
+              </div>
             </article>
           </div>
         </div>
       </section>
 
-      <section class="section">
+      <section class="section home-section-tight">
         <div class="container">
-          <div class="section-head">
+          <div class="section-head home-section-head">
             <div>
-              <h2>Les envies les plus commandees</h2>
-              <p>Des incontournables qui donnent tout de suite faim et qui parlent a tes clients.</p>
+              <h2>Nos produits vedettes</h2>
+              <p>Une grille plus marketing, plus premium, et plus proche de la maquette que tu as validee.</p>
             </div>
-            <a class="btn btn-light" href="./products.html">Voir tout le catalogue</a>
+            <a class="home-inline-link" href="./products.html">Voir tout le menu</a>
           </div>
-          <div class="cards-grid home-feature-grid">
-            <article class="card home-feature-card">
-              <span class="badge">Pain & Boulangerie</span>
-              <h3>Pain chaud</h3>
-              <p>Croustillant, simple, incontournable et toujours pret pour accompagner le quotidien.</p>
+
+          <div id="home-featured-products-grid" class="home-showcase-grid"></div>
+        </div>
+      </section>
+
+      <section class="section home-section-tight">
+        <div class="container">
+          <div class="section-head home-section-head home-section-head-centered">
+            <div>
+              <h2>Comment ca marche ?</h2>
+              <p>Une explication courte et visuelle qui rassure le visiteur des la premiere lecture.</p>
+            </div>
+          </div>
+
+          <div class="home-process-grid">
+            <article class="home-process-card">
+              <div class="home-process-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="img" focusable="false">
+                  <path d="M7 4v5a2 2 0 0 0 2 2h1v9h2v-9h1a2 2 0 0 0 2-2V4h-2v5h-1V4h-2v5H9V4H7Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M18 4c-1.7 1.4-2.5 3.1-2.5 5.2V20H17V4h1Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <h3>Choisissez</h3>
+              <p>Parcourez notre menu et selectionnez vos produits preferes.</p>
             </article>
-            <article class="card home-feature-card">
-              <span class="badge">Pates</span>
-              <h3>Pate poulet</h3>
-              <p>Le classique qui fait revenir les clients encore et encore, surtout aux heures de pointe.</p>
+            <article class="home-process-card">
+              <div class="home-process-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="img" focusable="false">
+                  <circle cx="9" cy="19" r="1.6" fill="currentColor"></circle>
+                  <circle cx="18" cy="19" r="1.6" fill="currentColor"></circle>
+                  <path d="M3.5 5H6l1.8 8.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L21 8H7.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <h3>Commandez</h3>
+              <p>Validez votre panier et choisissez votre mode de livraison ou retrait.</p>
             </article>
-            <article class="card home-feature-card">
-              <span class="badge">Pizza</span>
-              <h3>Pizza fromage</h3>
-              <p>Une option chaude, genereuse et rapide a servir pour les commandes partagees.</p>
+            <article class="home-process-card">
+              <div class="home-process-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="img" focusable="false">
+                  <rect x="3.5" y="6" width="17" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"></rect>
+                  <path d="M3.5 10h17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                  <path d="M7 15h3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <h3>Payez</h3>
+              <p>Payez en toute securite apres validation manager selon le flux disponible.</p>
             </article>
-            <article class="card home-feature-card">
-              <span class="badge">Boissons</span>
-              <h3>Jus orange</h3>
-              <p>La boisson qui complete facilement un achat rapide et augmente le panier moyen.</p>
+            <article class="home-process-card">
+              <div class="home-process-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="img" focusable="false">
+                  <circle cx="7" cy="18" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
+                  <circle cx="17.5" cy="18" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
+                  <path d="M8.8 18h4.6l2.6-5H12l-1.9-2.8H7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13.8 9.5h2.5l1 1.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <h3>Savourez</h3>
+              <p>Nous preparons votre commande et vous la remettons chaude et sans confusion.</p>
             </article>
           </div>
         </div>
       </section>
 
-      <section class="section">
+      <section id="points-de-vente" class="section home-section-tight">
         <div class="container">
-          <div class="section-head">
-            <div>
-              <h2>Comment ca marche</h2>
-              <p>Un flux adapte a la realite locale avec validation humaine et preuve de paiement.</p>
-            </div>
-          </div>
-          <div class="cards-grid">
-            <article class="card">
-              <h3>1. Le client commande</h3>
-              <p>Choix des produits, du lieu de retrait et de l'horaire.</p>
+          <div class="home-operations-grid">
+            <article class="panel home-location-panel">
+              <h3>Nos points de vente</h3>
+              <p>Toujours plus proches de vous.</p>
+              <div class="home-branch-list">
+                <div class="home-branch-item">
+                  <strong>Delmas</strong>
+                  <span>Angle Delmas 33 & 95</span>
+                  <small>(509) 28 11 2222</small>
+                </div>
+                <div class="home-branch-item">
+                  <strong>Petion-Ville</strong>
+                  <span>Route de Freres, Petion-Ville</span>
+                  <small>(509) 44 22 3333</small>
+                </div>
+                <div class="home-branch-item">
+                  <strong>Carrefour</strong>
+                  <span>Carrefour, en face de la station Total</span>
+                  <small>(509) 36 33 4444</small>
+                </div>
+              </div>
+              <a class="btn btn-light" href="./products.html">Voir tous les points de vente</a>
             </article>
-            <article class="card">
-              <h3>2. Le manager valide</h3>
-              <p>Chaque commande est acceptee ou refusee avant le paiement.</p>
-            </article>
-            <article class="card">
-              <h3>3. Le client paie</h3>
-              <p>MonCash, NatCash ou virement avec preuve obligatoire.</p>
-            </article>
-            <article class="card">
-              <h3>4. QR code securise</h3>
-              <p>Le retrait est confirme par scan apres validation du paiement.</p>
+
+            <article class="panel home-delivery-panel">
+              <div class="home-delivery-copy">
+                <span class="badge home-cta-badge">Livraison rapide & fiable</span>
+                <h3>Nous livrons avec soin et rapidite partout a Port-au-Prince.</h3>
+                <ul class="home-delivery-list">
+                  <li>Suivi de commande en temps reel</li>
+                  <li>Livreurs professionnels et courtois</li>
+                </ul>
+                <a class="btn btn-light" href="./products.html">Commander maintenant</a>
+              </div>
             </article>
           </div>
         </div>
       </section>
 
-      <section class="section">
-        <div class="container grid-2">
-          <article class="panel home-location-panel">
-            <h3>Succursales & horaires</h3>
-            <div class="stack">
-              <div class="line-item">
-                <strong>Route Freres</strong>
-                <span>Retrait rapide et commandes de quartier</span>
-                <small>7h00 - 20h00</small>
-              </div>
-              <div class="line-item">
-                <strong>Petion-Ville</strong>
-                <span>Flux soutenu aux heures de pause et du soir</span>
-                <small>7h00 - 21h00</small>
-              </div>
-              <div class="line-item">
-                <strong>Delmas</strong>
-                <span>Validation locale par manager de succursale</span>
-                <small>7h00 - 20h30</small>
-              </div>
+      <section class="section home-partners-section home-section-tight">
+        <div class="container">
+          <div class="section-head home-section-head home-section-head-centered">
+            <div>
+              <h2>Ils nous font confiance</h2>
             </div>
-          </article>
-
-          <article class="panel home-trust-panel">
-            <h3>Pourquoi les clients peuvent avoir confiance</h3>
-            <div class="stack">
-              <div class="line-item">
-                <strong>Validation humaine</strong>
-                <span>Chaque commande est verifiee avant paiement pour eviter les malentendus.</span>
-              </div>
-              <div class="line-item">
-                <strong>Paiement apres accord</strong>
-                <span>Le client ne paie qu'une fois la commande confirmee par le manager.</span>
-              </div>
-              <div class="line-item">
-                <strong>Recuperation ou livraison suivie</strong>
-                <span>QR code pour le retrait, suivi clair pour la livraison et notifications utiles.</span>
-              </div>
-            </div>
-          </article>
+          </div>
+          <div class="home-partners-strip">
+            <span>BUROTOP IRIS</span>
+            <span>Digicel</span>
+            <span>UNIBANK</span>
+            <span>Sogener</span>
+            <span>NatCash</span>
+            <span>NEXT Generation</span>
+            <span>BRANA LOTO</span>
+          </div>
         </div>
       </section>
 
@@ -231,32 +271,47 @@
       </section>
     </main>
 
-    <footer class="footer footer-pro">
-      <div class="container footer-grid">
+    <footer id="footer-point-chaud" class="footer footer-pro">
+      <div class="container footer-grid footer-grid-premium">
         <section>
           <a class="brand" href="./index.html">POINT CHAUD</a>
           <p>
-            Plateforme de commande en ligne pour point chaud avec validation, paiement differé, QR code securise et
-            gestion par succursale.
+            Boulangerie & Fast-Food Haitien.
+            Des produits frais, chauds et savoureux, prepares avec passion pour vous, chaque jour.
           </p>
-        </section>
-
-        <section>
-          <h3>Navigation</h3>
-          <div class="stack-sm">
-            <a href="./products.html">Catalogue</a>
-            <a href="./register.html">Creer un compte</a>
-            <a href="./login.html">Connexion</a>
+          <div class="home-footer-social-mini">
+            <a href="./index.html">Instagram</a>
+            <a href="./index.html">TikTok</a>
+            <a href="./index.html">Facebook</a>
           </div>
         </section>
 
         <section>
-          <h3>Succursales</h3>
+          <h3>Liens rapides</h3>
           <div class="stack-sm">
-            <span>Route Freres</span>
-            <span>Petion-Ville</span>
-            <span>Delmas</span>
+            <a href="./index.html">Accueil</a>
+            <a href="./products.html">Menu</a>
+            <a href="./index.html">Promotions</a>
+            <a href="./index.html">Nos points de vente</a>
+            <a href="./index.html">A propos</a>
+            <a href="./index.html">Contact</a>
           </div>
+        </section>
+
+        <section>
+          <h3>Aide</h3>
+          <div class="stack-sm">
+            <span>FAQ</span>
+            <span>Suivi de commande</span>
+            <span>Conditions d'utilisation</span>
+            <span>Politique de confidentialite</span>
+            <span>Nous contacter</span>
+          </div>
+        </section>
+
+        <section>
+          <h3>Suivez-nous</h3>
+          <div id="index-social-links" class="social-links social-links-footer" hidden></div>
         </section>
 
         <section>
@@ -267,16 +322,10 @@
             <span>MonCash, NatCash, virement</span>
           </div>
         </section>
-
-        <section>
-          <h3>Suivez Point Chaud</h3>
-          <div id="index-social-links" class="social-links" hidden></div>
-          
-        </section>
       </div>
       <div class="container footer-bottom">
-        <span>Projet Point Chaud 2026</span>
-        <span>Commande locale modernisee, plus rapide et plus sure</span>
+        <span>&copy; 2026 Point Chaud. Tous droits reserves.</span>
+        <span>Fait avec coeur en Haiti</span>
       </div>
     </footer>
 

@@ -3,45 +3,65 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Commande & Paiement | Point Chaud</title>
+    <title>Passer une commande | Point Chaud</title>
     <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
     <link rel="shortcut icon" href="../assets/images/logo-point.png" />
     <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
-  <body>
-    <header class="topbar">
-      <div class="container topbar-inner">
-        <a class="brand" href="./dashboard-client.html">POINT CHAUD</a>
-        <nav class="nav-links">
-          <a href="./products.html">Produits</a>
-          <a href="./cart.html">Panier</a>
-        </nav>
-      </div>
-    </header>
-
-    <main class="page-shell">
-      <section class="container">
-        <div id="checkout-message" class="message-box"></div>
-        <section class="panel client-checkout-hero">
+  <body class="client-body" data-client-page="checkout">
+    <div id="client-sidebar-overlay" class="client-sidebar-overlay"></div>
+    <div class="client-layout">
+      <aside id="client-sidebar" class="client-sidebar">
+        <div class="client-sidebar-head">
+          <div class="client-logo-mark">PC</div>
           <div>
-            <span class="badge">Commande client</span>
-            <h1>Commande, paiement et verification</h1>
-            <p>
-              Tout est guide ici pour eviter les erreurs: commande envoyee, validation manager, paiement,
-              verification puis QR code ou livraison.
-            </p>
+            <strong>Point Chaud</strong>
+            <p>Commande & recuperation</p>
           </div>
-          <div class="panel client-checkout-progress-card">
-            <strong>Etapes du parcours</strong>
-            <ol class="client-checkout-progress-list">
-              <li>Le manager verifie la commande et confirme qu'elle peut etre preparee.</li>
-              <li>Le client paie exactement le montant affiche.</li>
-              <li>Le staff controle la preuve avant de valider le paiement.</li>
-              <li>Un QR code ou une livraison est ensuite debloque(e).</li>
-            </ol>
+          <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
+        </div>
+
+        <div class="client-sidebar-user">
+          <div data-client-avatar class="client-profile-avatar">CL</div>
+          <div class="stack-sm">
+            <strong data-client-name>Client</strong>
+            <small data-client-email>email</small>
           </div>
-        </section>
+        </div>
+
+        <nav class="client-sidebar-nav">
+          <a href="./dashboard-client.html">Accueil</a>
+          <a href="./client-products.html">Produits</a>
+          <a href="./client-orders.html">Mes commandes</a>
+          <a href="./client-cart.html">Panier</a>
+          <a class="active" href="./checkout.html">Passer commande</a>
+          <a href="./client-profile.html">Profil</a>
+          <button type="button" onclick="logout()">Deconnexion</button>
+        </nav>
+      </aside>
+
+      <main class="client-main">
+        <header class="client-topbar">
+          <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
+          <div>
+            <p class="admin-eyebrow">Commande client</p>
+            <h1>Passer une commande</h1>
+          </div>
+          <div class="client-topbar-tools">
+            <div class="client-topbar-user">
+              <div data-client-avatar class="client-topbar-avatar">CL</div>
+              <div>
+                <strong data-client-name>Client</strong>
+                <small data-client-phone>Telephone non renseigne</small>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <section class="client-main-content">
+        <div id="checkout-message" class="message-box"></div>
+        
 
         <div class="checkout-grid client-checkout-grid">
           <div class="stack client-checkout-side">
@@ -55,37 +75,7 @@
               <div id="checkout-cart-preview"></div>
             </article>
 
-            <article class="panel client-checkout-stock-panel">
-              <div class="section-head">
-                <div>
-                  <h3>Disponibilite par succursale</h3>
-                  <p>Le stock de la succursale choisie est controle avant l'envoi.</p>
-                </div>
-              </div>
-              <div id="checkout-location-stock-preview"></div>
-            </article>
-
-            <article class="panel client-checkout-helper-panel">
-              <div class="section-head">
-                <div>
-                  <h3>Conseils utiles</h3>
-                </div>
-              </div>
-              <div class="stack-sm">
-                <div class="client-meta-item">
-                  <strong>Retrait ou livraison</strong>
-                  <small>Choisis ton mode puis indique une heure realiste pour faciliter la preparation.</small>
-                </div>
-                <div class="client-meta-item">
-                  <strong>Paiement apres validation</strong>
-                  <small>Ne paie pas avant la validation manager pour eviter toute confusion.</small>
-                </div>
-                <div class="client-meta-item">
-                  <strong>Conserve ta preuve</strong>
-                  <small>Garde ton recu jusqu'a confirmation finale du staff.</small>
-                </div>
-              </div>
-            </article>
+            
           </div>
 
           <article class="panel client-checkout-form-panel">
@@ -96,7 +86,7 @@
               </div>
             </div>
 
-            <form id="checkout-order-form" class="stack">
+            <form id="checkout-order-form" class="stack" onsubmit="return submitCheckoutOrderForm(event)">
               <label>
                 Mode de commande
                 <select id="order_type" name="order_type" required>
@@ -106,7 +96,11 @@
               </label>
               <label>
                 Point chaud
-                <select id="location_id" name="location_id" required></select>
+                <select id="location_id" name="location_id" required>
+                  <option value="1">Route Frères - Route Frères, Port-au-Prince</option>
+                  <option value="2">Pétion-Ville - Pétion-Ville</option>
+                  <option value="3">Delmas - Delmas</option>
+                </select>
               </label>
               <div class="client-payment-grid">
                 <label>
@@ -136,117 +130,19 @@
                 Notes
                 <textarea name="notes" placeholder="Ex: sans piment, recuperation pour 16h30"></textarea>
               </label>
-              <button class="btn-primary" type="submit">Envoyer la commande</button>
+              <button class="btn-primary" type="button" onclick="return submitCheckoutOrderForm(event)">
+                Envoyer la commande
+              </button>
             </form>
           </article>
         </div>
 
-        <section class="section-head client-checkout-payment-head" style="margin-top: 32px">
-          <div>
-            <h2>Paiement client securise</h2>
-            <p>Utilise cette partie quand une commande a deja ete validee et qu'elle attend ton paiement.</p>
-          </div>
         </section>
-
-        <div class="checkout-grid client-checkout-grid">
-          <article class="panel client-checkout-payment-info-panel">
-            <div class="section-head">
-              <div>
-                <h3>Avant de payer</h3>
-                <p>Verifie la commande cible, le montant exact et l'heure prevue.</p>
-              </div>
-            </div>
-
-            <div id="checkout-payment-order-target" class="client-checkout-order-target">
-              <small>Commande cible</small>
-              <strong id="order-id">Selectionnez une commande via le tableau de bord</strong>
-              <span id="payment-order-target-copy">Aucune commande de paiement n'a encore ete choisie.</span>
-            </div>
-
-            <div class="stack-sm">
-              <div class="client-meta-item">
-                <strong>Montant a regler</strong>
-                <small id="payment-order-total">Le total exact s'affichera ici des qu'une commande sera ciblee.</small>
-              </div>
-              <div class="client-meta-item">
-                <strong>Mode et horaire</strong>
-                <small id="payment-order-schedule">Retrait ou livraison, puis heure prevue.</small>
-              </div>
-              <div class="client-meta-item">
-                <strong>Verification staff</strong>
-                <small>Le manager confirme la preuve avant de debloquer le QR code ou la livraison.</small>
-              </div>
-            </div>
-          </article>
-
-          <article class="panel client-checkout-proof-panel">
-            <div id="payment-message" class="message-box"></div>
-            <div class="section-head">
-              <div>
-                <h3>Methodes de paiement</h3>
-                <p>Choisis ton canal de paiement, puis envoie seulement la reference et la preuve.</p>
-              </div>
-            </div>
-
-            <div class="client-payment-flow" id="checkout-payment-flow">
-              <div class="client-payment-intro">
-                <span class="client-payment-step-chip">Etape 1</span>
-                <span class="client-payment-intro-text">Selection de la methode</span>
-              </div>
-              <div class="client-payment-selector">
-                <button class="client-payment-option" type="button" data-payment-method-choice="moncash">
-                  <strong>MonCash</strong>
-                  <span>Mobile money</span>
-                </button>
-                <button class="client-payment-option" type="button" data-payment-method-choice="natcash">
-                  <strong>NatCash</strong>
-                  <span>Transfert mobile</span>
-                </button>
-                <button class="client-payment-option" type="button" data-payment-method-choice="bank_transfer">
-                  <strong>Virement bancaire</strong>
-                  <span>Depot ou virement</span>
-                </button>
-              </div>
-
-              <div class="client-payment-stage" data-payment-helper>
-                <strong>1. Choisis une methode</strong>
-                <small>Le formulaire de preuve s'affichera juste apres.</small>
-              </div>
-
-              <div id="payment-method-details" class="stack-sm" data-payment-details hidden></div>
-
-              <form id="payment-form" class="stack client-payment-form-card" enctype="multipart/form-data" hidden>
-                <div class="client-payment-form-head">
-                  <span class="client-payment-step-chip">Etape 2</span>
-                  <strong>Envoyer la preuve</strong>
-                </div>
-                <input id="payment_method" name="payment_method" type="hidden" value="" />
-                <label>
-                  Reference de transaction
-                  <input name="transaction_reference" placeholder="Entre la reference du paiement choisi" required />
-                </label>
-                <label>
-                  Preuve de paiement
-                  <input id="payment-proof-input" name="proof" type="file" accept=".png,.jpg,.jpeg,.pdf" required />
-                </label>
-                <div class="client-meta-item">
-                  <strong>Fichier choisi</strong>
-                  <small id="payment-proof-file-name">Aucun fichier choisi pour le moment.</small>
-                </div>
-                <div class="stack-sm client-payment-proof-checklist">
-                  <span>Montant exact.</span>
-                  <span>Reference correcte.</span>
-                  <span>Preuve lisible.</span>
-                </div>
-                <button class="btn-primary" type="submit">Envoyer la preuve</button>
-              </form>
-            </div>
-          </article>
-        </div>
-      </section>
-    </main>
+      </main>
+    </div>
 
     <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/client-shell.js"></script>
     <script src="../assets/js/order.js"></script>
   </body>
 </html>

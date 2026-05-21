@@ -1,5 +1,115 @@
 let clientNotificationsCache = [];
 
+async function getClientSessionUser() {
+  if (typeof window.initClientShell === "function") {
+    const shellUser = await window.initClientShell();
+    if (shellUser) return shellUser;
+  }
+
+  return requireAuth(["client"]);
+}
+
+function getHaitiNowSnapshot() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Port-au-Prince",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  });
+
+  const parts = Object.fromEntries(
+    formatter.formatToParts(new Date()).map(part => [part.type, part.value])
+  );
+
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    time: `${parts.hour}:${parts.minute}`
+  };
+}
+
+function addMinutesToDateTime(dateString, timeString, minutesToAdd) {
+  const [year, month, day] = String(dateString || "")
+    .split("-")
+    .map(Number);
+  const [hour, minute] = String(timeString || "")
+    .split(":")
+    .map(Number);
+
+  const safeDate = new Date(Date.UTC(year, (month || 1) - 1, day || 1, hour || 0, minute || 0, 0));
+  safeDate.setUTCMinutes(safeDate.getUTCMinutes() + Number(minutesToAdd || 0));
+
+  const iso = safeDate.toISOString();
+  return {
+    date: iso.slice(0, 10),
+    time: iso.slice(11, 16)
+  };
+}
+
+function addDaysToDateString(dateString, daysToAdd) {
+  const [year, month, day] = String(dateString || "")
+    .split("-")
+    .map(Number);
+  const safeDate = new Date(Date.UTC(year, (month || 1) - 1, day || 1, 0, 0, 0));
+  safeDate.setUTCDate(safeDate.getUTCDate() + Number(daysToAdd || 0));
+  return safeDate.toISOString().slice(0, 10);
+}
+
+function syncCheckoutScheduleConstraints(dateInput, timeInput) {
+  if (!dateInput || !timeInput) return;
+
+  const haitiNow = getHaitiNowSnapshot();
+  const closingCutoffTime = "20:45";
+  const earliestSlot = addMinutesToDateTime(haitiNow.date, haitiNow.time, 5);
+  const todayStillAvailable = earliestSlot.time <= closingCutoffTime;
+
+  dateInput.min = haitiNow.date;
+
+  if (!dateInput.value || dateInput.value < haitiNow.date) {
+    dateInput.value = todayStillAvailable ? haitiNow.date : addDaysToDateString(haitiNow.date, 1);
+  }
+
+  const isToday = dateInput.value === haitiNow.date;
+
+  if (isToday) {
+    timeInput.min = earliestSlot.time > closingCutoffTime ? closingCutoffTime : earliestSlot.time;
+
+    if (!todayStillAvailable) {
+      dateInput.value = addDaysToDateString(haitiNow.date, 1);
+      timeInput.min = "00:00";
+      timeInput.setCustomValidity("");
+      dateInput.setCustomValidity("Les commandes du jour sont fermees apres 8h45 PM.");
+      return;
+    }
+
+    if (!timeInput.value || timeInput.value < earliestSlot.time || timeInput.value > closingCutoffTime) {
+      timeInput.value = earliestSlot.time;
+    }
+
+    timeInput.setCustomValidity(
+      timeInput.value < earliestSlot.time || timeInput.value > closingCutoffTime
+        ? "Choisis une heure valide entre maintenant et 8h45 PM."
+        : ""
+    );
+  } else {
+    timeInput.min = "00:00";
+    if (timeInput.value > closingCutoffTime) {
+      timeInput.value = closingCutoffTime;
+    }
+    timeInput.setCustomValidity("");
+  }
+
+  timeInput.max = closingCutoffTime;
+
+  dateInput.setCustomValidity(
+    dateInput.value < haitiNow.date
+      ? "Choisis une date d'aujourd'hui ou future."
+      : ""
+  );
+}
+
 function extractOrderIdFromNotificationMessage(message) {
   const match = String(message || "").match(/(?:commande|livraison)\s*#(\d+)/i);
   return match ? Number(match[1]) : null;
@@ -41,7 +151,7 @@ function navigateFromClientNotification(notification) {
 async function renderClientDashboard() {
   if (!document.getElementById("client-name")) return;
 
-  const user = (await initClientShell?.()) || requireAuth(["client"]);
+  const user = await getClientSessionUser();
   if (!user) return;
 
   const welcome = document.getElementById("client-name");
@@ -577,7 +687,7 @@ async function renderClientOrdersPage() {
     return;
   }
 
-  const user = (await initClientShell?.()) || requireAuth(["client"]);
+  const user = await getClientSessionUser();
   if (!user) return;
 
   try {
@@ -596,7 +706,7 @@ async function renderClientProductsPage() {
     document.getElementById("client-products-view")?.style.display === "block";
   if (!container || !isClientProductsPage) return;
 
-  const user = (await initClientShell?.()) || requireAuth(["client"]);
+  const user = await getClientSessionUser();
   if (!user) return;
 
     try {
@@ -688,8 +798,8 @@ function getClientOrderState(order) {
         if (order.delivery_status === "delivered") {
           return {
             badgeClass: "confirmed",
-            badgeText: "Livree - confirmation requise",
-            helper: "Le livreur a marque la commande comme livree. Merci de confirmer la reception dans le detail."
+            badgeText: "Livree",
+            helper: "Le livreur a marque la commande comme livree avec signature recue a la remise."
           };
         }
 
@@ -786,20 +896,6 @@ function renderClientTimeline(order) {
               : "upcoming"
       }
     ];
-
-    if (isDelivery) {
-      steps.push({
-        label: order.status === "completed" ? "Reception confirmee" : "Confirmation client",
-        state:
-          isCancelled || isReturnedDelivery
-            ? "upcoming muted"
-            : order.status === "completed"
-              ? "done"
-              : order.delivery_status === "delivered"
-                ? "current success"
-                : "upcoming"
-      });
-    }
 
     return `
     <div class="client-order-timeline">
@@ -1185,24 +1281,6 @@ function openClientOrderDetail(orderId) {
               : ""
           }
           ${
-            order.order_type === "delivery" && order.delivery_status === "delivered" && order.status !== "completed"
-              ? `
-                <div class="client-payment-panel">
-                  <div class="section-head">
-                    <div>
-                      <h4>Confirmer la reception</h4>
-                      <p>Si tu as bien recu la commande, confirme-la ici pour cloturer la livraison.</p>
-                    </div>
-                  </div>
-                  <div id="delivery-confirm-message-${order.id}" class="message-box"></div>
-                  <button class="btn-primary" type="button" onclick="confirmClientDeliveryReceived(${order.id})">
-                    J'ai bien recu ma commande
-                  </button>
-                </div>
-              `
-              : ""
-          }
-          ${
             order.qrCode
               ? `
               <div class="qr-box" style="margin-top:16px;">
@@ -1234,22 +1312,6 @@ function closeClientOrderDetail() {
     params.delete("orderId");
     params.delete("fromNotification");
     history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`.replace(/\?$/, ""));
-  }
-}
-
-async function confirmClientDeliveryReceived(orderId) {
-  try {
-    const data = await apiRequest(`/orders/${orderId}/confirm-received`, {
-      method: "PATCH"
-    });
-
-    showMessage(`delivery-confirm-message-${orderId}`, "success", data.message);
-    setTimeout(() => {
-      renderClientOrdersPage();
-      renderClientDashboard();
-    }, 700);
-  } catch (error) {
-    showMessage(`delivery-confirm-message-${orderId}`, "error", error.message);
   }
 }
 
@@ -1470,13 +1532,105 @@ function bindClientPaymentForms() {
   });
 }
 
+async function handleCheckoutOrderSubmit(event) {
+  event?.preventDefault?.();
+
+  const orderForm = document.getElementById("checkout-order-form");
+  const locationSelect = document.getElementById("location_id");
+  const orderTypeSelect = document.getElementById("order_type");
+  const deliveryAddressInput = document.getElementById("delivery_address");
+  const pickupDateInput = orderForm?.elements?.pickup_date;
+  const pickupTimeInput = orderForm?.elements?.pickup_time;
+
+  if (!orderForm) {
+    return false;
+  }
+
+  syncCheckoutScheduleConstraints(pickupDateInput, pickupTimeInput);
+
+  const user = await getClientSessionUser();
+  if (!user) {
+    return false;
+  }
+
+  if (!orderForm.reportValidity()) {
+    return false;
+  }
+
+  const cart = getCart();
+  const selectedLocationId = Number(locationSelect?.value || 0);
+
+  if (!cart.length) {
+    showMessage("checkout-message", "error", "Ajoute d'abord au moins un produit dans le panier.");
+    return false;
+  }
+
+  if (!selectedLocationId) {
+    showMessage("checkout-message", "error", "Choisis une succursale avant d'envoyer la commande.");
+    return false;
+  }
+
+  if (orderTypeSelect?.value === "delivery" && !String(deliveryAddressInput?.value || "").trim()) {
+    showMessage("checkout-message", "error", "L'adresse de livraison est obligatoire pour une commande en livraison.");
+    return false;
+  }
+
+  try {
+    const catalog = await apiRequest("/products");
+    const productMap = new Map((catalog.products || []).map(product => [Number(product.id), product]));
+    const insufficient = cart.find(item => {
+      const product = productMap.get(Number(item.product_id));
+      const locationStock =
+        product?.location_stocks?.find(stock => Number(stock.location_id) === selectedLocationId)?.stock ?? 0;
+      return Number(locationStock) < Number(item.quantity);
+    });
+
+    if (insufficient) {
+      showMessage(
+        "checkout-message",
+        "error",
+        `Stock insuffisant pour ${insufficient.name} dans cette succursale. Ajuste le panier ou choisis un autre point chaud.`
+      );
+      return false;
+    }
+
+    const formData = new FormData(orderForm);
+    const payload = Object.fromEntries(formData.entries());
+    payload.items = cart.map(item => ({
+      product_id: item.product_id,
+      quantity: Number(item.quantity)
+    }));
+
+    const data = await apiRequest("/orders", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+
+    saveCart([]);
+    showMessage("checkout-message", "success", data.message);
+    setTimeout(() => {
+      window.location.href = "/dashboard-client.html";
+    }, 900);
+  } catch (error) {
+    showMessage("checkout-message", "error", error.message);
+  }
+
+  return false;
+}
+
+function submitCheckoutOrderForm(event) {
+  event?.preventDefault?.();
+  void handleCheckoutOrderSubmit(event);
+  return false;
+}
+
 async function renderCheckoutPage() {
   const hasCheckoutContent =
     document.getElementById("checkout-order-form") || document.getElementById("payment-form");
 
   if (!hasCheckoutContent) return;
 
-  const user = (await initClientShell?.()) || requireAuth(["client"]);
+  const user = await getClientSessionUser();
   if (!user) return;
 
   const orderId = new URLSearchParams(window.location.search).get("orderId");
@@ -1487,6 +1641,8 @@ async function renderCheckoutPage() {
   const orderTypeSelect = document.getElementById("order_type");
   const deliveryFields = document.getElementById("delivery-fields");
   const deliveryAddressInput = document.getElementById("delivery_address");
+  const pickupDateInput = orderForm?.elements?.pickup_date;
+  const pickupTimeInput = orderForm?.elements?.pickup_time;
   const deliveryFeePreview = document.getElementById("delivery-fee-preview");
   const locationStockPreview = document.getElementById("checkout-location-stock-preview");
   const paymentTargetCopy = document.getElementById("payment-order-target-copy");
@@ -1551,16 +1707,27 @@ async function renderCheckoutPage() {
     checkoutCatalog = catalog;
 
     if (locationSelect) {
-      locationSelect.innerHTML = catalog.locations
-        .map(location => `<option value="${location.id}">${location.name} - ${location.address}</option>`)
-        .join("");
+      const locations = Array.isArray(catalog.locations) ? catalog.locations : [];
+
+      if (!locations.length) {
+        if (!locationSelect.options.length) {
+          locationSelect.innerHTML = `<option value="">Aucune succursale disponible</option>`;
+          locationSelect.disabled = true;
+        }
+      } else {
+        locationSelect.disabled = false;
+        locationSelect.innerHTML =
+          locations
+            .map(location => `<option value="${location.id}">${location.name} - ${location.address}</option>`)
+            .join("");
+
+        if (!locationSelect.value && locations[0]) {
+          locationSelect.value = String(locations[0].id);
+        }
+      }
     }
 
-    const deliveryFeeMap = {
-      1: 180,
-      2: 220,
-      3: 160
-    };
+    const deliveryFee = 500;
 
     const syncDeliveryFields = () => {
       const isDelivery = orderTypeSelect?.value === "delivery";
@@ -1571,9 +1738,8 @@ async function renderCheckoutPage() {
         deliveryAddressInput.required = isDelivery;
       }
       if (deliveryFeePreview && locationSelect) {
-        const fee = deliveryFeeMap[Number(locationSelect.value)] || 200;
         deliveryFeePreview.textContent = isDelivery
-          ? `Frais estimes: ${formatMoney(fee)} selon la succursale choisie.`
+          ? `Frais de livraison fixes: ${formatMoney(deliveryFee)}.`
           : "Aucun frais de livraison pour un retrait sur place.";
       }
     };
@@ -1583,7 +1749,10 @@ async function renderCheckoutPage() {
       syncDeliveryFields();
       renderCheckoutLocationStock();
     });
+    pickupDateInput?.addEventListener("change", () => syncCheckoutScheduleConstraints(pickupDateInput, pickupTimeInput));
+    pickupTimeInput?.addEventListener("change", () => syncCheckoutScheduleConstraints(pickupDateInput, pickupTimeInput));
     syncDeliveryFields();
+    syncCheckoutScheduleConstraints(pickupDateInput, pickupTimeInput);
     renderCheckoutLocationStock();
 
     const paymentFlow = document.getElementById("checkout-payment-flow");
@@ -1591,6 +1760,12 @@ async function renderCheckoutPage() {
       paymentFlow.dataset.bankAccounts = JSON.stringify(catalog.bankAccounts || []);
     }
   } catch (error) {
+    if (locationSelect) {
+      if (!locationSelect.options.length) {
+        locationSelect.innerHTML = `<option value="">Impossible de charger les succursales</option>`;
+        locationSelect.disabled = true;
+      }
+    }
     showMessage("checkout-message", "error", error.message);
   }
 
@@ -1636,53 +1811,7 @@ async function renderCheckoutPage() {
   bindPaymentMethodSelectors(document);
 
   if (orderForm) {
-    orderForm.addEventListener("submit", async event => {
-      event.preventDefault();
-
-      const cart = getCart();
-      const selectedLocationId = Number(locationSelect?.value || 0);
-
-      if (checkoutCatalog && selectedLocationId) {
-        const productMap = new Map(checkoutCatalog.products.map(product => [Number(product.id), product]));
-        const insufficient = cart.find(item => {
-          const product = productMap.get(Number(item.product_id));
-          const locationStock =
-            product?.location_stocks?.find(stock => Number(stock.location_id) === selectedLocationId)?.stock ?? 0;
-          return Number(locationStock) < Number(item.quantity);
-        });
-
-        if (insufficient) {
-          showMessage(
-            "checkout-message",
-            "error",
-            `Stock insuffisant pour ${insufficient.name} dans cette succursale. Ajuste le panier ou choisis un autre point chaud.`
-          );
-          return;
-        }
-      }
-
-      const formData = new FormData(orderForm);
-      const payload = Object.fromEntries(formData.entries());
-      payload.items = cart.map(item => ({
-        product_id: item.product_id,
-        quantity: Number(item.quantity)
-      }));
-
-      try {
-        const data = await apiRequest("/orders", {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
-
-        saveCart([]);
-        showMessage("checkout-message", "success", data.message);
-        setTimeout(() => {
-          window.location.href = "../pages/dashboard-client.html";
-        }, 900);
-      } catch (error) {
-        showMessage("checkout-message", "error", error.message);
-      }
-    });
+    orderForm.onsubmit = submitCheckoutOrderForm;
   }
 
   if (form && orderId) {
@@ -1744,7 +1873,7 @@ async function renderPublicCatalogPage() {
 async function renderClientProfilePage() {
   if (!document.body.classList.contains("client-body") || document.body.dataset.clientPage !== "profile") return;
 
-  const user = (await initClientShell?.()) || requireAuth(["client"]);
+  const user = await getClientSessionUser();
   const form = document.getElementById("client-profile-form");
   if (!user || !form) return;
 
@@ -1846,4 +1975,5 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-window.confirmClientDeliveryReceived = confirmClientDeliveryReceived;
+window.handleCheckoutOrderSubmit = handleCheckoutOrderSubmit;
+window.submitCheckoutOrderForm = submitCheckoutOrderForm;
