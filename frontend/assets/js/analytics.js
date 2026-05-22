@@ -1,4 +1,4 @@
-const analyticsPalette = ["#ef6a2e", "#c7361f", "#ffb14a"];
+const analyticsPalette = ["#fbd4c2", "#c7361f", "#ffb14a"];
 
 function analyticsMoney(value) {
   return formatMoney(value).replace("HTG", "HTG");

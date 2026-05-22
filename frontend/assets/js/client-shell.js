@@ -59,39 +59,60 @@ function bindClientProfileShortcuts() {
   });
 }
 
+let clientShellInitPromise = null;
+
 async function initClientShell() {
   if (!document.body.classList.contains("client-body")) return null;
 
-  const user = requireAuth(["client"]);
-  if (!user) return null;
+  if (clientShellInitPromise) {
+    return clientShellInitPromise;
+  }
 
-  const nameElements = document.querySelectorAll("[data-client-name]");
-  const emailElements = document.querySelectorAll("[data-client-email]");
-  const phoneElements = document.querySelectorAll("[data-client-phone]");
-  const avatarElements = document.querySelectorAll("[data-client-avatar]");
+  clientShellInitPromise = (async () => {
+    const user = requireAuth(["client"]);
+    if (!user) {
+      clientShellInitPromise = null;
+      return null;
+    }
 
-  nameElements.forEach(element => {
-    element.textContent = user.name || "Client";
-  });
-  emailElements.forEach(element => {
-    element.textContent = user.email || "";
-  });
-  phoneElements.forEach(element => {
-    element.textContent = user.phone || "Telephone non renseigne";
-  });
-  avatarElements.forEach(element => {
-    element.textContent = getClientInitials(user.name);
-  });
+    const nameElements = document.querySelectorAll("[data-client-name]");
+    const emailElements = document.querySelectorAll("[data-client-email]");
+    const phoneElements = document.querySelectorAll("[data-client-phone]");
+    const avatarElements = document.querySelectorAll("[data-client-avatar]");
 
-  bindClientMenu();
-  bindClientProfileShortcuts();
-  document.querySelectorAll(".client-sidebar-nav a").forEach(link => {
-    link.addEventListener("click", () => {
-      if (window.innerWidth <= 980) {
-        closeClientMenu();
-      }
+    nameElements.forEach(element => {
+      element.textContent = user.name || "Client";
     });
+    emailElements.forEach(element => {
+      element.textContent = user.email || "";
+    });
+  phoneElements.forEach(element => {
+      element.textContent = user.phone || "Téléphone non renseigné";
   });
+    avatarElements.forEach(element => {
+      element.textContent = getClientInitials(user.name);
+    });
 
-  return user;
+    bindClientMenu();
+    bindClientProfileShortcuts();
+    document.querySelectorAll(".client-sidebar-nav a").forEach(link => {
+      if (link.dataset.clientMenuBound === "true") return;
+      link.dataset.clientMenuBound = "true";
+      link.addEventListener("click", () => {
+        if (window.innerWidth <= 980) {
+          closeClientMenu();
+        }
+      });
+    });
+
+    return user;
+  })();
+
+  return clientShellInitPromise;
 }
+
+window.initClientShell = initClientShell;
+
+document.addEventListener("DOMContentLoaded", () => {
+  initClientShell();
+});

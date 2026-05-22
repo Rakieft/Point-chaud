@@ -17,7 +17,7 @@
           <div class="client-logo-mark">PC</div>
           <div>
             <strong>Point Chaud</strong>
-            <p>Commande & recuperation</p>
+            <p>Commande & récupération</p>
           </div>
           <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
         </div>
@@ -37,7 +37,7 @@
           <a href="./client-cart.html">Panier</a>
           <a class="active" href="./checkout.html">Passer commande</a>
           <a href="./client-profile.html">Profil</a>
-          <button type="button" onclick="logout()">Deconnexion</button>
+          <button type="button" onclick="logout()">Déconnexion</button>
         </nav>
       </aside>
 
@@ -53,7 +53,7 @@
               <div data-client-avatar class="client-topbar-avatar">CL</div>
               <div>
                 <strong data-client-name>Client</strong>
-                <small data-client-phone>Telephone non renseigne</small>
+                <small data-client-phone>Téléphone non renseigné</small>
               </div>
             </div>
           </div>
@@ -69,7 +69,7 @@
               <div class="section-head">
                 <div>
                   <h3>Panier actuel</h3>
-                  <p>Resume rapide avant d'envoyer la commande.</p>
+                  <p>Résumé rapide avant d'envoyer la commande.</p>
                 </div>
               </div>
               <div id="checkout-cart-preview"></div>
@@ -115,20 +115,20 @@
               <div id="delivery-fields" class="client-payment-grid" style="display: none;">
                 <label style="grid-column: 1 / -1;">
                   Adresse de livraison
-                  <textarea id="delivery_address" name="delivery_address" placeholder="Rue, zone, repere utile pour le livreur"></textarea>
+                  <textarea id="delivery_address" name="delivery_address" placeholder="Rue, zone, repère utile pour le livreur"></textarea>
                 </label>
                 <label>
                   Zone / repere
-                  <input name="delivery_zone" placeholder="Ex: Delmas 75, pres de..." />
+                  <input name="delivery_zone" placeholder="Ex: Delmas 75, près de..." />
                 </label>
                 <div class="client-meta-item">
-                  <strong>Frais estimes</strong>
+                  <strong>Frais estimés</strong>
                   <small id="delivery-fee-preview">Aucun frais de livraison pour un retrait sur place.</small>
                 </div>
               </div>
               <label>
                 Notes
-                <textarea name="notes" placeholder="Ex: sans piment, recuperation pour 16h30"></textarea>
+                <textarea name="notes" placeholder="Ex: sans piment, récupération pour 16h30"></textarea>
               </label>
               <button class="btn-primary" type="button" onclick="return submitCheckoutOrderForm(event)">
                 Envoyer la commande

@@ -80,7 +80,7 @@ function syncCheckoutScheduleConstraints(dateInput, timeInput) {
       dateInput.value = addDaysToDateString(haitiNow.date, 1);
       timeInput.min = "00:00";
       timeInput.setCustomValidity("");
-      dateInput.setCustomValidity("Les commandes du jour sont fermees apres 8h45 PM.");
+      dateInput.setCustomValidity("Les commandes du jour sont fermées après 8h45 PM.");
       return;
     }
 
@@ -180,7 +180,6 @@ function renderClientStats(orders, notifications) {
     order => order.status === "awaiting_payment" && (!order.payment_proof || order.payment_status === "rejected")
   ).length;
   const readyOrders = orders.filter(order => order.status === "paid").length;
-  const rejectedOrders = orders.filter(order => order.status === "cancelled").length;
   const totalSpent = orders
     .filter(order => ["paid", "completed"].includes(order.status))
     .reduce((sum, order) => sum + Number(order.total || 0), 0);
@@ -189,10 +188,8 @@ function renderClientStats(orders, notifications) {
     ["Commandes totales", orders.length, "Historique complet de tes commandes"],
     ["En attente", pendingValidation, "Le manager n'a pas encore valide"],
     ["Paiements a faire", awaitingPayment, "Tu peux payer ces commandes"],
-    ["Commandes pretes", readyOrders, "QR code disponible pour recuperation"],
-    ["Refusees", rejectedOrders, "Commandes archivees dans la section refusee"],
-    ["Notifications", notifications.length, "Messages recents du systeme"],
-    ["Total confirme", formatMoney(totalSpent), "Montant des commandes deja confirmees"]
+    ["Commandes prêtes", readyOrders, "QR code disponible pour récupération"],
+    ["Total confirmé", formatMoney(totalSpent), "Montant des commandes déjà confirmées"]
   ];
 
   container.innerHTML = cards
@@ -231,7 +228,7 @@ function renderClientDashboardHighlights(orders, notifications) {
     if (paymentRequired.length) {
       actions.push({
         title: "Paiement a effectuer",
-        text: `${paymentRequired.length} commande(s) validee(s) attendent maintenant ton paiement et ta preuve.`,
+        text: `${paymentRequired.length} commande(s) validée(s) attendent maintenant ton paiement et ta preuve.`,
         href: "./client-orders.html"
       });
     }
@@ -246,8 +243,8 @@ function renderClientDashboardHighlights(orders, notifications) {
 
     if (readyOrders.length) {
       actions.push({
-        title: "Commande prete a suivre",
-        text: `${readyOrders.length} commande(s) sont confirmees avec QR code ou suivi de livraison disponible.`,
+        title: "Commande prête à suivre",
+        text: `${readyOrders.length} commande(s) sont confirmées avec QR code ou suivi de livraison disponible.`,
         href: "./client-orders.html"
       });
     }
@@ -302,7 +299,7 @@ function renderClientDashboardHighlights(orders, notifications) {
       : `
           <div class="empty-state">
             <h3>Aucune commande active</h3>
-            <p>Quand tu passeras une commande, elle apparaitra ici en priorite.</p>
+            <p>Quand tu passeras une commande, elle apparaîtra ici en priorité.</p>
           </div>
         `;
   }
@@ -331,7 +328,7 @@ function renderCatalog(products, options = {}) {
   const previousCategory = category?.value || "";
 
   if (category) {
-    const defaultLabel = category.dataset.defaultLabel || category.options[0]?.textContent || "Toutes les categories";
+  const defaultLabel = category.dataset.defaultLabel || category.options[0]?.textContent || "Toutes les catégories";
     category.dataset.defaultLabel = defaultLabel;
     category.innerHTML =
       `<option value="">${defaultLabel}</option>` +
@@ -416,10 +413,10 @@ function renderCatalog(products, options = {}) {
 
     if (resultsNote) {
       resultsNote.textContent = selectedCategory
-        ? `Categorie active: ${selectedCategory}`
+        ? `Catégorie active: ${selectedCategory}`
         : term
           ? `Resultats pour "${search?.value || ""}".`
-          : "Catalogue pret a explorer.";
+          : "Catalogue prêt à explorer.";
     }
 
     syncActiveChip(selectedCategory);
@@ -461,7 +458,7 @@ function renderCatalog(products, options = {}) {
             `
           )
           .join("")
-      : `<div class="empty-state"><h3>Aucun produit trouve</h3><p>Essaie un autre mot-cle ou une autre categorie.</p></div>`;
+      : `<div class="empty-state"><h3>Aucun produit trouvé</h3><p>Essaie un autre mot-clé ou une autre catégorie.</p></div>`;
 
     container.querySelectorAll(".add-to-cart-btn").forEach(button => {
       button.addEventListener("click", () => {
@@ -627,13 +624,13 @@ function ensureNotificationModal() {
       <div class="admin-modal-head">
         <div>
           <p class="admin-eyebrow">Notification</p>
-          <h2 id="notification-detail-title">Detail de la notification</h2>
+          <h2 id="notification-detail-title">Détail de la notification</h2>
         </div>
         <button class="btn-light" type="button" data-notification-close>Fermer</button>
       </div>
       <div class="notification-detail-stack">
         <div class="client-meta-item">
-          <small>Etat</small>
+          <small>État</small>
           <strong id="notification-detail-status">Nouveau</strong>
         </div>
         <div class="client-meta-item">
@@ -665,7 +662,7 @@ function openNotificationDetail(notification) {
 
   if (statusEl) statusEl.textContent = notification.status || "Notification";
   if (dateEl) dateEl.textContent = notification.createdAtLabel || "-";
-  if (messageEl) messageEl.textContent = notification.message || "Aucun detail disponible.";
+  if (messageEl) messageEl.textContent = notification.message || "Aucun détail disponible.";
 
   modal.classList.remove("hidden");
   document.body.classList.add("modal-open");
@@ -733,7 +730,7 @@ function getClientOrderState(order) {
     return {
       badgeClass: "rejected",
       badgeText: "Commande refusee",
-      helper: "Cette commande a ete refusee ou annulee. Elle est archivee dans les commandes refusees."
+      helper: "Cette commande a été refusée ou annulée. Elle est archivée dans les commandes refusées."
     };
   }
 
@@ -748,8 +745,8 @@ function getClientOrderState(order) {
   if (order.status === "awaiting_payment" && order.payment_status === "rejected") {
     return {
       badgeClass: "rejected",
-      badgeText: "Preuve rejetee - nouveau paiement requis",
-      helper: "La preuve de paiement a ete rejetee. Veuillez envoyer une nouvelle preuve pour continuer."
+      badgeText: "Preuve rejetée - nouveau paiement requis",
+      helper: "La preuve de paiement a été rejetée. Veuillez envoyer une nouvelle preuve pour continuer."
     };
   }
 
@@ -757,14 +754,14 @@ function getClientOrderState(order) {
     return {
       badgeClass: "confirmed",
       badgeText: "Paiement envoye - confirmation en attente",
-      helper: "Votre preuve a ete envoyee. Le manager doit maintenant confirmer le paiement."
+      helper: "Votre preuve a été envoyée. Le manager doit maintenant confirmer le paiement."
     };
   }
 
   if (order.status === "awaiting_payment") {
     return {
       badgeClass: "validated",
-      badgeText: "Commande validee - paiement requis",
+      badgeText: "Commande validée - paiement requis",
       helper: "Veuillez effectuer le paiement puis envoyer la preuve pour continuer."
     };
   }
@@ -774,8 +771,8 @@ function getClientOrderState(order) {
         if (order.delivery_status === "pending_assignment") {
         return {
           badgeClass: "validated",
-          badgeText: "Paiement confirme - livreur a affecter",
-          helper: "Le paiement est confirme. L'equipe affecte maintenant un livreur a votre commande."
+          badgeText: "Paiement confirmé - livreur à affecter",
+          helper: "Le paiement est confirmé. L'équipe affecte maintenant un livreur à votre commande."
         };
       }
 
@@ -783,7 +780,7 @@ function getClientOrderState(order) {
         return {
           badgeClass: "confirmed",
           badgeText: "Livreur assigne",
-          helper: "Votre commande est confirmee et un livreur a ete assigne."
+          helper: "Votre commande est confirmée et un livreur a été assigné."
         };
       }
 
@@ -798,8 +795,8 @@ function getClientOrderState(order) {
         if (order.delivery_status === "delivered") {
           return {
             badgeClass: "confirmed",
-            badgeText: "Livree",
-            helper: "Le livreur a marque la commande comme livree avec signature recue a la remise."
+            badgeText: "Livrée",
+            helper: "Le livreur a marqué la commande comme livrée avec signature reçue à la remise."
           };
         }
 
@@ -809,33 +806,33 @@ function getClientOrderState(order) {
           badgeText: "Retour au point chaud",
           helper:
             order.return_note ||
-            "Le livreur n'a pas pu remettre votre commande. L'equipe du point chaud va vous recontacter."
+            "Le livreur n'a pas pu remettre votre commande. L'équipe du point chaud va vous recontacter."
         };
       }
     }
 
       return {
         badgeClass: "confirmed",
-        badgeText: "Commande confirmee / prete",
-        helper: "Votre commande est prete a etre recuperee. Presentez le QR code au point chaud."
+        badgeText: "Commande confirmée / prête",
+        helper: "Votre commande est prête à être récupérée. Présentez le QR code au point chaud."
       };
     }
 
   if (order.status === "completed") {
     return {
       badgeClass: "confirmed",
-      badgeText: order.order_type === "delivery" ? "Commande livree" : "Commande recuperee",
+      badgeText: order.order_type === "delivery" ? "Commande livrée" : "Commande récupérée",
       helper:
         order.order_type === "delivery"
-          ? "Cette commande a ete livree avec succes."
-          : "Cette commande a deja ete remise au point chaud."
+          ? "Cette commande a été livrée avec succès."
+          : "Cette commande a déjà été remise au point chaud."
     };
   }
 
   return {
     badgeClass: "rejected",
-    badgeText: "Commande archivee",
-    helper: "Cette commande est archivee."
+    badgeText: "Commande archivée",
+    helper: "Cette commande est archivée."
   };
 }
 
@@ -876,7 +873,7 @@ function renderClientTimeline(order) {
             : "upcoming"
     },
     {
-        label: isDelivery ? "Affectation / livraison" : order.status === "completed" ? "Commande retiree" : "QR code & recuperation",
+        label: isDelivery ? "Affectation / livraison" : order.status === "completed" ? "Commande retirée" : "QR code & récupération",
         state: isCancelled
           ? "upcoming muted"
           : isDelivery
@@ -926,7 +923,7 @@ function renderBankAccountList(bankAccounts) {
       </div>
       <div class="client-payment-method-card">
         <strong>NatCash</strong>
-        <span>Pratique si tu utilises deja NatCash.</span>
+        <span>Pratique si tu utilises déjà NatCash.</span>
       </div>
     </div>
   `;
@@ -1009,7 +1006,7 @@ function renderPaymentMethodDetails(method, bankAccounts = []) {
       return `
         <div class="client-payment-detail-card">
           <strong>Comptes bancaires</strong>
-          <p>Les coordonnees bancaires seront ajoutees prochainement.</p>
+          <p>Les coordonnées bancaires seront ajoutées prochainement.</p>
         </div>
       `;
     }
@@ -1118,7 +1115,7 @@ function formatPaymentMethod(method) {
     bank_transfer: "Virement bancaire"
   };
 
-  return labels[method] || "Pas encore renseigne";
+  return labels[method] || "Pas encore renseigné";
 }
 
 function formatDeliveryStatusLabel(status) {
@@ -1127,7 +1124,7 @@ function formatDeliveryStatusLabel(status) {
     assigned: "Livreur assigne",
     out_for_delivery: "En livraison",
     return_to_branch: "Retour au point chaud",
-    delivered: "Livree"
+    delivered: "Livrée"
   };
 
   return labels[status] || "Retrait";
@@ -1138,7 +1135,7 @@ let latestClientBankAccounts = [];
 
 function clientOrderSectionLabel(order) {
   if (order.status === "cancelled") return "Refusee";
-  if (order.status === "completed") return order.order_type === "delivery" ? "Livree" : "Archivee";
+  if (order.status === "completed") return order.order_type === "delivery" ? "Livrée" : "Archivée";
   if (order.delivery_status === "return_to_branch") return "Retour";
   return "En cours";
 }
@@ -1157,13 +1154,13 @@ function openClientOrderDetail(orderId) {
   content.innerHTML = `
     <div class="admin-detail-grid">
       <section class="admin-detail-panel">
-        <h4>Resume</h4>
+        <h4>Résumé</h4>
         <div class="stack-sm">
           <span>Statut: ${getClientOrderState(order).badgeText}</span>
           <span>Date: ${formatDateValue(order.created_at)}</span>
           <span>Total: ${formatMoney(order.total)}</span>
           <span>Mode: ${order.order_type === "delivery" ? "Livraison" : "Retrait"}</span>
-          <span>${order.order_type === "delivery" ? "Adresse" : "Point chaud"}: ${order.order_type === "delivery" ? order.delivery_address || "Adresse non renseignee" : order.location_name}</span>
+          <span>${order.order_type === "delivery" ? "Adresse" : "Point chaud"}: ${order.order_type === "delivery" ? order.delivery_address || "Adresse non renseignée" : order.location_name}</span>
           <span>Retrait / livraison: ${formatDateTime(order.pickup_date, order.pickup_time)}</span>
           ${order.return_note ? `<span>Motif retour: ${order.return_note}</span>` : ""}
         </div>
@@ -1198,7 +1195,7 @@ function openClientOrderDetail(orderId) {
         <h4>Paiement et retrait</h4>
         <div class="stack-sm">
           <span>Paiement: ${formatPaymentMethod(order.payment_method)}</span>
-          <span>Etat paiement: ${order.status === "cancelled" ? "Non requis" : getClientOrderState(order).badgeText}</span>
+          <span>État paiement: ${order.status === "cancelled" ? "Non requis" : getClientOrderState(order).badgeText}</span>
           ${
             order.order_type === "delivery"
               ? `<span>Livreur: ${order.driver_name || "A affecter"}</span><span>Livraison: ${formatDeliveryStatusLabel(order.delivery_status)}</span>`
@@ -1212,7 +1209,7 @@ function openClientOrderDetail(orderId) {
                 <div class="section-head">
                   <div>
                     <h3>Paiement de la commande</h3>
-                    <p>Le paiement est disponible uniquement apres validation.</p>
+                    <p>Le paiement est disponible uniquement après validation.</p>
                   </div>
                 </div>
 
@@ -1234,7 +1231,7 @@ function openClientOrderDetail(orderId) {
 
                       <div class="client-payment-stage" data-payment-helper>
                         <strong>1. Choisis une methode</strong>
-                        <small>Le formulaire s'affichera juste apres.</small>
+                        <small>Le formulaire s'affichera juste après.</small>
                       </div>
 
                       <div class="stack-sm" data-payment-details hidden></div>
@@ -1325,7 +1322,7 @@ function renderClientOrders(container, orders, bankAccounts) {
     if (summaryContainer) {
       summaryContainer.innerHTML = "";
     }
-    container.innerHTML = `<div class="empty-state"><h3>Pas encore de commande</h3><p>Ton historique apparaitra ici apres la premiere commande.</p></div>`;
+    container.innerHTML = `<div class="empty-state"><h3>Pas encore de commande</h3><p>Ton historique apparaîtra ici après la première commande.</p></div>`;
     return;
   }
 
@@ -1347,11 +1344,9 @@ function renderClientOrders(container, orders, bankAccounts) {
     const stats = [
       ["Total commandes", orders.length, "Toutes tes commandes depuis la creation du compte"],
       ["En cours", activeOrders.length, "Validation, paiement, preparation ou livraison"],
-      ["Paiement requis", paymentPendingOrders, "Commandes validees qui attendent ton paiement"],
-        ["Pretes / confirmees", readyOrders, "QR, livraison en preparation ou confirmation client en attente"],
-      ["Archivees", archivedOrders.length, "Commandes completees ou deja retirees"],
-      ["Refusees", rejectedOrders.length, "Aucun paiement requis pour ces commandes"],
-      ["Montant confirme", formatMoney(confirmedTotal), "Total des commandes deja confirmees"]
+      ["Paiement requis", paymentPendingOrders, "Commandes validées qui attendent ton paiement"],
+      ["Prêtes / confirmées", readyOrders, "QR, livraison en préparation ou confirmation client en attente"],
+      ["Montant confirmé", formatMoney(confirmedTotal), "Total des commandes déjà confirmées"]
     ];
 
     summaryContainer.innerHTML = stats
@@ -1386,14 +1381,14 @@ function renderClientOrders(container, orders, bankAccounts) {
                 </div>
                 <div class="client-meta-item">
                   <small>${order.order_type === "delivery" ? "Adresse" : "Point chaud"}</small>
-                  <strong>${order.order_type === "delivery" ? order.delivery_address || "Adresse non renseignee" : order.location_name}</strong>
+                  <strong>${order.order_type === "delivery" ? order.delivery_address || "Adresse non renseignée" : order.location_name}</strong>
                 </div>
                 <div class="client-meta-item">
                   <small>Retrait / livraison</small>
                   <strong>${formatDateTime(order.pickup_date, order.pickup_time)}</strong>
                 </div>
                 <div class="client-meta-item">
-                  <small>Resume</small>
+                  <small>Résumé</small>
                   <strong>${order.items.length} produit(s)</strong>
                 </div>
                 <div class="client-meta-item">
@@ -1407,7 +1402,7 @@ function renderClientOrders(container, orders, bankAccounts) {
               </div>
               <div class="client-order-note compact">
                 <strong>${getClientOrderState(order).helper}</strong>
-                <p>Cliquer pour voir les details de la commande.</p>
+                <p>Clique pour voir les détails de la commande.</p>
               </div>
             </article>
           `;
@@ -1443,15 +1438,15 @@ function renderClientOrders(container, orders, bankAccounts) {
           <section class="client-archive-group">
             <div class="section-head">
               <div>
-                <h2>Commandes archivees</h2>
-                <p>Commandes deja retirees ou completees.</p>
+                <h2>Commandes archivées</h2>
+                <p>Commandes déjà retirées ou complétées.</p>
               </div>
             </div>
             <div class="client-orders-grid">
               ${
                 archivedOrders.length
                   ? archivedOrders.map(renderOrderCard).join("")
-                  : `<div class="empty-state"><p>Aucune commande archivee pour le moment.</p></div>`
+                  : `<div class="empty-state"><p>Aucune commande archivée pour le moment.</p></div>`
               }
             </div>
           </section>
@@ -1460,14 +1455,14 @@ function renderClientOrders(container, orders, bankAccounts) {
             <div class="section-head">
               <div>
                 <h2>Commandes refusees</h2>
-                <p>Ces commandes sont gardees ici pour historique et n'attendent aucun paiement.</p>
+                <p>Ces commandes sont gardées ici pour historique et n'attendent aucun paiement.</p>
               </div>
             </div>
             <div class="client-orders-grid">
               ${
                 rejectedOrders.length
                   ? rejectedOrders.map(renderOrderCard).join("")
-                  : `<div class="empty-state"><p>Aucune commande refusee.</p></div>`
+                  : `<div class="empty-state"><p>Aucune commande refusée.</p></div>`
               }
             </div>
           </section>
@@ -1656,7 +1651,7 @@ async function renderCheckoutPage() {
     if (!paymentTargetCopy || !paymentOrderTotal || !paymentOrderSchedule) return;
 
     if (!order) {
-      paymentTargetCopy.textContent = "Aucune commande de paiement n'a encore ete choisie.";
+      paymentTargetCopy.textContent = "Aucune commande de paiement n'a encore été choisie.";
       paymentOrderTotal.textContent = "Le total exact s'affichera ici des qu'une commande sera ciblee.";
       paymentOrderSchedule.textContent = "Retrait ou livraison, puis heure prevue.";
       return;
@@ -1664,7 +1659,7 @@ async function renderCheckoutPage() {
 
     paymentTargetCopy.textContent =
       order.order_type === "delivery"
-        ? `Commande livraison pour ${order.customer_name} - ${order.delivery_address || "adresse a confirmer"}.`
+        ? `Commande livraison pour ${order.customer_name} - ${order.delivery_address || "adresse à confirmer"}.`
         : `Commande retrait a ${order.location_name} pour ${order.customer_name}.`;
     paymentOrderTotal.textContent = `${formatMoney(order.total)} a regler avant verification du staff.`;
     paymentOrderSchedule.textContent = `${order.order_type === "delivery" ? "Livraison" : "Retrait"} prevu(e) le ${formatDateTime(order.pickup_date, order.pickup_time)}.`;
@@ -1894,7 +1889,7 @@ async function renderClientProfilePage() {
       element.textContent = profile.email || "";
     });
     document.querySelectorAll("[data-client-phone]").forEach(element => {
-      element.textContent = profile.phone || "Telephone non renseigne";
+      element.textContent = profile.phone || "Téléphone non renseigné";
     });
     document.querySelectorAll("[data-client-avatar]").forEach(element => {
       element.textContent = getClientInitials(profile.name);
@@ -1908,18 +1903,18 @@ async function renderClientProfilePage() {
     const contactSummary = document.getElementById("client-profile-contact-summary");
 
     if (summaryName) summaryName.textContent = profile.name || "Client";
-    if (summaryEmail) summaryEmail.textContent = profile.email || "Email non renseigne";
-    if (summaryPhone) summaryPhone.textContent = profile.phone || "Telephone non renseigne";
+    if (summaryEmail) summaryEmail.textContent = profile.email || "Email non renseigné";
+    if (summaryPhone) summaryPhone.textContent = profile.phone || "Téléphone non renseigné";
     if (bioPreview) {
-      bioPreview.textContent = profile.bio || "Ajoute une courte bio pour aider l'equipe a mieux te reconnaitre.";
+      bioPreview.textContent = profile.bio || "Ajoute une courte bio pour aider l'équipe à mieux te reconnaître.";
     }
     if (bioSummary) {
-      bioSummary.textContent = profile.bio || "Une courte note peut aider l'equipe a mieux te servir.";
+      bioSummary.textContent = profile.bio || "Une courte note peut aider l'équipe à mieux te servir.";
     }
     if (contactSummary) {
       contactSummary.textContent = profile.phone
-        ? `${profile.email || "Email non renseigne"} • ${profile.phone}`
-        : `${profile.email || "Email non renseigne"} • Telephone a completer`;
+        ? `${profile.email || "Email non renseigné"} • ${profile.phone}`
+        : `${profile.email || "Email non renseigné"} • Téléphone à compléter`;
     }
   } catch (error) {
     showMessage("profile-message", "error", error.message);

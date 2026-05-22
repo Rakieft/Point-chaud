@@ -92,7 +92,7 @@ function fillAdminProductsFilterOptions(categories) {
 
   const previousValue = select.value || "";
   select.innerHTML =
-    `<option value="">Toutes les categories</option>` +
+    `<option value="">Toutes les catégories</option>` +
     categories.map(category => `<option value="${category.name}">${category.name}</option>`).join("");
   select.value = categories.some(category => category.name === previousValue) ? previousValue : "";
 }
@@ -106,10 +106,10 @@ function renderAdminProductsSummary(products) {
   const withImages = products.filter(product => Boolean(product.image)).length;
 
   container.innerHTML = [
-    ["Produits visibles", products.length, "Catalogue actuellement charge"],
-    ["Categories actives", categoriesCount, "Categories ayant au moins un produit"],
-    ["Stock faible", lowStock, "Produits a reapprovisionner vite"],
-    ["Produits avec image", withImages, "Visuels deja renseignes"]
+    ["Produits visibles", products.length, "Catalogue actuellement chargé"],
+    ["Catégories actives", categoriesCount, "Catégories ayant au moins un produit"],
+    ["Stock faible", lowStock, "Produits à réapprovisionner vite"],
+    ["Produits avec image", withImages, "Visuels déjà renseignés"]
   ]
     .map(
       ([label, value, text]) => `
@@ -135,7 +135,7 @@ function renderAdminCategoriesList(categories) {
             <article class="admin-category-chip">
               <div class="stack-sm">
                 <strong>${category.name}</strong>
-                <small class="muted">ID categorie: ${category.id}</small>
+                <small class="muted">ID catégorie: ${category.id}</small>
               </div>
               ${
                 isAdmin
@@ -151,7 +151,7 @@ function renderAdminCategoriesList(categories) {
           `
         )
         .join("")
-    : `<div class="empty-state"><p>Aucune categorie pour le moment.</p></div>`;
+    : `<div class="empty-state"><p>Aucune catégorie pour le moment.</p></div>`;
 }
 
 function resetCategoryForm() {
@@ -160,7 +160,7 @@ function resetCategoryForm() {
 
   form.reset();
   if (categoryId) categoryId.value = "";
-  if (submit) submit.textContent = "Ajouter la categorie";
+  if (submit) submit.textContent = "Ajouter la catégorie";
   if (cancel) cancel.style.display = "none";
 }
 
@@ -224,7 +224,7 @@ function renderAdminProductsTable(products) {
   if (lowStockSummary) {
     lowStockSummary.textContent = lowStockProducts.length
       ? `Alerte stock: ${lowStockProducts.length} produit(s) demandent une attention rapide.`
-      : "Alerte stock: aucune tension de stock detectee pour le moment.";
+      : "Alerte stock: aucune tension de stock détectée pour le moment.";
   }
 
   tbody.innerHTML = products.length
@@ -248,7 +248,7 @@ function renderAdminProductsTable(products) {
               </div>
             </div>
           </td>
-          <td data-label="Categorie">${product.category_name || "Sans categorie"}</td>
+          <td data-label="Catégorie">${product.category_name || "Sans catégorie"}</td>
           <td data-label="Prix">${formatMoney(product.price)}</td>
           <td data-label="Stock total">
             <span class="product-stock-badge ${Number(product.stock || 0) <= 5 ? "low" : "ok"}">
@@ -275,7 +275,7 @@ function renderAdminProductsTable(products) {
     : `
       <tr>
         <td colspan="6" class="admin-table-empty">
-          <div class="empty-state"><p>Aucun produit ne correspond a ce filtre.</p></div>
+          <div class="empty-state"><p>Aucun produit ne correspond à ce filtre.</p></div>
         </td>
       </tr>
     `;
@@ -427,7 +427,7 @@ function bindProductForm() {
           method: "POST",
           body: JSON.stringify(payload)
         });
-        showMessage("product-admin-message", "success", data.message || "Produit ajoute avec succes");
+    showMessage("product-admin-message", "success", data.message || "Produit ajouté avec succès");
       }
 
       resetProductForm();
@@ -477,7 +477,7 @@ function editCategory(categoryId) {
 
 async function deleteCategory(categoryId) {
   if (storage.user?.role !== "admin") return;
-  if (!confirm("Supprimer cette categorie si elle est vide ?")) return;
+  if (!confirm("Supprimer cette catégorie si elle est vide ?")) return;
 
   try {
     const data = await apiRequest(`/products/categories/${categoryId}`, {

@@ -17,7 +17,7 @@
           <div class="client-logo-mark">PC</div>
           <div>
             <strong>Point Chaud</strong>
-            <p>Commande & recuperation</p>
+            <p>Commande & récupération</p>
           </div>
           <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
         </div>
@@ -36,7 +36,7 @@
           <a href="./client-cart.html">Panier</a>
           <a href="./client-orders.html">Mes commandes</a>
           <a class="active" href="./client-profile.html">Profil</a>
-          <button type="button" onclick="logout()">Deconnexion</button>
+          <button type="button" onclick="logout()">Déconnexion</button>
         </nav>
       </aside>
 
@@ -51,7 +51,7 @@
             <div data-client-avatar class="client-topbar-avatar">CL</div>
             <div>
               <strong data-client-name>Client</strong>
-              <small data-client-phone>Telephone non renseigne</small>
+              <small data-client-phone>Téléphone non renseigné</small>
             </div>
           </div>
         </header>
@@ -63,11 +63,11 @@
               <span class="badge client-badge">Espace personnel</span>
               <h2>Garde ton profil clair pour commander plus vite.</h2>
               <p>
-                Mets a jour tes informations personnelles, ton email de contact et les details utiles pour
+                Mets à jour tes informations personnelles, ton email de contact et les détails utiles pour
                 simplifier tes prochaines commandes.
               </p>
               <div class="hero-highlights">
-                <span>Profil a jour</span>
+                <span>Profil à jour</span>
                 <span>Contact fiable</span>
                 <span>Commande plus rapide</span>
               </div>
@@ -76,7 +76,7 @@
               <div class="catalog-mini-summary">
                 <small>Rappel</small>
                 <strong>Un bon profil fait gagner du temps</strong>
-                <span>Nom, email, telephone et bio aident l'equipe a mieux traiter tes commandes.</span>
+                <span>Nom, email, téléphone et bio aident l'équipe à mieux traiter tes commandes.</span>
               </div>
             </div>
           </section>
@@ -86,7 +86,7 @@
               <div class="section-head">
                 <div>
                   <h2>Mes informations</h2>
-                  <p>Modifie ton nom, ton email, ton telephone et les informations personnelles utiles.</p>
+                  <p>Modifie ton nom, ton email, ton téléphone et les informations personnelles utiles.</p>
                 </div>
               </div>
 
@@ -95,9 +95,9 @@
                 <div class="stack-sm client-profile-copy">
                   <strong data-client-name>Client</strong>
                   <span data-client-email class="muted">email</span>
-                  <span data-client-phone class="muted">Telephone non renseigne</span>
+                  <span data-client-phone class="muted">Téléphone non renseigné</span>
                   <p id="client-profile-bio-preview" class="muted">
-                    Ajoute une courte bio pour aider l'equipe a mieux te reconnaitre.
+                    Ajoute une courte bio pour aider l'équipe à mieux te reconnaître.
                   </p>
                 </div>
               </div>
@@ -112,8 +112,8 @@
                   <strong id="client-profile-summary-email">email</strong>
                 </div>
                 <div class="client-meta-item">
-                  <small>Telephone</small>
-                  <strong id="client-profile-summary-phone">Telephone non renseigne</strong>
+                  <small>Téléphone</small>
+                  <strong id="client-profile-summary-phone">Téléphone non renseigné</strong>
                 </div>
                 <div class="client-meta-item">
                   <small>Role</small>
@@ -124,7 +124,7 @@
               <form id="client-profile-form" class="admin-staff-form">
                 <label>Nom complet <input name="name" required /></label>
                 <label>Email <input name="email" type="email" required /></label>
-                <label>Telephone <input name="phone" /></label>
+                <label>Téléphone <input name="phone" /></label>
                 <label>Avatar URL <input name="avatar_url" /></label>
                 <label>Mot de passe <input name="password" type="password" placeholder="Laisser vide pour ne pas changer" /></label>
                 <label class="admin-form-span">Biographie <textarea name="bio"></textarea></label>
@@ -139,39 +139,21 @@
                 <div class="stack-sm">
                   <div>
                     <p class="admin-eyebrow">Vue rapide</p>
-                    <h3>Etat de ton profil</h3>
+                    <h3>État de ton profil</h3>
                   </div>
                   <div class="client-helper-list">
                     <div class="client-helper-item">
                       <strong>Contact principal</strong>
-                      <p id="client-profile-contact-summary">Ajoute un email et un telephone fiables.</p>
+                  <p id="client-profile-contact-summary">Ajoute un email et un téléphone fiables.</p>
                     </div>
                     <div class="client-helper-item">
                       <strong>Biographie</strong>
-                      <p id="client-profile-bio-summary">Une courte note peut aider l'equipe a mieux te servir.</p>
+                      <p id="client-profile-bio-summary">Une courte note peut aider l'équipe à mieux te servir.</p>
                     </div>
                     <div class="client-helper-item client-profile-security">
-                      <strong>Securite</strong>
-                      <p>Change ton mot de passe uniquement si necessaire. Laisse le champ vide sinon.</p>
+                      <strong>Sécurité</strong>
+                      <p>Change ton mot de passe uniquement si nécessaire. Laisse le champ vide sinon.</p>
                     </div>
-                  </div>
-                </div>
-              </article>
-
-              <article class="panel client-panel">
-                <h3>Guide rapide</h3>
-                <div class="client-helper-list">
-                  <div class="client-helper-item">
-                    <strong>Validation</strong>
-                    <p>Le manager doit d'abord valider la commande avant tout paiement.</p>
-                  </div>
-                  <div class="client-helper-item">
-                    <strong>Preuve de paiement</strong>
-                    <p>Envoye une capture lisible ou un fichier clair pour eviter les retards.</p>
-                  </div>
-                  <div class="client-helper-item">
-                    <strong>Recuperation</strong>
-                    <p>Le QR code apparait uniquement apres confirmation du paiement.</p>
                   </div>
                 </div>
               </article>

@@ -71,6 +71,101 @@ function backofficeUploadsBaseUrl() {
   return API_BASE_URL.replace("/api", "");
 }
 
+function getBackofficeProofUrl(filename) {
+  return `${backofficeUploadsBaseUrl()}/uploads/${filename}`;
+}
+
+function isBackofficeImageProof(filename) {
+  return /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(String(filename || ""));
+}
+
+function ensureBackofficeProofViewerModal() {
+  let modal = document.getElementById("backoffice-proof-viewer-modal");
+  if (modal) return modal;
+
+  modal = document.createElement("div");
+  modal.id = "backoffice-proof-viewer-modal";
+  modal.className = "admin-modal hidden";
+  modal.innerHTML = `
+    <div class="admin-modal-backdrop" data-proof-viewer-close></div>
+    <div class="admin-modal-card admin-proof-viewer-modal-card">
+      <div class="admin-modal-head">
+        <div>
+          <p class="admin-eyebrow">Preuve de paiement</p>
+          <h2 id="backoffice-proof-viewer-title">Apercu agrandi</h2>
+        </div>
+        <div class="admin-proof-viewer-head-actions">
+          <a
+            id="backoffice-proof-download"
+            class="btn btn-light"
+            href="#"
+            target="_blank"
+            rel="noopener"
+            download>
+            Telecharger
+          </a>
+          <button class="btn-light" type="button" data-proof-viewer-close>Fermer</button>
+        </div>
+      </div>
+      <div id="backoffice-proof-viewer-body" class="admin-proof-viewer-body"></div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.querySelectorAll("[data-proof-viewer-close]").forEach(element => {
+    element.addEventListener("click", closeBackofficeProofViewer);
+  });
+
+  return modal;
+}
+
+function openBackofficeProofViewer(filename, orderId) {
+  if (!filename) return;
+
+  const modal = ensureBackofficeProofViewerModal();
+  const title = document.getElementById("backoffice-proof-viewer-title");
+  const body = document.getElementById("backoffice-proof-viewer-body");
+  const downloadLink = document.getElementById("backoffice-proof-download");
+  const proofUrl = getBackofficeProofUrl(filename);
+
+  if (!body || !downloadLink) return;
+
+  if (title) {
+    title.textContent = orderId ? `Commande #${orderId}` : "Preuve de paiement";
+  }
+
+  downloadLink.href = proofUrl;
+
+  if (isBackofficeImageProof(filename)) {
+    body.innerHTML = `
+      <div class="admin-proof-viewer-frame">
+        <img src="${proofUrl}" alt="Preuve de paiement commande ${orderId || ""}" />
+      </div>
+    `;
+  } else {
+    body.innerHTML = `
+      <div class="admin-proof-file-panel">
+        <strong>Ce fichier ne peut pas etre agrandi en image ici.</strong>
+        <p>Tu peux le telecharger ou l'ouvrir dans un nouvel onglet pour le verifier plus confortablement.</p>
+        <div class="admin-action-group">
+          <a class="btn btn-light" href="${proofUrl}" target="_blank" rel="noopener">Ouvrir le fichier</a>
+          <a class="btn btn-primary" href="${proofUrl}" download>Telecharger</a>
+        </div>
+      </div>
+    `;
+  }
+
+  modal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+}
+
+function closeBackofficeProofViewer() {
+  const modal = document.getElementById("backoffice-proof-viewer-modal");
+  if (!modal) return;
+  modal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+}
+
 function backofficeInitials(name) {
   return (name || "ST")
     .split(" ")
@@ -763,6 +858,49 @@ function openBackofficeOrderDetail(order) {
       </section>
 
       <section class="admin-detail-panel">
+        <h4>Paiement</h4>
+        <div class="stack-sm">
+          <span>Statut paiement: ${
+            order.status === "cancelled" ? "Non requis" : backofficeStatusLabel(order.payment_status)
+          }</span>
+          <span>Reference: ${order.transaction_reference || "Aucune"}</span>
+          ${
+            order.payment_proof
+              ? `
+                <div class="admin-proof-preview">
+                  ${
+                    isBackofficeImageProof(order.payment_proof)
+                      ? `
+                        <img
+                          src="${getBackofficeProofUrl(order.payment_proof)}"
+                          alt="Preuve commande ${order.id}"
+                          role="button"
+                          tabindex="0"
+                          onclick="openBackofficeProofViewer('${order.payment_proof}', ${order.id})"
+                          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBackofficeProofViewer('${order.payment_proof}', ${order.id});}"
+                          onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+                      `
+                      : ""
+                  }
+                  <div class="admin-proof-fallback" style="display:${isBackofficeImageProof(order.payment_proof) ? "none" : "grid"};">
+                    <p>Apercu non disponible directement pour cette preuve.</p>
+                  </div>
+                </div>
+                <div class="admin-proof-actions">
+                  <button class="btn btn-light" type="button" onclick="openBackofficeProofViewer('${order.payment_proof}', ${order.id})">
+                    Voir en grand
+                  </button>
+                  <a class="btn btn-primary" href="${getBackofficeProofUrl(order.payment_proof)}" target="_blank" rel="noopener" download>
+                    Telecharger la preuve
+                  </a>
+                </div>
+              `
+              : `<p class="muted">Aucune preuve de paiement envoyee pour cette commande.</p>`
+          }
+        </div>
+      </section>
+
+      <section class="admin-detail-panel">
         <h4>QR code</h4>
         ${
           order.qrCode
@@ -804,4 +942,5 @@ function closeOrderDetail() {
 }
 
 window.openBackofficeNotificationByKeyword = openBackofficeNotificationByKeyword;
+window.openBackofficeProofViewer = openBackofficeProofViewer;
 window.openDeliverySignatureModal = openDeliverySignatureModal;
