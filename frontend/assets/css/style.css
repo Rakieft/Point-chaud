@@ -882,9 +882,22 @@ small {
   color: var(--danger);
 }
 
+.product-stock-badge.out {
+  background: rgba(120, 35, 28, 0.14);
+  color: #a72c1f;
+}
+
 .product-card-footer {
   align-items: center;
   margin-top: 6px;
+}
+
+.add-to-cart-btn.is-disabled,
+.add-to-cart-btn:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none;
 }
 
 .product-card .btn-primary {
@@ -1403,11 +1416,7 @@ html[data-theme="dark"] .empty-state {
 .footer-pro {
   margin-top: 18px;
   padding-top: 14px;
-  background:
-    radial-gradient(circle at top right, rgba(255, 152, 77, 0.14), transparent 28%),
-    linear-gradient(180deg, #2b1a14 0%, #1a100d 100%);
-  color: #fff4eb;
-  border-top: 1px solid rgba(255, 214, 184, 0.12);
+  background: linear-gradient(180deg, rgba(255, 248, 241, 0.2), rgba(255, 248, 241, 0.74));
 }
 
 .footer-grid {
@@ -1419,15 +1428,7 @@ html[data-theme="dark"] .empty-state {
 
 .footer-grid h3 {
   margin-top: 0;
-  color: #fff4eb;
-}
-
-.footer-pro p,
-.footer-pro li,
-.footer-pro small,
-.footer-pro span,
-.footer-pro a:not(.btn):not(.social-link):not(.social-links-footer a):not(.home-footer-social-mini a) {
-  color: rgba(255, 236, 224, 0.78);
+  color: var(--text);
 }
 
 .social-links {
@@ -1445,18 +1446,17 @@ html[data-theme="dark"] .empty-state {
   width: fit-content;
   padding: 12px 16px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 214, 184, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff1e5;
+  border: 1px solid #f0d7ca;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
   font-weight: 700;
   justify-content: center;
 }
 
 .social-link:hover {
   transform: translateY(-1px);
-  border-color: rgba(255, 154, 77, 0.34);
-  background: rgba(255, 154, 77, 0.12);
-  box-shadow: 0 16px 30px rgba(12, 5, 3, 0.24);
+  border-color: rgba(233, 93, 22, 0.24);
+  box-shadow: 0 16px 30px rgba(102, 46, 22, 0.08);
 }
 
 .social-link-icon {
@@ -1477,7 +1477,7 @@ html[data-theme="dark"] .empty-state {
   gap: 16px;
   flex-wrap: wrap;
   padding: 14px 0 0;
-  border-top: 1px solid rgba(255, 214, 184, 0.14);
+  border-top: 1px solid rgba(234, 217, 199, 0.85);
 }
 
 @media (max-width: 860px) {
@@ -1710,19 +1710,7 @@ html[data-theme="dark"] .analytics-pill {
 }
 
 html[data-theme="dark"] .footer-pro {
-  background:
-    radial-gradient(circle at top right, rgba(255, 152, 77, 0.12), transparent 28%),
-    linear-gradient(180deg, #241612 0%, #140c09 100%);
-}
-
-html[data-theme="dark"] .admin-proof-viewer-frame,
-html[data-theme="dark"] .admin-proof-file-panel {
-  background: rgba(29, 24, 20, 0.96);
-  border-color: var(--border);
-}
-
-html[data-theme="dark"] .admin-proof-file-panel strong {
-  color: var(--text);
+  background: linear-gradient(180deg, rgba(18, 15, 12, 0.38), rgba(18, 15, 12, 0.88));
 }
 
 html[data-theme="dark"] .home-event-card {
@@ -2002,25 +1990,15 @@ html[data-theme="dark"] .text-danger {
 }
 
 .client-logo-mark {
-  width: 58px;
-  height: 58px;
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
   display: block;
-  background: url("../images/logo-point.png") center/contain no-repeat;
-  filter: drop-shadow(0 10px 20px rgba(57, 16, 9, 0.22));
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.92), rgba(255, 244, 232, 0.84)),
+    url("../images/logo-point.png") center/78% no-repeat;
+  box-shadow: 0 14px 24px rgba(90, 28, 18, 0.18);
   font-size: 0;
-}
-
-.client-sidebar-head strong,
-.admin-logo-block strong {
-  display: block;
-  color: #fffaf6;
-  letter-spacing: 0.01em;
-}
-
-.client-sidebar-head p,
-.admin-logo-block p {
-  margin: 4px 0 0;
-  color: rgba(255, 241, 231, 0.8);
 }
 
 .client-sidebar-head p,
@@ -3320,11 +3298,14 @@ html[data-theme="dark"] .admin-body {
 }
 
 .admin-logo-mark {
-  width: 58px;
-  height: 58px;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
   display: block;
-  background: url("../images/logo-point.png") center/contain no-repeat;
-  filter: drop-shadow(0 10px 20px rgba(57, 16, 9, 0.22));
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.92), rgba(255, 244, 232, 0.84)),
+    url("../images/logo-point.png") center/78% no-repeat;
+  box-shadow: 0 14px 24px rgba(90, 28, 18, 0.18);
   font-size: 0;
 }
 
@@ -4198,13 +4179,6 @@ html[data-theme="dark"] .admin-product-thumb-wrap {
   height: 220px;
   object-fit: cover;
   display: block;
-  cursor: zoom-in;
-  transition: transform 0.18s ease, filter 0.18s ease;
-}
-
-.admin-proof-preview img:hover {
-  transform: scale(1.015);
-  filter: saturate(1.02);
 }
 
 .admin-proof-fallback {
@@ -4213,12 +4187,6 @@ html[data-theme="dark"] .admin-product-thumb-wrap {
   place-items: center;
   text-align: center;
   gap: 10px;
-}
-
-.admin-proof-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
 }
 
 .admin-product-summary {
@@ -4678,49 +4646,6 @@ html[data-theme="dark"] .driver-quick-action-card strong {
   border-radius: 28px;
   background: #fff9f4;
   box-shadow: 0 30px 80px rgba(63, 22, 13, 0.28);
-}
-
-.admin-proof-viewer-modal-card {
-  width: min(1180px, calc(100vw - 28px));
-}
-
-.admin-proof-viewer-head-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.admin-proof-viewer-body {
-  display: grid;
-  gap: 18px;
-}
-
-.admin-proof-viewer-frame {
-  border-radius: 24px;
-  overflow: hidden;
-  border: 1px solid #f0d7ca;
-  background: linear-gradient(180deg, rgba(255, 249, 243, 0.98), rgba(255, 244, 237, 0.98));
-  min-height: 360px;
-  display: grid;
-  place-items: center;
-}
-
-.admin-proof-viewer-frame img {
-  width: 100%;
-  max-height: calc(100vh - 180px);
-  object-fit: contain;
-  display: block;
-  background: #fff;
-}
-
-.admin-proof-file-panel {
-  border-radius: 24px;
-  border: 1px solid #f0d7ca;
-  background: linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(255, 246, 239, 0.98));
-  padding: 28px;
-  display: grid;
-  gap: 14px;
 }
 
 .delivery-signature-modal-card {
@@ -5780,17 +5705,9 @@ html[data-theme="dark"] .driver-quick-action-card strong {
   min-height: 42px;
   padding: 10px 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 214, 184, 0.12);
-  color: #ffd3b2;
+  background: rgba(196, 106, 45, 0.1);
+  color: #b24d18;
   font-weight: 700;
-}
-
-.home-footer-social-mini a:hover,
-.social-links-footer a:hover {
-  background: rgba(255, 154, 77, 0.12);
-  border-color: rgba(255, 154, 77, 0.28);
-  color: #fff2e8;
 }
 
 html[data-theme="dark"] .landing-topbar {
