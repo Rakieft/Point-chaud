@@ -13,12 +13,23 @@
     <header class="topbar landing-topbar">
       <div class="container topbar-inner">
         <a class="brand" href="./index.html">POINT CHAUD</a>
-        <nav class="nav-links">
+        <button
+          id="landing-menu-toggle"
+          class="landing-menu-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="landing-nav"
+          aria-label="Ouvrir le menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <nav id="landing-nav" class="nav-links landing-nav">
           <a href="./index.html">Accueil</a>
           <a href="./products.html">Menu</a>
-          <a href="#promotions">Promotions</a>
+          
           <a href="#points-de-vente">Nos points de vente</a>
-          <a href="#footer-point-chaud">A propos</a>
+          
           <a href="#footer-point-chaud">Contact</a>
           <a class="btn btn-primary" href="./login.html">Se connecter</a>
         </nav>
@@ -60,7 +71,7 @@
             <div class="hero-visual-glow"></div>
             <div class="hero-visual-copy">
               <span class="badge hero-visual-badge" style="color: yellow;">Fraicheur - Rapidite - Confiance</span>
-              <h2>Tout est pret pour commander plus vite.</h2>
+              <h2 style="color: white;">Tout est pret pour commander plus vite.</h2>
             </div>
             <img
               class="hero-visual-image"
@@ -84,9 +95,8 @@
           <div class="section-head home-section-head">
             <div>
               <h2>Evenements & Promotions</h2>
-              <p>Les activations les plus visibles de la semaine, sans toucher au hero que tu gardes deja.</p>
             </div>
-            <a class="home-inline-link" href="./products.html">Voir toutes les promos</a>
+            
           </div>
 
           <div class="home-promo-grid">
@@ -124,7 +134,6 @@
           <div class="section-head home-section-head">
             <div>
               <h2>Nos produits vedettes</h2>
-              <p>Une grille plus marketing, plus premium, et plus proche de la maquette que tu as validee.</p>
             </div>
             <a class="home-inline-link" href="./products.html">Voir tout le menu</a>
           </div>
@@ -138,7 +147,7 @@
           <div class="section-head home-section-head home-section-head-centered">
             <div>
               <h2>Comment ca marche ?</h2>
-              <p>Une explication courte et visuelle qui rassure le visiteur des la premiere lecture.</p>
+              
             </div>
           </div>
 
@@ -232,25 +241,6 @@
         </div>
       </section>
 
-      <section class="section home-partners-section home-section-tight">
-        <div class="container">
-          <div class="section-head home-section-head home-section-head-centered">
-            <div>
-              <h2>Ils nous font confiance</h2>
-            </div>
-          </div>
-          <div class="home-partners-strip">
-            <span>BUROTOP IRIS</span>
-            <span>Digicel</span>
-            <span>UNIBANK</span>
-            <span>Sogener</span>
-            <span>NatCash</span>
-            <span>NEXT Generation</span>
-            <span>BRANA LOTO</span>
-          </div>
-        </div>
-      </section>
-
       <section class="section">
         <div class="container">
           <div class="home-cta-band">
@@ -279,11 +269,6 @@
             Boulangerie & Fast-Food Haitien.
             Des produits frais, chauds et savoureux, prepares avec passion pour vous, chaque jour.
           </p>
-          <div class="home-footer-social-mini">
-            <a href="./index.html">Instagram</a>
-            <a href="./index.html">TikTok</a>
-            <a href="./index.html">Facebook</a>
-          </div>
         </section>
 
         <section>

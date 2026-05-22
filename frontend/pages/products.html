@@ -11,11 +11,22 @@
   </head>
   <body>
     <div id="public-products-view">
-      <header class="topbar">
+      <header class="topbar landing-topbar">
         <div class="container topbar-inner">
           <a class="brand" href="./index.html">POINT CHAUD</a>
-          <nav class="nav-links">
-            <a href="./index.html">Accueil</a>
+          <button
+            id="landing-menu-toggle"
+            class="landing-menu-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="landing-nav"
+            aria-label="Ouvrir le menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <nav id="landing-nav" class="nav-links landing-nav">
+            <a href="index.html">Accueil</a>
             <a href="./login.html">Connexion</a>
             <a href="./register.html">Inscription</a>
           </nav>
@@ -26,7 +37,7 @@
         <section class="container">
           <section class="catalog-hero public-catalog-hero">
             <div class="catalog-hero-copy">
-              <span class="badge">Catalogue gourmand</span>
+              <span class="badge" style="color: yellow;">Catalogue gourmand</span>
               <h1>Choisis ton envie du moment.</h1>
               <p>
                 Pains chauds, pates, pizzas, burgers, plats chauds et boissons. Parcours le menu, filtre
@@ -43,7 +54,13 @@
                 <small>Panier en cours</small>
                 <strong id="public-cart-count">0 article</strong>
                 <span id="public-cart-total">0,00 HTG</span>
-                <a class="btn btn-primary" href="./cart.html">Voir le panier</a>
+                <a class="btn btn-primary catalog-cart-icon-link" href="./cart.html" aria-label="Voir le panier">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="9" cy="19" r="1.7" fill="currentColor"></circle>
+                    <circle cx="18" cy="19" r="1.7" fill="currentColor"></circle>
+                    <path d="M3.5 5H6l1.8 8.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L21 8H7.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                  </svg>
+                </a>
               </div>
             </div>
           </section>

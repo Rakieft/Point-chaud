@@ -577,6 +577,33 @@ async function renderHomepageFeaturedProducts() {
   }
 }
 
+function setupLandingMenuToggle() {
+  const toggle = document.getElementById("landing-menu-toggle");
+  const nav = document.getElementById("landing-nav");
+  if (!toggle || !nav) return;
+
+  const closeMenu = () => {
+    nav.classList.remove("open");
+    toggle.setAttribute("aria-expanded", "false");
+  };
+
+  toggle.addEventListener("click", () => {
+    const nextState = !nav.classList.contains("open");
+    nav.classList.toggle("open", nextState);
+    toggle.setAttribute("aria-expanded", nextState ? "true" : "false");
+  });
+
+  nav.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", closeMenu);
+  });
+
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 640) {
+      closeMenu();
+    }
+  });
+}
+
 window.API_BASE_URL = API_BASE_URL;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -585,4 +612,5 @@ document.addEventListener("DOMContentLoaded", () => {
   injectWhatsAppSupportButton();
   injectIndexSocialLinks();
   renderHomepageFeaturedProducts();
+  setupLandingMenuToggle();
 });
