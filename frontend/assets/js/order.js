@@ -320,11 +320,40 @@ function renderCatalog(products, options = {}) {
     return;
   }
 
+  const selectedLocationId = Number(options.locationId || 0);
+  const currentDailyDish =
+    CATALOG_WEEKLY_DISHES.find(item => item.dayKey === getCatalogHaitiWeekdayKey()) ||
+    CATALOG_WEEKLY_DISHES[0];
+  const preparedProducts = products
+    .map(product => {
+      const locationStock = selectedLocationId
+        ? Number(
+            product?.location_stocks?.find(stock => Number(stock.location_id) === selectedLocationId)?.stock ??
+              product.location_stock ??
+              product.stock ??
+              0
+          )
+        : Number(product.stock || 0);
+      const normalizedCategoryName = normalizeCatalogText(product.category_name || "");
+      const isDailyDishCategory = normalizedCategoryName === "plat du jour" || normalizedCategoryName === "plat du jours";
+      const isTodayDailyDish = isDailyDishCategory && matchesCatalogDishName(product.name || "", currentDailyDish);
+
+      return {
+        ...product,
+        stock: locationStock,
+        category_name: isDailyDishCategory ? "Plat du jour" : product.category_name,
+        is_daily_dish: isDailyDishCategory,
+        is_today_daily_dish: isTodayDailyDish
+      };
+    })
+    .filter(product => !options.availableOnly || Number(product.stock || 0) > 0);
+
   const categories = Array.isArray(options.categories) && options.categories.length
     ? options.categories
         .map(categoryItem => String(categoryItem?.name || "").trim())
         .filter(Boolean)
-    : [...new Set(products.map(product => String(product.category_name || "").trim()).filter(Boolean))];
+        .filter(name => preparedProducts.some(product => String(product.category_name || "").trim() === name))
+    : [...new Set(preparedProducts.map(product => String(product.category_name || "").trim()).filter(Boolean))];
   const previousCategory = category?.value || "";
 
   if (category) {
@@ -388,7 +417,7 @@ function renderCatalog(products, options = {}) {
     const selectedCategory = category?.value || "";
     const sortValue = sort?.value || "featured";
 
-    const filtered = products
+    const filtered = preparedProducts
       .filter(product => {
         const matchesText =
           product.name.toLowerCase().includes(term) ||
@@ -445,6 +474,10 @@ function renderCatalog(products, options = {}) {
                   <p class="muted">${product.description || "Produit artisanal du point chaud."}</p>
                   <div class="product-card-footer">
                     <small>Stock disponible: ${product.stock}</small>
+                    ${
+                      product.is_daily_dish && !product.is_today_daily_dish
+                        ? ""
+                        : `
                     <button
                       class="btn-primary add-to-cart-btn ${Number(product.stock || 0) <= 0 ? "is-disabled" : ""}"
                       data-id="${product.id}"
@@ -452,7 +485,8 @@ function renderCatalog(products, options = {}) {
                       data-price="${product.price}"
                       ${Number(product.stock || 0) <= 0 ? "disabled aria-disabled=\"true\"" : ""}>
                       ${Number(product.stock || 0) <= 0 ? "Indisponible" : "Ajouter au panier"}
-                    </button>
+                    </button>`
+                    }
                   </div>
                 </div>
               </article>
@@ -678,6 +712,208 @@ function closeNotificationDetail() {
   if (!modal) return;
   modal.classList.add("hidden");
   document.body.classList.remove("modal-open");
+}
+
+const CATALOG_CURRENT_EVENT = {
+  badge: "Événement du moment",
+  badge: "Événement du moment",
+  title: "Burger Week",
+  price: "15$",
+  text: "Les burgers stars sont en avant cette semaine.",
+  image: "../assets/images/home/burger-week-promo.png"
+};
+
+const CATALOG_WEEKLY_DISHES = [
+  { dayKey: "monday", dayLabel: "Lundi", title: "Diri lalo", fallbackProductName: "Riz + poulet" },
+  { dayKey: "tuesday", dayLabel: "Mardi", title: "Sòs pwa ak diri blan", fallbackProductName: "Riz + hareng" },
+  { dayKey: "wednesday", dayLabel: "Mercredi", title: "Legim ak diri", fallbackProductName: "Riz + poulet" },
+  { dayKey: "thursday", dayLabel: "Jeudi", title: "Diri kole ak poul", fallbackProductName: "Riz + poulet" },
+  { dayKey: "friday", dayLabel: "Vendredi", title: "Griot ak bannann peze", fallbackProductName: "Poulet frit" },
+  { dayKey: "saturday", dayLabel: "Samedi", title: "Tasso kabrit ak diri dyondyon", fallbackProductName: "Riz + poulet" },
+  { dayKey: "sunday", dayLabel: "Dimanche", title: "Bouillon haïtien", fallbackProductName: "Spaghetti" }
+];
+
+function normalizeCatalogText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function getCatalogHaitiWeekdayKey() {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Port-au-Prince",
+    weekday: "long"
+  })
+    .format(new Date())
+    .toLowerCase();
+}
+
+function renderCatalogContextStrip(products, locationName = "") {
+  const strip = document.getElementById("catalog-context-strip");
+  const eventCard = document.getElementById("catalog-event-card");
+  const dishCard = document.getElementById("catalog-dish-card");
+  if (!strip || !eventCard || !dishCard) return;
+
+  const weekdayKey = getCatalogHaitiWeekdayKey();
+  const dish =
+    CATALOG_WEEKLY_DISHES.find(item => item.dayKey === weekdayKey) ||
+    CATALOG_WEEKLY_DISHES[0];
+  const relatedProduct =
+    products.find(product => normalizeCatalogText(product.name) === normalizeCatalogText(dish.fallbackProductName)) ||
+    products.find(product => normalizeCatalogText(product.name).includes(normalizeCatalogText(dish.fallbackProductName)));
+
+  strip.hidden = false;
+  eventCard.style.backgroundImage = `
+    linear-gradient(98deg, rgba(43, 17, 9, 0.9) 0%, rgba(95, 31, 9, 0.66) 42%, rgba(255, 127, 28, 0.16) 100%),
+    url("${CATALOG_CURRENT_EVENT.image}")
+  `;
+  eventCard.innerHTML = `
+    <span class="badge">${CATALOG_CURRENT_EVENT.badge}</span>
+    <h3>${CATALOG_CURRENT_EVENT.title}</h3>
+    <strong class="branch-event-price">${CATALOG_CURRENT_EVENT.price}</strong>
+    <p>${locationName ? `${CATALOG_CURRENT_EVENT.text} À ${locationName}.` : CATALOG_CURRENT_EVENT.text}</p>
+  `;
+
+  dishCard.innerHTML = `
+    <span class="badge">Plat du jour</span>
+    <small>${dish.dayLabel}</small>
+    <h3>${dish.title}</h3>
+    <strong>${relatedProduct ? formatMoney(relatedProduct.price) : "Prix du jour"}</strong>
+  `;
+}
+
+function renderCatalogContextStrip(products, locationName = "") {
+  const strip = document.getElementById("catalog-context-strip");
+  const eventCard = document.getElementById("catalog-event-card");
+  const dishCard = document.getElementById("catalog-dish-card");
+  if (!strip || !eventCard || !dishCard) return null;
+
+  const weekdayKey = getCatalogHaitiWeekdayKey();
+  const dish =
+    CATALOG_WEEKLY_DISHES.find(item => item.dayKey === weekdayKey) ||
+    CATALOG_WEEKLY_DISHES[0];
+  const relatedProduct =
+    products.find(product => normalizeCatalogText(product.name) === normalizeCatalogText(dish.fallbackProductName)) ||
+    products.find(product => normalizeCatalogText(product.name).includes(normalizeCatalogText(dish.fallbackProductName)));
+
+  strip.hidden = false;
+  eventCard.style.backgroundImage = `
+    linear-gradient(98deg, rgba(43, 17, 9, 0.9) 0%, rgba(95, 31, 9, 0.66) 42%, rgba(255, 127, 28, 0.16) 100%),
+    url("${CATALOG_CURRENT_EVENT.image}")
+  `;
+  eventCard.innerHTML = `
+    <span class="badge">Événement du moment</span>
+    <h3>${CATALOG_CURRENT_EVENT.title}</h3>
+    <strong class="branch-event-price">${CATALOG_CURRENT_EVENT.price || "15$"}</strong>
+    <p>${locationName ? `Les burgers stars sont en avant cette semaine à ${locationName}.` : "Les burgers stars sont en avant cette semaine."}</p>
+    <button class="btn btn-light btn-sm" type="button" id="catalog-event-action">Voir l'offre</button>
+  `;
+
+  dishCard.innerHTML = `
+    <span class="badge">Plat du jour</span>
+    <small>${dish.dayLabel}</small>
+    <h3>${dish.title}</h3>
+    <strong>${relatedProduct ? formatMoney(relatedProduct.price) : "Prix du jour"}</strong>
+    <button class="btn btn-light btn-sm" type="button" id="catalog-dish-action">Voir le plat</button>
+  `;
+
+  return {
+    eventCategory: "Burger & Sandwich",
+    dishSearch: relatedProduct?.name || dish.fallbackProductName || dish.title
+  };
+}
+
+CATALOG_CURRENT_EVENT.badge = "\u00c9v\u00e9nement du moment";
+
+if (Array.isArray(CATALOG_WEEKLY_DISHES)) {
+  const cleanWeeklyDishes = [
+    { dayKey: "monday", dayLabel: "Lundi", title: "Diri lalo", fallbackProductName: "Diri lalo", aliases: [] },
+    { dayKey: "tuesday", dayLabel: "Mardi", title: "S\u00f2s pwa ak diri blan", fallbackProductName: "S\u00f2s pwa ak diri blan", aliases: ["S?s pwa ak diri blan"] },
+    { dayKey: "wednesday", dayLabel: "Mercredi", title: "Legim ak diri", fallbackProductName: "Legim ak diri", aliases: [] },
+    { dayKey: "thursday", dayLabel: "Jeudi", title: "Diri kole ak poul", fallbackProductName: "Diri kole ak poul", aliases: [] },
+    { dayKey: "friday", dayLabel: "Vendredi", title: "Griot ak bannann peze", fallbackProductName: "Griot ak bannann peze", aliases: [] },
+    { dayKey: "saturday", dayLabel: "Samedi", title: "Tasso kabrit ak diri dyondyon", fallbackProductName: "Tasso kabrit ak diri dyondyon", aliases: [] },
+    { dayKey: "sunday", dayLabel: "Dimanche", title: "Bouillon ha\u00eftien", fallbackProductName: "Bouillon ha\u00eftien", aliases: ["Bouillon ha?tien"] }
+  ];
+
+  CATALOG_WEEKLY_DISHES.length = 0;
+  CATALOG_WEEKLY_DISHES.push(...cleanWeeklyDishes);
+}
+
+function normalizeCatalogText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .toLowerCase()
+    .trim();
+}
+
+function matchesCatalogDishName(productName, dish) {
+  if (!dish) return false;
+  const normalizedProductName = normalizeCatalogText(productName);
+  const candidates = [dish.title, dish.fallbackProductName, ...(dish.aliases || [])]
+    .map(normalizeCatalogText)
+    .filter(Boolean);
+  return candidates.some(candidate => candidate === normalizedProductName);
+}
+
+function renderCatalogContextStrip(products, locationName = "") {
+  const strip = document.getElementById("catalog-context-strip");
+  const eventCard = document.getElementById("catalog-event-card");
+  const dishCard = document.getElementById("catalog-dish-card");
+  if (!strip || !eventCard || !dishCard) return null;
+
+  const weekdayKey = getCatalogHaitiWeekdayKey();
+  const dish =
+    CATALOG_WEEKLY_DISHES.find(item => item.dayKey === weekdayKey) ||
+    CATALOG_WEEKLY_DISHES[0];
+  const relatedProduct =
+    products.find(product => matchesCatalogDishName(product.name, dish)) ||
+    products.find(product => normalizeCatalogText(product.name).includes(normalizeCatalogText(dish.title)));
+
+  strip.hidden = false;
+  eventCard.style.backgroundImage = `
+    linear-gradient(98deg, rgba(43, 17, 9, 0.9) 0%, rgba(95, 31, 9, 0.66) 42%, rgba(255, 127, 28, 0.16) 100%),
+    url("${CATALOG_CURRENT_EVENT.image}")
+  `;
+  eventCard.innerHTML = `
+    <span class="badge">${CATALOG_CURRENT_EVENT.badge}</span>
+    <h3>${CATALOG_CURRENT_EVENT.title}</h3>
+    <strong class="branch-event-price">${CATALOG_CURRENT_EVENT.price || "15$"}</strong>
+    <p>${locationName ? `${CATALOG_CURRENT_EVENT.text} \u00e0 ${locationName}.` : CATALOG_CURRENT_EVENT.text}</p>
+    <button class="btn btn-light btn-sm" type="button" id="catalog-event-action">Voir l'offre</button>
+  `;
+
+  dishCard.innerHTML = `
+    <span class="badge">Plat du jour</span>
+    <small>${dish.dayLabel}</small>
+    <h3>${dish.title}</h3>
+    <strong>${relatedProduct ? formatMoney(relatedProduct.price) : "Prix du jour"}</strong>
+    <button class="btn btn-light btn-sm" type="button" id="catalog-dish-action">Voir le plat</button>
+  `;
+
+  return {
+    eventCategory: "Burger & Sandwich",
+    dishSearch: relatedProduct?.name || dish.title
+  };
+}
+
+function applyPublicCatalogPreset({ searchText = "", categoryName = "" } = {}) {
+  const searchInput = document.getElementById("product-search");
+  const categorySelect = document.getElementById("category-filter");
+
+  if (categorySelect && categoryName) {
+    categorySelect.value = categoryName;
+    categorySelect.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  if (searchInput) {
+    searchInput.value = searchText;
+    searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+  }
 }
 
 async function renderClientOrdersPage() {
@@ -1708,6 +1944,11 @@ async function renderCheckoutPage() {
 
     if (locationSelect) {
       const locations = Array.isArray(catalog.locations) ? catalog.locations : [];
+      const preferredLocationId = Number(
+        new URLSearchParams(window.location.search).get("location_id") ||
+          localStorage.getItem("pointchaud_selected_location_id") ||
+          0
+      );
 
       if (!locations.length) {
         if (!locationSelect.options.length) {
@@ -1721,7 +1962,9 @@ async function renderCheckoutPage() {
             .map(location => `<option value="${location.id}">${location.name} - ${location.address}</option>`)
             .join("");
 
-        if (!locationSelect.value && locations[0]) {
+        if (preferredLocationId && locations.some(location => Number(location.id) === preferredLocationId)) {
+          locationSelect.value = String(preferredLocationId);
+        } else if (!locationSelect.value && locations[0]) {
           locationSelect.value = String(locations[0].id);
         }
       }
@@ -1861,9 +2104,47 @@ async function renderPublicCatalogPage() {
   if (!document.getElementById("products-grid") || document.getElementById("client-name")) return;
 
   try {
-    const catalog = await apiRequest("/products");
+    const params = new URLSearchParams(window.location.search);
+    const storedLocationId = Number(localStorage.getItem("pointchaud_selected_location_id") || 0);
+    const locationId = Number(params.get("location_id") || storedLocationId || 0);
+    const endpoint = locationId ? `/products?location_id=${locationId}` : "/products";
+    const catalog = await apiRequest(endpoint);
+    const selectedLocation = Array.isArray(catalog.locations)
+      ? catalog.locations.find(location => Number(location.id) === locationId)
+      : null;
+
+    if (selectedLocation) {
+      localStorage.setItem("pointchaud_selected_location_id", String(selectedLocation.id));
+      localStorage.setItem("pointchaud_selected_location_name", selectedLocation.name || "");
+    }
+
+    const catalogContext = renderCatalogContextStrip(catalog.products, selectedLocation?.name || "");
+
     renderCatalog(catalog.products, {
-      categories: catalog.categories
+      categories: catalog.categories,
+      locationId,
+      availableOnly: Boolean(selectedLocation)
+    });
+
+    const locationBar = document.getElementById("public-selected-location-bar");
+    const locationNameEl = document.getElementById("public-selected-location-name");
+    if (selectedLocation && locationBar && locationNameEl) {
+      locationBar.hidden = false;
+      locationNameEl.textContent = `Menu de ${selectedLocation.name}`;
+    } else if (locationBar) {
+      locationBar.hidden = true;
+    }
+
+    document.getElementById("catalog-event-action")?.addEventListener("click", () => {
+      applyPublicCatalogPreset({
+        categoryName: catalogContext?.eventCategory || "Burger & Sandwich"
+      });
+    });
+
+    document.getElementById("catalog-dish-action")?.addEventListener("click", () => {
+      applyPublicCatalogPreset({
+        searchText: catalogContext?.dishSearch || ""
+      });
     });
   } catch (error) {
     showMessage("dashboard-message", "error", error.message);

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Choisir un Point Chaud | Point Chaud</title>
+    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
+    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
+    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body class="landing-page branch-selector-page">
+    <header class="topbar landing-topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="./index.html">POINT CHAUD</a>
+        <button
+          id="landing-menu-toggle"
+          class="landing-menu-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="landing-nav"
+          aria-label="Ouvrir le menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <nav id="landing-nav" class="nav-links landing-nav">
+          <a href="./index.html">Accueil</a>
+          <a href="./succursales.html">Menu</a>
+          <a href="#evenements-point-chaud">Événements</a>
+          <a href="#plat-du-jour-point-chaud">Plat du jour</a>
+          <a href="./login.html">Connexion</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <!-- <section class="section branch-selector-hero-section">
+        <div class="container branch-selector-hero-grid">
+          <div class="branch-selector-copy">
+            <span class="hero-pill">Choisir avant de commander</span>
+            <h1>Dans quel Point Chaud veux-tu acheter aujourd’hui&nbsp;?</h1>
+            <p>
+              Sélectionne d’abord ta succursale. Tu verras ensuite uniquement le menu réellement disponible
+              dans ce point chaud, avec les bons produits et le bon stock.
+            </p>
+            <div class="hero-highlights branch-selector-highlights">
+              <span>Menu filtré par succursale</span>
+              <span>Produits disponibles seulement</span>
+              <span>Commande plus claire pour le client</span>
+            </div>
+          </div>
+
+          <div class="branch-selector-side-card panel">
+            <small>Parcours recommandé</small>
+            <strong>Choisis le point chaud</strong>
+            <p>Consulte les événements du moment, le plat du jour, puis entre directement dans le menu local.</p>
+            <a class="btn btn-primary" href="#branch-selection-grid">Voir les succursales</a>
+          </div>
+        </div>
+      </section> -->
+
+      <section class="section branch-selector-section">
+        <div class="container">
+          <div class="section-head home-section-head">
+            <div>
+              <h2>Choisir une succursale</h2>
+              
+            </div>
+          </div>
+          <div id="branch-selection-grid" class="branch-selection-grid"></div>
+        </div>
+      </section>
+
+      <section id="evenements-point-chaud" class="section branch-events-section">
+        <div class="container">
+          <div class="section-head home-section-head">
+            <div>
+              <h2 >Événements du moment</h2>
+              
+            </div>
+          </div>
+
+          <div class="branch-events-layout">
+            <article id="branch-current-event-card" class="branch-current-event-card"></article>
+
+            <aside class="branch-upcoming-panel">
+              <div class="branch-upcoming-head">
+                <span class="badge">À venir</span>
+                <h3>Événements à surveiller</h3>
+              </div>
+              <div class="branch-upcoming-viewport">
+                <div id="branch-upcoming-events-track" class="branch-upcoming-events-track"></div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section id="plat-du-jour-point-chaud" class="section branch-daily-section">
+        <div class="container">
+          <div class="section-head home-section-head">
+            <div>
+              <h2>Plat du jour & semaine gourmande</h2>
+              
+            </div>
+          </div>
+
+          <div class="branch-daily-layout">
+            <article id="dish-of-the-day-card" class="dish-of-the-day-card"></article>
+            <div class="week-menu-panel panel">
+              <div class="week-menu-head">
+                <span class="badge">Semaine</span>
+                <h3>Le reste de la semaine</h3>
+              </div>
+              <div id="week-menu-grid" class="week-menu-grid"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/branch-selector.js"></script>
+  </body>
+</html>

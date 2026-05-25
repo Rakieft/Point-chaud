@@ -284,7 +284,7 @@ function buildProductPlaceholder(product) {
       <circle cx="520" cy="92" r="78" fill="rgba(255,255,255,0.12)" />
       <circle cx="118" cy="330" r="92" fill="rgba(255,255,255,0.08)" />
       <text x="44" y="188" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="800">${name}</text>
-      <text x="44" y="248" fill="#fff4e8" font-family="Segoe UI, Arial, sans-serif" font-size="24">Aperçu produit Point Chaud</text>
+      <text x="44" y="248" fill="#fff4e8" font-family="Segoe UI, Arial, sans-serif" font-size="24">Apercu produit Point Chaud</text>
     </svg>
   `;
 
@@ -383,6 +383,7 @@ function currentPageName() {
 function shouldShowWhatsAppSupport() {
   const allowedPages = new Set([
     "index.html",
+    "succursales.html",
     "products.html",
     "login.html",
     "register.html",
@@ -571,7 +572,7 @@ async function renderHomepageFeaturedProducts() {
     container.innerHTML = `
       <div class="empty-state">
         <h3>Produits vedettes indisponibles</h3>
-        <p>Le catalogue sera rechargé automatiquement dès que les données seront disponibles.</p>
+        <p>Le catalogue sera recharge automatiquement des que les donnees seront disponibles.</p>
       </div>
     `;
   }
