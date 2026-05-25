@@ -136,7 +136,7 @@
 
           <nav class="client-sidebar-nav">
             <a href="./dashboard-client.html">Accueil</a>
-            <a class="active" href="./client-products.html">Produits</a>
+            <a class="active" href="./succursales.html">Produits</a>
             <a href="./client-cart.html">Panier</a>
             <a href="./client-orders.html">Mes commandes</a>
             <a href="./client-profile.html">Profil</a>
@@ -177,6 +177,11 @@
               </div>
             </section>
 
+            <section id="client-catalog-context-strip" class="catalog-context-strip" hidden>
+              <article id="client-catalog-event-card" class="catalog-context-card catalog-context-card-event"></article>
+              <article id="client-catalog-dish-card" class="catalog-context-card catalog-context-card-dish"></article>
+            </section>
+
             <div class="panel client-panel catalog-panel">
               <div class="section-head">
                 <div>
@@ -184,6 +189,17 @@
                   <p>Recherche rapide, categories et ajout direct au panier.</p>
                 </div>
                 <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
+              </div>
+
+              <div id="client-selected-location-bar" class="catalog-location-inline" hidden>
+                <strong id="client-selected-location-name">Menu de succursale</strong>
+                <a href="./succursales.html">Changer de succursale</a>
+              </div>
+
+              <div id="client-products-branch-required" class="empty-state" hidden>
+                <h3>Choisis d'abord un point chaud</h3>
+                <p>Sélectionne une succursale pour voir uniquement les produits disponibles dans ce point chaud.</p>
+                <a class="btn btn-primary" href="./succursales.html">Choisir une succursale</a>
               </div>
 
               <div class="filters catalog-filters">
@@ -231,6 +247,7 @@
           <nav class="admin-nav">
             <a href="./dashboard-admin.html">Dashboard</a>
             <a class="active" href="./products.html">Produits</a>
+            <a href="./promotions.html">Promotions</a>
             <a href="./orders-pending.html">Commandes</a>
             <a href="./deliveries.html">Livraisons</a>
             <a href="./cashier.html">Caisse & scan</a>

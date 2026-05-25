@@ -104,6 +104,68 @@ const WEEKLY_PRODUCT_PLAN = [
   }
 ];
 
+const BRANCH_WEEKDAY_LABELS = {
+  monday: "Lundi",
+  tuesday: "Mardi",
+  wednesday: "Mercredi",
+  thursday: "Jeudi",
+  friday: "Vendredi",
+  saturday: "Samedi",
+  sunday: "Dimanche"
+};
+
+let branchMarketingPromise = null;
+
+async function loadBranchMarketingContent() {
+  if (branchMarketingPromise) return branchMarketingPromise;
+
+  branchMarketingPromise = apiRequest("/products/marketing")
+    .then(data => {
+      if (data?.currentEvent) {
+        CURRENT_EVENT.badge = "Événement actuel";
+        CURRENT_EVENT.title = data.currentEvent.title || CURRENT_EVENT.title;
+        CURRENT_EVENT.period = data.currentEvent.period_label || CURRENT_EVENT.period;
+        CURRENT_EVENT.price = data.currentEvent.price_label || CURRENT_EVENT.price;
+        CURRENT_EVENT.description = data.currentEvent.description || CURRENT_EVENT.description;
+        CURRENT_EVENT.image = data.currentEvent.image || CURRENT_EVENT.image;
+      }
+
+      if (Array.isArray(data?.upcomingEvents) && data.upcomingEvents.length) {
+        UPCOMING_EVENTS.length = 0;
+        UPCOMING_EVENTS.push(
+          ...data.upcomingEvents
+            .filter(event => event.is_active)
+            .map((event, index) => ({
+              badge: index === 0 ? "Bientôt" : "À venir",
+              title: event.title || "Événement",
+              period: event.period_label || "À confirmer",
+              price: event.price_label || "15$",
+              description: event.description || "Offre en préparation."
+            }))
+        );
+      }
+
+      if (Array.isArray(data?.dailySpecials) && data.dailySpecials.length) {
+        WEEKLY_PRODUCT_PLAN.length = 0;
+        WEEKLY_PRODUCT_PLAN.push(
+          ...data.dailySpecials.map(item => ({
+            dayKey: item.weekday,
+            dayLabel: BRANCH_WEEKDAY_LABELS[item.weekday] || item.weekday,
+            title: item.product?.name || "Plat du jour",
+            fallbackProductName: item.product?.name || "Plat du jour",
+            product: item.product || null,
+            is_active: item.is_active !== false
+          }))
+        );
+      }
+
+      return data;
+    })
+    .catch(() => null);
+
+  return branchMarketingPromise;
+}
+
 function getHaitiWeekdayKey() {
   return new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Port-au-Prince",
@@ -151,7 +213,7 @@ function getWeekPlan(products) {
 
   return rotated.map(item => ({
     ...item,
-    product: findProductByName(products, item.fallbackProductName || item.title)
+    product: item.product || findProductByName(products, item.fallbackProductName || item.title)
   }));
 }
 
@@ -160,6 +222,36 @@ function buildBranchMenuUrl(location) {
     location_id: String(location.id)
   });
   return `./products.html?${params.toString()}`;
+}
+
+function showClientBranchSelectorView() {
+  const sessionUser = storage.user;
+  if (!sessionUser || sessionUser.role !== "client") {
+    return false;
+  }
+
+  const publicShell = document.getElementById("branch-selector-public-shell");
+  const clientShell = document.getElementById("branch-selector-client-shell");
+  const contentRoot = document.getElementById("branch-selector-main-content");
+  const clientMount = document.getElementById("client-branch-selector-mount");
+  if (!clientShell || !contentRoot || !clientMount) {
+    return false;
+  }
+
+  if (publicShell) {
+    publicShell.style.display = "none";
+  }
+
+  clientShell.style.display = "block";
+  clientMount.appendChild(contentRoot);
+  document.body.classList.add("client-body");
+  document.body.dataset.clientPage = "branches";
+
+  if (typeof window.initClientShell === "function") {
+    window.initClientShell();
+  }
+
+  return true;
 }
 
 function rememberSelectedLocation(location) {
@@ -292,6 +384,7 @@ async function renderBranchSelectorPage() {
   if (!document.body.classList.contains("branch-selector-page")) return;
 
   try {
+    await loadBranchMarketingContent();
     const catalog = await apiRequest("/products");
     const products = Array.isArray(catalog.products) ? catalog.products : [];
     const locations = Array.isArray(catalog.locations) ? catalog.locations : [];
@@ -309,5 +402,6 @@ async function renderBranchSelectorPage() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  showClientBranchSelectorView();
   renderBranchSelectorPage();
 });

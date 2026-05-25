@@ -17,7 +17,7 @@
           <div class="client-logo-mark">PC</div>
           <div>
             <strong>Point Chaud</strong>
-            <p>Commande & récupération</p>
+            <p>Commande & recuperation</p>
           </div>
           <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
         </div>
@@ -32,12 +32,12 @@
 
         <nav class="client-sidebar-nav">
           <a href="./dashboard-client.html">Accueil</a>
-          <a href="./client-products.html">Produits</a>
+          <a href="./succursales.html">Produits</a>
           <a href="./client-orders.html">Mes commandes</a>
           <a href="./client-cart.html">Panier</a>
           <a class="active" href="./checkout.html">Passer commande</a>
           <a href="./client-profile.html">Profil</a>
-          <button type="button" onclick="logout()">Déconnexion</button>
+          <button type="button" onclick="logout()">Deconnexion</button>
         </nav>
       </aside>
 
@@ -45,7 +45,6 @@
         <header class="client-topbar">
           <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
           <div>
-            <p class="admin-eyebrow">Commande client</p>
             <h1>Passer une commande</h1>
           </div>
           <div class="client-topbar-tools">
@@ -53,7 +52,7 @@
               <div data-client-avatar class="client-topbar-avatar">CL</div>
               <div>
                 <strong data-client-name>Client</strong>
-                <small data-client-phone>Téléphone non renseigné</small>
+                <small data-client-phone>Telephone non renseigne</small>
               </div>
             </div>
           </div>
@@ -61,7 +60,18 @@
 
         <section class="client-main-content">
         <div id="checkout-message" class="message-box"></div>
-        
+          <section class="panel client-checkout-hero">
+            <div>
+              <h1>Passer une commande</h1>
+              <p>
+                Finalise ici ton retrait ou ta livraison. Le paiement ne sera propose qu'apres validation du manager.
+              </p>
+              <div class="catalog-location-inline" data-client-location-wrap hidden>
+                <strong data-client-location-name>Succursale active</strong>
+                <a href="./succursales.html">Changer</a>
+              </div>
+            </div>
+        </section>
 
         <div class="checkout-grid client-checkout-grid">
           <div class="stack client-checkout-side">
@@ -69,13 +79,12 @@
               <div class="section-head">
                 <div>
                   <h3>Panier actuel</h3>
-                  <p>Résumé rapide avant d'envoyer la commande.</p>
+                  <p>Resume rapide avant d'envoyer la commande.</p>
                 </div>
               </div>
               <div id="checkout-cart-preview"></div>
             </article>
 
-            
           </div>
 
           <article class="panel client-checkout-form-panel">
@@ -115,20 +124,20 @@
               <div id="delivery-fields" class="client-payment-grid" style="display: none;">
                 <label style="grid-column: 1 / -1;">
                   Adresse de livraison
-                  <textarea id="delivery_address" name="delivery_address" placeholder="Rue, zone, repère utile pour le livreur"></textarea>
+                  <textarea id="delivery_address" name="delivery_address" placeholder="Rue, zone, repere utile pour le livreur"></textarea>
                 </label>
                 <label>
                   Zone / repere
-                  <input name="delivery_zone" placeholder="Ex: Delmas 75, près de..." />
+                  <input name="delivery_zone" placeholder="Ex: Delmas 75, pres de..." />
                 </label>
                 <div class="client-meta-item">
-                  <strong>Frais estimés</strong>
+                  <strong>Frais estimes</strong>
                   <small id="delivery-fee-preview">Aucun frais de livraison pour un retrait sur place.</small>
                 </div>
               </div>
               <label>
                 Notes
-                <textarea name="notes" placeholder="Ex: sans piment, récupération pour 16h30"></textarea>
+                <textarea name="notes" placeholder="Ex: sans piment, recuperation pour 16h30"></textarea>
               </label>
               <button class="btn-primary" type="button" onclick="return submitCheckoutOrderForm(event)">
                 Envoyer la commande

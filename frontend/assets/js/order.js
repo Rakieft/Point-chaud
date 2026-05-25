@@ -9,6 +9,23 @@ async function getClientSessionUser() {
   return requireAuth(["client"]);
 }
 
+function showClientProductsView() {
+  const sessionUser = storage.user || readSession()?.user;
+  if (!sessionUser || sessionUser.role !== "client") return false;
+
+  const publicView = document.getElementById("public-products-view");
+  const clientView = document.getElementById("client-products-view");
+  const adminView = document.getElementById("admin-products-view");
+  if (!clientView) return false;
+
+  if (publicView) publicView.style.display = "none";
+  if (adminView) adminView.style.display = "none";
+  clientView.style.display = "block";
+  document.body.classList.add("client-body");
+  document.body.dataset.clientPage = "products";
+  return true;
+}
+
 function getHaitiNowSnapshot() {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Port-au-Prince",
@@ -180,16 +197,12 @@ function renderClientStats(orders, notifications) {
     order => order.status === "awaiting_payment" && (!order.payment_proof || order.payment_status === "rejected")
   ).length;
   const readyOrders = orders.filter(order => order.status === "paid").length;
-  const totalSpent = orders
-    .filter(order => ["paid", "completed"].includes(order.status))
-    .reduce((sum, order) => sum + Number(order.total || 0), 0);
 
   const cards = [
     ["Commandes totales", orders.length, "Historique complet de tes commandes"],
     ["En attente", pendingValidation, "Le manager n'a pas encore valide"],
     ["Paiements a faire", awaitingPayment, "Tu peux payer ces commandes"],
-    ["Commandes pretes", readyOrders, "QR code disponible pour recuperation"],
-    ["Total confirme", formatMoney(totalSpent), "Montant des commandes deja confirmees"]
+    ["Commandes pretes", readyOrders, "QR code disponible pour recuperation"]
   ];
 
   container.innerHTML = cards
@@ -263,7 +276,7 @@ function renderClientDashboardHighlights(orders, notifications) {
         text: notifications.length
           ? "Aucune action urgente. Tu peux consulter tes notifications ou lancer une nouvelle commande."
           : "Aucune action urgente. Tu peux commencer une nouvelle commande quand tu veux.",
-        href: "./client-products.html"
+        href: "./succursales.html"
       });
     }
 
@@ -483,6 +496,9 @@ function renderCatalog(products, options = {}) {
                       data-id="${product.id}"
                       data-name="${encodeURIComponent(product.name)}"
                       data-price="${product.price}"
+                      data-stock="${Number(product.stock || 0)}"
+                      data-location-id="${selectedLocationId || ""}"
+                      data-location-name="${encodeURIComponent(options.locationName || "")}"
                       ${Number(product.stock || 0) <= 0 ? "disabled aria-disabled=\"true\"" : ""}>
                       ${Number(product.stock || 0) <= 0 ? "Indisponible" : "Ajouter au panier"}
                     </button>`
@@ -498,14 +514,28 @@ function renderCatalog(products, options = {}) {
     container.querySelectorAll(".add-to-cart-btn").forEach(button => {
       button.addEventListener("click", () => {
         if (button.disabled || button.getAttribute("aria-disabled") === "true") {
-          showToast("Ce produit est actuellement en rupture de stock.", "warning");
+          if (typeof showCartFeedback === "function") {
+            showCartFeedback("Ce produit est actuellement en rupture de stock.", "warning");
+          }
           return;
         }
-        addToCart({
+        const response = addToCart({
           id: Number(button.dataset.id),
           name: decodeURIComponent(button.dataset.name),
-          price: Number(button.dataset.price)
+          price: Number(button.dataset.price),
+          stock: Number(button.dataset.stock || 0),
+          max_stock: Number(button.dataset.stock || 0),
+          location_id: Number(button.dataset.locationId || 0),
+          location_name: decodeURIComponent(button.dataset.locationName || "")
         });
+
+        if (!response?.ok) {
+          if (resultsNote) {
+            resultsNote.textContent = response.message;
+          }
+          return;
+        }
+
         updateCartSummary();
 
         if (resultsNote) {
@@ -842,6 +872,52 @@ if (Array.isArray(CATALOG_WEEKLY_DISHES)) {
   CATALOG_WEEKLY_DISHES.push(...cleanWeeklyDishes);
 }
 
+const CATALOG_WEEKDAY_LABELS = {
+  monday: "Lundi",
+  tuesday: "Mardi",
+  wednesday: "Mercredi",
+  thursday: "Jeudi",
+  friday: "Vendredi",
+  saturday: "Samedi",
+  sunday: "Dimanche"
+};
+
+let catalogMarketingPromise = null;
+
+async function loadCatalogMarketingContent() {
+  if (catalogMarketingPromise) return catalogMarketingPromise;
+
+  catalogMarketingPromise = apiRequest("/products/marketing")
+    .then(data => {
+      if (data?.currentEvent) {
+        CATALOG_CURRENT_EVENT.badge = "Événement du moment";
+        CATALOG_CURRENT_EVENT.title = data.currentEvent.title || CATALOG_CURRENT_EVENT.title;
+        CATALOG_CURRENT_EVENT.price = data.currentEvent.price_label || CATALOG_CURRENT_EVENT.price || "15$";
+        CATALOG_CURRENT_EVENT.text = data.currentEvent.description || CATALOG_CURRENT_EVENT.text;
+        CATALOG_CURRENT_EVENT.image = data.currentEvent.image || CATALOG_CURRENT_EVENT.image;
+      }
+
+      if (Array.isArray(data?.dailySpecials) && data.dailySpecials.length) {
+        CATALOG_WEEKLY_DISHES.length = 0;
+        CATALOG_WEEKLY_DISHES.push(
+          ...data.dailySpecials.map(item => ({
+            dayKey: item.weekday,
+            dayLabel: CATALOG_WEEKDAY_LABELS[item.weekday] || item.weekday,
+            title: item.product?.name || "Plat du jour",
+            fallbackProductName: item.product?.name || "Plat du jour",
+            aliases: item.product?.name ? [] : [],
+            product: item.product || null
+          }))
+        );
+      }
+
+      return data;
+    })
+    .catch(() => null);
+
+  return catalogMarketingPromise;
+}
+
 function normalizeCatalogText(value) {
   return String(value || "")
     .normalize("NFD")
@@ -860,10 +936,20 @@ function matchesCatalogDishName(productName, dish) {
   return candidates.some(candidate => candidate === normalizedProductName);
 }
 
-function renderCatalogContextStrip(products, locationName = "") {
-  const strip = document.getElementById("catalog-context-strip");
-  const eventCard = document.getElementById("catalog-event-card");
-  const dishCard = document.getElementById("catalog-dish-card");
+function renderCatalogContextStripByIds(
+  {
+    stripId,
+    eventCardId,
+    dishCardId,
+    eventActionId = "catalog-event-action",
+    dishActionId = "catalog-dish-action"
+  },
+  products,
+  locationName = ""
+) {
+  const strip = document.getElementById(stripId);
+  const eventCard = document.getElementById(eventCardId);
+  const dishCard = document.getElementById(dishCardId);
   if (!strip || !eventCard || !dishCard) return null;
 
   const weekdayKey = getCatalogHaitiWeekdayKey();
@@ -871,6 +957,7 @@ function renderCatalogContextStrip(products, locationName = "") {
     CATALOG_WEEKLY_DISHES.find(item => item.dayKey === weekdayKey) ||
     CATALOG_WEEKLY_DISHES[0];
   const relatedProduct =
+    dish?.product ||
     products.find(product => matchesCatalogDishName(product.name, dish)) ||
     products.find(product => normalizeCatalogText(product.name).includes(normalizeCatalogText(dish.title)));
 
@@ -884,7 +971,7 @@ function renderCatalogContextStrip(products, locationName = "") {
     <h3>${CATALOG_CURRENT_EVENT.title}</h3>
     <strong class="branch-event-price">${CATALOG_CURRENT_EVENT.price || "15$"}</strong>
     <p>${locationName ? `${CATALOG_CURRENT_EVENT.text} \u00e0 ${locationName}.` : CATALOG_CURRENT_EVENT.text}</p>
-    <button class="btn btn-light btn-sm" type="button" id="catalog-event-action">Voir l'offre</button>
+    <button class="btn btn-light btn-sm" type="button" id="${eventActionId}">Voir l'offre</button>
   `;
 
   dishCard.innerHTML = `
@@ -892,7 +979,7 @@ function renderCatalogContextStrip(products, locationName = "") {
     <small>${dish.dayLabel}</small>
     <h3>${dish.title}</h3>
     <strong>${relatedProduct ? formatMoney(relatedProduct.price) : "Prix du jour"}</strong>
-    <button class="btn btn-light btn-sm" type="button" id="catalog-dish-action">Voir le plat</button>
+    <button class="btn btn-light btn-sm" type="button" id="${dishActionId}">Voir le plat</button>
   `;
 
   return {
@@ -901,9 +988,37 @@ function renderCatalogContextStrip(products, locationName = "") {
   };
 }
 
-function applyPublicCatalogPreset({ searchText = "", categoryName = "" } = {}) {
-  const searchInput = document.getElementById("product-search");
-  const categorySelect = document.getElementById("category-filter");
+function renderCatalogContextStrip(products, locationName = "") {
+  return renderCatalogContextStripByIds(
+    {
+      stripId: "catalog-context-strip",
+      eventCardId: "catalog-event-card",
+      dishCardId: "catalog-dish-card",
+      eventActionId: "catalog-event-action",
+      dishActionId: "catalog-dish-action"
+    },
+    products,
+    locationName
+  );
+}
+
+function renderClientCatalogContextStrip(products, locationName = "") {
+  return renderCatalogContextStripByIds(
+    {
+      stripId: "client-catalog-context-strip",
+      eventCardId: "client-catalog-event-card",
+      dishCardId: "client-catalog-dish-card",
+      eventActionId: "client-catalog-event-action",
+      dishActionId: "client-catalog-dish-action"
+    },
+    products,
+    locationName
+  );
+}
+
+function applyCatalogPreset({ searchId, categoryId, searchText = "", categoryName = "" } = {}) {
+  const searchInput = document.getElementById(searchId);
+  const categorySelect = document.getElementById(categoryId);
 
   if (categorySelect && categoryName) {
     categorySelect.value = categoryName;
@@ -914,6 +1029,24 @@ function applyPublicCatalogPreset({ searchText = "", categoryName = "" } = {}) {
     searchInput.value = searchText;
     searchInput.dispatchEvent(new Event("input", { bubbles: true }));
   }
+}
+
+function applyPublicCatalogPreset({ searchText = "", categoryName = "" } = {}) {
+  applyCatalogPreset({
+    searchId: "product-search",
+    categoryId: "category-filter",
+    searchText,
+    categoryName
+  });
+}
+
+function applyClientCatalogPreset({ searchText = "", categoryName = "" } = {}) {
+  applyCatalogPreset({
+    searchId: "client-product-search",
+    categoryId: "client-category-filter",
+    searchText,
+    categoryName
+  });
 }
 
 async function renderClientOrdersPage() {
@@ -947,19 +1080,103 @@ async function renderClientProductsPage() {
   const user = await getClientSessionUser();
   if (!user) return;
 
-    try {
-      const catalog = await apiRequest("/products");
-      renderCatalog(catalog.products, {
-        categories: catalog.categories,
-        gridId: "client-products-grid",
-        searchId: "client-product-search",
-        categoryId: "client-category-filter",
+  const branchRequiredCard = document.getElementById("client-products-branch-required");
+  const clientLocationBar = document.getElementById("client-selected-location-bar");
+  const clientLocationNameEl = document.getElementById("client-selected-location-name");
+  const clientContextStrip = document.getElementById("client-catalog-context-strip");
+  const clientResultsCount = document.getElementById("client-results-count");
+  const clientResultsNote = document.getElementById("client-results-note");
+  const clientCategoryChips = document.getElementById("client-category-chips");
+  const clientCatalogControls = [
+    document.getElementById("client-product-search"),
+    document.getElementById("client-category-filter"),
+    document.getElementById("client-product-sort")
+  ].filter(Boolean);
+
+  try {
+    await loadCatalogMarketingContent();
+    const params = new URLSearchParams(window.location.search);
+    const locationId = Number(params.get("location_id") || 0);
+    if (!locationId) {
+      clientCatalogControls.forEach(control => {
+        control.disabled = true;
+      });
+      if (branchRequiredCard) branchRequiredCard.hidden = false;
+      if (clientLocationBar) clientLocationBar.hidden = true;
+      if (clientContextStrip) clientContextStrip.hidden = true;
+      if (clientCategoryChips) clientCategoryChips.innerHTML = "";
+      container.innerHTML = "";
+      if (clientResultsCount) clientResultsCount.textContent = "0 produit";
+      if (clientResultsNote) clientResultsNote.textContent = "Choisis une succursale pour voir le menu disponible.";
+      return;
+    }
+
+    const endpoint = locationId ? `/products?location_id=${locationId}` : "/products";
+    const catalog = await apiRequest(endpoint);
+    const selectedLocation = Array.isArray(catalog.locations)
+      ? catalog.locations.find(location => Number(location.id) === locationId)
+      : null;
+
+    if (!selectedLocation) {
+      clientCatalogControls.forEach(control => {
+        control.disabled = true;
+      });
+      if (branchRequiredCard) branchRequiredCard.hidden = false;
+      if (clientLocationBar) clientLocationBar.hidden = true;
+      if (clientContextStrip) clientContextStrip.hidden = true;
+      container.innerHTML = "";
+      if (clientResultsCount) clientResultsCount.textContent = "0 produit";
+      if (clientResultsNote) clientResultsNote.textContent = "Succursale introuvable. Choisis un autre point chaud.";
+      return;
+    }
+
+    if (selectedLocation) {
+      localStorage.setItem("pointchaud_selected_location_id", String(selectedLocation.id));
+      localStorage.setItem("pointchaud_selected_location_name", selectedLocation.name || "");
+    }
+
+    if (branchRequiredCard) branchRequiredCard.hidden = true;
+    clientCatalogControls.forEach(control => {
+      control.disabled = false;
+    });
+
+    renderCatalog(catalog.products, {
+      categories: catalog.categories,
+      gridId: "client-products-grid",
+      searchId: "client-product-search",
+      categoryId: "client-category-filter",
       sortId: "client-product-sort",
       chipsId: "client-category-chips",
       resultsCountId: "client-results-count",
       resultsNoteId: "client-results-note",
       cartCountId: "client-cart-count",
-      cartTotalId: "client-cart-total"
+      cartTotalId: "client-cart-total",
+      locationId,
+      locationName: selectedLocation.name,
+      availableOnly: Boolean(selectedLocation)
+    });
+
+    const clientCatalogContext = renderClientCatalogContextStrip(catalog.products, selectedLocation.name || "");
+
+    if (clientLocationBar && clientLocationNameEl) {
+      clientLocationBar.hidden = false;
+      clientLocationNameEl.textContent = `Menu de ${selectedLocation.name}`;
+    }
+
+    if (clientResultsNote) {
+      clientResultsNote.textContent = `Produits disponibles à ${selectedLocation.name}.`;
+    }
+
+    document.getElementById("client-catalog-event-action")?.addEventListener("click", () => {
+      applyClientCatalogPreset({
+        categoryName: clientCatalogContext?.eventCategory || "Burger & Sandwich"
+      });
+    });
+
+    document.getElementById("client-catalog-dish-action")?.addEventListener("click", () => {
+      applyClientCatalogPreset({
+        searchText: clientCatalogContext?.dishSearch || ""
+      });
     });
   } catch (error) {
     showMessage("dashboard-message", "error", error.message);
@@ -1577,17 +1794,12 @@ function renderClientOrders(container, orders, bankAccounts) {
       (order.order_type === "pickup" ||
         ["pending_assignment", "assigned", "out_for_delivery", "return_to_branch", "delivered"].includes(order.delivery_status))
   ).length;
-  const confirmedTotal = orders
-    .filter(order => ["paid", "completed"].includes(order.status))
-    .reduce((sum, order) => sum + Number(order.total || 0), 0);
-
   if (summaryContainer) {
     const stats = [
       ["Total commandes", orders.length, "Toutes tes commandes depuis la creation du compte"],
       ["En cours", activeOrders.length, "Validation, paiement, preparation ou livraison"],
       ["Paiement requis", paymentPendingOrders, "Commandes validees qui attendent ton paiement"],
-      ["Pretes / confirmees", readyOrders, "QR, livraison en preparation ou confirmation client en attente"],
-      ["Montant confirme", formatMoney(confirmedTotal), "Total des commandes deja confirmees"]
+      ["Pretes / confirmees", readyOrders, "QR, livraison en preparation ou confirmation client en attente"]
     ];
 
     summaryContainer.innerHTML = stats
@@ -1795,14 +2007,33 @@ async function handleCheckoutOrderSubmit(event) {
 
   const cart = getCart();
   const selectedLocationId = Number(locationSelect?.value || 0);
+  const cartLocationLock = getCartLocationLock(cart);
 
   if (!cart.length) {
     showMessage("checkout-message", "error", "Ajoute d'abord au moins un produit dans le panier.");
     return false;
   }
 
+  if (cartLocationLock.hasConflict) {
+    showMessage(
+      "checkout-message",
+      "error",
+      "Le panier contient des produits de succursales differentes. Vide le panier puis recommence avec un seul point chaud."
+    );
+    return false;
+  }
+
   if (!selectedLocationId) {
     showMessage("checkout-message", "error", "Choisis une succursale avant d'envoyer la commande.");
+    return false;
+  }
+
+  if (cartLocationLock.locationId && cartLocationLock.locationId !== selectedLocationId) {
+    showMessage(
+      "checkout-message",
+      "error",
+      "Cette commande est liee a une autre succursale. Reprends la commande depuis le bon point chaud."
+    );
     return false;
   }
 
@@ -1832,6 +2063,7 @@ async function handleCheckoutOrderSubmit(event) {
 
     const formData = new FormData(orderForm);
     const payload = Object.fromEntries(formData.entries());
+    payload.location_id = String(cartLocationLock.locationId || selectedLocationId || "");
     payload.items = cart.map(item => ({
       product_id: item.product_id,
       quantity: Number(item.quantity)
@@ -1858,6 +2090,23 @@ function submitCheckoutOrderForm(event) {
   event?.preventDefault?.();
   void handleCheckoutOrderSubmit(event);
   return false;
+}
+
+function getCartLocationLock(cartItems = []) {
+  const uniqueLocationIds = [...new Set(cartItems.map(item => Number(item.location_id || 0)).filter(Boolean))];
+  if (!uniqueLocationIds.length) {
+    return { locationId: 0, locationName: "", hasConflict: false };
+  }
+
+  const locationId = uniqueLocationIds[0];
+  const locationName =
+    cartItems.find(item => Number(item.location_id || 0) === locationId)?.location_name || "";
+
+  return {
+    locationId,
+    locationName,
+    hasConflict: uniqueLocationIds.length > 1
+  };
 }
 
 async function renderCheckoutPage() {
@@ -1887,13 +2136,14 @@ async function renderCheckoutPage() {
   const paymentProofInput = document.getElementById("payment-proof-input");
   const paymentProofFileName = document.getElementById("payment-proof-file-name");
   let checkoutCatalog = null;
+  const deliveryFee = 500;
 
   const renderPaymentTarget = order => {
     if (!paymentTargetCopy || !paymentOrderTotal || !paymentOrderSchedule) return;
 
     if (!order) {
       paymentTargetCopy.textContent = "Aucune commande de paiement n'a encore ete choisie.";
-      paymentOrderTotal.textContent = "Le total exact s'affichera ici des qu'une commande sera ciblee.";
+      paymentOrderTotal.textContent = "Le total exact a transferer s'affichera ici des qu'une commande sera ciblee.";
       paymentOrderSchedule.textContent = "Retrait ou livraison, puis heure prevue.";
       return;
     }
@@ -1902,8 +2152,69 @@ async function renderCheckoutPage() {
       order.order_type === "delivery"
         ? `Commande livraison pour ${order.customer_name} - ${order.delivery_address || "adresse a confirmer"}.`
         : `Commande retrait a ${order.location_name} pour ${order.customer_name}.`;
-    paymentOrderTotal.textContent = `${formatMoney(order.total)} a regler avant verification du staff.`;
+    paymentOrderTotal.textContent =
+      order.order_type === "delivery"
+        ? `Total a transferer: ${formatMoney(order.total)} (frais de livraison inclus: ${formatMoney(
+            Number(order.delivery_fee || 0)
+          )}).`
+        : `Total a transferer: ${formatMoney(order.total)}.`;
     paymentOrderSchedule.textContent = `${order.order_type === "delivery" ? "Livraison" : "Retrait"} prevu(e) le ${formatDateTime(order.pickup_date, order.pickup_time)}.`;
+  };
+
+  const renderCheckoutCartPreview = () => {
+    if (!cartPreview) return;
+
+    const cart = getCart();
+    const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const totalItems = cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const isDelivery = orderTypeSelect?.value === "delivery";
+    const currentDeliveryFee = isDelivery ? deliveryFee : 0;
+    const grandTotal = itemsTotal + currentDeliveryFee;
+
+    cartPreview.innerHTML = cart.length
+      ? cart
+          .map(
+            item => `
+              <article class="line-item client-checkout-cart-item">
+                <div>
+                  <strong>${item.name}</strong>
+                  <small>${item.quantity} article${Number(item.quantity) > 1 ? "s" : ""}</small>
+                </div>
+                <span>${formatMoney(item.price * item.quantity)}</span>
+              </article>
+            `
+          )
+          .join("") +
+        `
+          <article class="line-item client-checkout-cart-total">
+            <div>
+              <strong>Sous-total produits</strong>
+              <small>${totalItems} article${totalItems > 1 ? "s" : ""}</small>
+            </div>
+            <span class="price">${formatMoney(itemsTotal)}</span>
+          </article>
+          ${
+            isDelivery
+              ? `
+                <article class="line-item client-checkout-cart-total">
+                  <div>
+                    <strong>Frais de livraison</strong>
+                    <small>Ajoutes automatiquement au paiement</small>
+                  </div>
+                  <span class="price">${formatMoney(currentDeliveryFee)}</span>
+                </article>
+              `
+              : ""
+          }
+          <article class="line-item client-checkout-cart-total">
+            <div>
+              <strong>Total a transferer apres validation</strong>
+              <small>${isDelivery ? "Livraison incluse" : "Retrait sur place"}</small>
+            </div>
+            <span class="price">${formatMoney(grandTotal)}</span>
+          </article>
+        `
+      : `<div class="empty-state"><p>Le panier est vide.</p></div>`;
   };
 
   const renderCheckoutLocationStock = () => {
@@ -1944,8 +2255,10 @@ async function renderCheckoutPage() {
 
     if (locationSelect) {
       const locations = Array.isArray(catalog.locations) ? catalog.locations : [];
+      const cartLocationLock = getCartLocationLock(getCart());
       const preferredLocationId = Number(
-        new URLSearchParams(window.location.search).get("location_id") ||
+        cartLocationLock.locationId ||
+          new URLSearchParams(window.location.search).get("location_id") ||
           localStorage.getItem("pointchaud_selected_location_id") ||
           0
       );
@@ -1967,10 +2280,15 @@ async function renderCheckoutPage() {
         } else if (!locationSelect.value && locations[0]) {
           locationSelect.value = String(locations[0].id);
         }
+
+        if (cartLocationLock.locationId) {
+          locationSelect.value = String(cartLocationLock.locationId);
+          locationSelect.disabled = true;
+        } else {
+          locationSelect.disabled = false;
+        }
       }
     }
-
-    const deliveryFee = 500;
 
     const syncDeliveryFields = () => {
       const isDelivery = orderTypeSelect?.value === "delivery";
@@ -1982,9 +2300,10 @@ async function renderCheckoutPage() {
       }
       if (deliveryFeePreview && locationSelect) {
         deliveryFeePreview.textContent = isDelivery
-          ? `Frais de livraison fixes: ${formatMoney(deliveryFee)}.`
+          ? `Frais de livraison fixes: ${formatMoney(deliveryFee)}. Ce montant sera ajoute au total a transferer.`
           : "Aucun frais de livraison pour un retrait sur place.";
       }
+      renderCheckoutCartPreview();
     };
 
     orderTypeSelect?.addEventListener("change", syncDeliveryFields);
@@ -2012,35 +2331,7 @@ async function renderCheckoutPage() {
     showMessage("checkout-message", "error", error.message);
   }
 
-  if (cartPreview) {
-    const cart = getCart();
-    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const totalItems = cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-    cartPreview.innerHTML = cart.length
-      ? cart
-          .map(
-            item => `
-              <article class="line-item client-checkout-cart-item">
-                <div>
-                  <strong>${item.name}</strong>
-                  <small>${item.quantity} article${Number(item.quantity) > 1 ? "s" : ""}</small>
-                </div>
-                <span>${formatMoney(item.price * item.quantity)}</span>
-              </article>
-            `
-          )
-          .join("") +
-        `
-          <article class="line-item client-checkout-cart-total">
-            <div>
-              <strong>Total commande</strong>
-              <small>${totalItems} article${totalItems > 1 ? "s" : ""}</small>
-            </div>
-            <span class="price">${formatMoney(total)}</span>
-          </article>
-        `
-      : `<div class="empty-state"><p>Le panier est vide.</p></div>`;
-  }
+  renderCheckoutCartPreview();
 
   if (paymentProofInput && paymentProofFileName) {
     paymentProofInput.addEventListener("change", () => {
@@ -2101,9 +2392,16 @@ async function renderCheckoutPage() {
 }
 
 async function renderPublicCatalogPage() {
-  if (!document.getElementById("products-grid") || document.getElementById("client-name")) return;
+  if (
+    !document.getElementById("products-grid") ||
+    document.getElementById("client-name") ||
+    document.getElementById("public-products-view")?.style.display === "none"
+  ) {
+    return;
+  }
 
   try {
+    await loadCatalogMarketingContent();
     const params = new URLSearchParams(window.location.search);
     const storedLocationId = Number(localStorage.getItem("pointchaud_selected_location_id") || 0);
     const locationId = Number(params.get("location_id") || storedLocationId || 0);
@@ -2123,6 +2421,7 @@ async function renderPublicCatalogPage() {
     renderCatalog(catalog.products, {
       categories: catalog.categories,
       locationId,
+      locationName: selectedLocation?.name || "",
       availableOnly: Boolean(selectedLocation)
     });
 
@@ -2199,8 +2498,8 @@ async function renderClientProfilePage() {
     }
     if (contactSummary) {
       contactSummary.textContent = profile.phone
-        ? `${profile.email || "Email non renseigne"} • ${profile.phone}`
-        : `${profile.email || "Email non renseigne"} • Telephone a completer`;
+        ? `${profile.email || "Email non renseigne"} - ${profile.phone}`
+        : `${profile.email || "Email non renseigne"} - Telephone a completer`;
     }
   } catch (error) {
     showMessage("profile-message", "error", error.message);
@@ -2232,6 +2531,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const clientNotificationsButton = document.getElementById("client-notifications-button");
   clientNotificationsButton?.addEventListener("click", openClientNotificationsModal);
 
+  showClientProductsView();
   renderPublicCatalogPage();
   renderClientDashboard();
   renderClientOrdersPage();

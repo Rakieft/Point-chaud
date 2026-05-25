@@ -1,19 +1,74 @@
+function getCartStockLimit(item) {
+  const limit = Number(item?.max_stock ?? item?.available_stock ?? item?.stock ?? 0);
+  return Number.isFinite(limit) && limit > 0 ? limit : 0;
+}
+
+function showCartFeedback(message, type = "warning") {
+  if (typeof showMessage === "function" && document.getElementById("cart-feedback")) {
+    showMessage("cart-feedback", type, message);
+    return;
+  }
+
+  if (typeof window.showToast === "function") {
+    window.showToast(message, type);
+    return;
+  }
+
+  window.alert(message);
+}
+
 function addToCart(product) {
   const cart = getCart();
-  const existingItem = cart.find(item => item.product_id === product.id);
+  const nextLocationId = Number(product.location_id || 0);
+  const nextLocationName = String(product.location_name || "").trim();
+  const nextMaxStock = Number(product.max_stock ?? product.available_stock ?? product.stock ?? 0);
+
+  if (
+    nextLocationId &&
+    cart.some(item => Number(item.location_id || 0) && Number(item.location_id || 0) !== nextLocationId)
+  ) {
+    return {
+      ok: false,
+      message: "Ton panier contient deja des produits d'une autre succursale. Termine d'abord cette commande ou vide le panier."
+    };
+  }
+
+  const existingItem = cart.find(
+    item => item.product_id === product.id && Number(item.location_id || 0) === nextLocationId
+  );
 
   if (existingItem) {
+    const limit = nextMaxStock || getCartStockLimit(existingItem);
+    if (limit > 0 && existingItem.quantity >= limit) {
+      return {
+        ok: false,
+        message: `Stock maximum atteint pour ${product.name}${nextLocationName ? ` a ${nextLocationName}` : ""}.`
+      };
+    }
+
     existingItem.quantity += 1;
+    existingItem.max_stock = limit || existingItem.max_stock || 0;
   } else {
+    if (nextMaxStock <= 0) {
+      return {
+        ok: false,
+        message: `${product.name} est actuellement indisponible dans cette succursale.`
+      };
+    }
+
     cart.push({
       product_id: product.id,
       name: product.name,
       price: Number(product.price),
-      quantity: 1
+      quantity: 1,
+      location_id: nextLocationId || null,
+      location_name: nextLocationName || "",
+      max_stock: nextMaxStock
     });
   }
 
   saveCart(cart);
+  return { ok: true };
 }
 
 function removeFromCart(productId) {
@@ -23,10 +78,21 @@ function removeFromCart(productId) {
 }
 
 function updateCartQuantity(productId, quantity) {
+  const requestedQuantity = Math.max(0, Number(quantity || 0));
   const cart = getCart()
     .map(item => {
       if (item.product_id === productId) {
-        return { ...item, quantity: Number(quantity) };
+        const limit = getCartStockLimit(item);
+        const safeQuantity = limit > 0 ? Math.min(requestedQuantity, limit) : requestedQuantity;
+
+        if (limit > 0 && requestedQuantity > limit) {
+          showCartFeedback(
+            `Tu ne peux pas depasser ${limit} article${limit > 1 ? "s" : ""} pour ${item.name} dans cette succursale.`,
+            "warning"
+          );
+        }
+
+        return { ...item, quantity: safeQuantity };
       }
 
       return item;
@@ -65,9 +131,14 @@ function renderCartPage() {
           <strong>${item.name}</strong>
           <span>${formatMoney(item.price)} x ${item.quantity}</span>
           <div class="inline-fields">
-            <input type="number" min="1" value="${item.quantity}" onchange="updateCartQuantity(${item.product_id}, this.value)" />
+            <input type="number" min="1" ${getCartStockLimit(item) > 0 ? `max="${getCartStockLimit(item)}"` : ""} value="${item.quantity}" onchange="updateCartQuantity(${item.product_id}, this.value)" />
             <button class="btn-danger" onclick="removeFromCart(${item.product_id})">Retirer</button>
           </div>
+          ${
+            getCartStockLimit(item) > 0
+              ? `<small>Maximum pour cette succursale : ${getCartStockLimit(item)}</small>`
+              : ""
+          }
         </div>
       `
     )

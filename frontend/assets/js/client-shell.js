@@ -30,9 +30,18 @@ function bindClientMenu() {
   const overlay = document.getElementById("client-sidebar-overlay");
   const closeBtn = document.getElementById("client-menu-close");
 
-  toggle?.addEventListener("click", openClientMenu);
-  overlay?.addEventListener("click", closeClientMenu);
-  closeBtn?.addEventListener("click", closeClientMenu);
+  if (toggle && toggle.dataset.clientMenuBound !== "true") {
+    toggle.addEventListener("click", openClientMenu);
+    toggle.dataset.clientMenuBound = "true";
+  }
+  if (overlay && overlay.dataset.clientMenuBound !== "true") {
+    overlay.addEventListener("click", closeClientMenu);
+    overlay.dataset.clientMenuBound = "true";
+  }
+  if (closeBtn && closeBtn.dataset.clientMenuBound !== "true") {
+    closeBtn.addEventListener("click", closeClientMenu);
+    closeBtn.dataset.clientMenuBound = "true";
+  }
 }
 
 function navigateToClientProfile() {
@@ -59,60 +68,62 @@ function bindClientProfileShortcuts() {
   });
 }
 
-let clientShellInitPromise = null;
+function syncClientSelectedLocation() {
+  const selectedLocationName = (localStorage.getItem("pointchaud_selected_location_name") || "").trim();
+  document.querySelectorAll("[data-client-location-wrap]").forEach(element => {
+    element.hidden = !selectedLocationName;
+  });
+  document.querySelectorAll("[data-client-location-name]").forEach(element => {
+    element.textContent = selectedLocationName || "Succursale active";
+  });
+}
 
 async function initClientShell() {
   if (!document.body.classList.contains("client-body")) return null;
 
-  if (clientShellInitPromise) {
-    return clientShellInitPromise;
-  }
+  const user = requireAuth(["client"]);
+  if (!user) return null;
 
-  clientShellInitPromise = (async () => {
-    const user = requireAuth(["client"]);
-    if (!user) {
-      clientShellInitPromise = null;
-      return null;
-    }
+  const nameElements = document.querySelectorAll("[data-client-name]");
+  const emailElements = document.querySelectorAll("[data-client-email]");
+  const phoneElements = document.querySelectorAll("[data-client-phone]");
+  const avatarElements = document.querySelectorAll("[data-client-avatar]");
 
-    const nameElements = document.querySelectorAll("[data-client-name]");
-    const emailElements = document.querySelectorAll("[data-client-email]");
-    const phoneElements = document.querySelectorAll("[data-client-phone]");
-    const avatarElements = document.querySelectorAll("[data-client-avatar]");
-
-    nameElements.forEach(element => {
-      element.textContent = user.name || "Client";
-    });
-    emailElements.forEach(element => {
-      element.textContent = user.email || "";
-    });
-  phoneElements.forEach(element => {
-      element.textContent = user.phone || "Téléphone non renseigné";
+  nameElements.forEach(element => {
+    element.textContent = user.name || "Client";
   });
-    avatarElements.forEach(element => {
-      element.textContent = getClientInitials(user.name);
+  emailElements.forEach(element => {
+    element.textContent = user.email || "";
+  });
+  phoneElements.forEach(element => {
+    element.textContent = user.phone || "Telephone non renseigne";
+  });
+  avatarElements.forEach(element => {
+    element.textContent = getClientInitials(user.name);
+  });
+
+  bindClientMenu();
+  bindClientProfileShortcuts();
+  syncClientSelectedLocation();
+  document.querySelectorAll(".client-sidebar-nav a").forEach(link => {
+    if (link.dataset.clientNavBound === "true") return;
+    link.addEventListener("click", () => {
+      if (window.innerWidth <= 980) {
+        closeClientMenu();
+      }
     });
+    link.dataset.clientNavBound = "true";
+  });
 
-    bindClientMenu();
-    bindClientProfileShortcuts();
-    document.querySelectorAll(".client-sidebar-nav a").forEach(link => {
-      if (link.dataset.clientMenuBound === "true") return;
-      link.dataset.clientMenuBound = "true";
-      link.addEventListener("click", () => {
-        if (window.innerWidth <= 980) {
-          closeClientMenu();
-        }
-      });
-    });
-
-    return user;
-  })();
-
-  return clientShellInitPromise;
+  return user;
 }
 
 window.initClientShell = initClientShell;
 
-document.addEventListener("DOMContentLoaded", () => {
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    initClientShell();
+  });
+} else {
   initClientShell();
-});
+}

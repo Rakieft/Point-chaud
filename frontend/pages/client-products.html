@@ -2,118 +2,14 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="refresh" content="0; url=./succursales.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Produits Client | Point Chaud</title>
-    <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
-    <link rel="shortcut icon" href="../assets/images/logo-point.png" />
-    <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
-    <link rel="stylesheet" href="../assets/css/style.css" />
+    <title>Produits client | Point Chaud</title>
   </head>
-  <body class="client-body" data-client-page="products">
-    <div id="client-sidebar-overlay" class="client-sidebar-overlay"></div>
-    <div class="client-layout">
-      <aside id="client-sidebar" class="client-sidebar">
-        <div class="client-sidebar-head">
-          <div class="client-logo-mark">PC</div>
-          <div>
-            <strong>Point Chaud</strong>
-            <p>Commande & récupération</p>
-          </div>
-          <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
-        </div>
-
-        <div class="client-sidebar-user">
-          <div data-client-avatar class="client-profile-avatar">CL</div>
-          <div class="stack-sm">
-            <strong data-client-name>Client</strong>
-            <small data-client-email>email</small>
-          </div>
-        </div>
-
-        <nav class="client-sidebar-nav">
-          <a href="./dashboard-client.html">Accueil</a>
-          <a class="active" href="./client-products.html">Produits</a>
-          <a href="./client-cart.html">Panier</a>
-          <a href="./client-orders.html">Mes commandes</a>
-          <a href="./client-profile.html">Profil</a>
-          <button type="button" onclick="logout()">Déconnexion</button>
-        </nav>
-      </aside>
-
-      <main class="client-main">
-        <header class="client-topbar">
-          <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
-          <div>
-            <p class="admin-eyebrow">Produits</p>
-            <h1>Catalogue Point Chaud</h1>
-          </div>
-          <div class="client-topbar-user">
-            <div data-client-avatar class="client-topbar-avatar">CL</div>
-            <div>
-              <strong data-client-name>Client</strong>
-              <small data-client-phone>Téléphone non renseigné</small>
-            </div>
-          </div>
-        </header>
-
-        <section class="client-main-content">
-          <section class="catalog-hero client-catalog-hero">
-            <div class="catalog-hero-copy">
-              <span class="badge client-badge">Sélection rapide</span>
-              <h2>Compose ton panier sans perdre de temps.</h2>
-              <p>Retrouve facilement les catégories les plus commandées et ajoute tes produits favoris.</p>
-            </div>
-            <div class="catalog-hero-side">
-              <div class="catalog-mini-summary">
-                <small>Mon panier</small>
-                <strong id="client-cart-count">0 article</strong>
-                <span id="client-cart-total">0,00 HTG</span>
-                <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
-              </div>
-            </div>
-          </section>
-
-          <div class="panel client-panel catalog-panel">
-            <div class="section-head">
-              <div>
-                <h2>Choisir des produits</h2>
-                <p>Recherche rapide, catégories et ajout direct au panier.</p>
-              </div>
-              <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
-            </div>
-
-            <div class="filters catalog-filters">
-              <input id="client-product-search" type="search" placeholder="Rechercher un produit" />
-              <select id="client-category-filter">
-                  <option value="">Toutes les catégories</option>
-              </select>
-              <select id="client-product-sort">
-                <option value="featured">Trier: suggestions</option>
-                <option value="price-asc">Prix croissant</option>
-                  <option value="price-desc">Prix décroissant</option>
-                <option value="name-asc">Nom A-Z</option>
-                <option value="stock-desc">Plus disponibles</option>
-              </select>
-            </div>
-
-            <div id="client-category-chips" class="category-chips"></div>
-
-            <div class="catalog-toolbar">
-              <div class="catalog-results-copy">
-                <strong id="client-results-count">0 produit</strong>
-                <span id="client-results-note">Catalogue client prêt.</span>
-              </div>
-            </div>
-
-            <div id="client-products-grid" class="catalog-grid catalog-grid-premium"></div>
-          </div>
-        </section>
-      </main>
-    </div>
-
-    <script src="../assets/js/api.js"></script>
-    <script src="../assets/js/cart.js"></script>
-    <script src="../assets/js/client-shell.js"></script>
-    <script src="../assets/js/order.js"></script>
+  <body>
+    <script>
+      window.location.replace(`./succursales.html${window.location.search || ""}`);
+    </script>
+    <p>Redirection vers le choix de la succursale...</p>
   </body>
 </html>

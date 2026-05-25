@@ -294,6 +294,7 @@ function renderQuickLinks(user) {
   const links = [
     ["Commandes a traiter", "./orders-pending.html", "Valider ou ajuster les commandes en attente"],
     ["Commandes validees", "./orders-validated.html", "Voir les commandes payees, retirees ou refusees"],
+    ["Promotions & plats du jour", "./promotions.html", "Mettre a jour l'evenement du moment et le programme de la semaine"],
     ["Livraisons", "./deliveries.html", "Affecter les livreurs et suivre les commandes en livraison"],
     ["Caisse & scan", "./cashier.html", "Douchette, camera QR, scans rapides, file de retrait et journal de caisse"],
     ["Mon profil", "./staff-profile.html", "Modifier le nom, la biographie, l'avatar et le poste"],

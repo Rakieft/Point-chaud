@@ -85,6 +85,39 @@ async function run() {
     `);
   }
 
+  if (!(await tableExists("promotions"))) {
+    await db.query(`
+      CREATE TABLE promotions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(150) NOT NULL,
+        price_label VARCHAR(50) NULL,
+        description TEXT NULL,
+        image VARCHAR(255) NULL,
+        period_label VARCHAR(120) NULL,
+        kind ENUM('current', 'upcoming') DEFAULT 'upcoming',
+        start_date DATE NULL,
+        end_date DATE NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        sort_order INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  }
+
+  if (!(await tableExists("daily_specials"))) {
+    await db.query(`
+      CREATE TABLE daily_specials (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        weekday ENUM('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday') NOT NULL,
+        product_id INT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uk_daily_specials_weekday (weekday),
+        CONSTRAINT fk_daily_specials_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+      )
+    `);
+  }
+
   if (!(await tableExists("product_stocks"))) {
     await db.query(`
       CREATE TABLE product_stocks (
@@ -300,6 +333,72 @@ async function run() {
       `,
       [name, email, password, phone, locationId, email]
     );
+  }
+
+  const [[promotionCountRow]] = await db.query("SELECT COUNT(*) AS total FROM promotions");
+  if (Number(promotionCountRow.total) === 0) {
+    await db.query(
+      `
+        INSERT INTO promotions (title, price_label, description, image, period_label, kind, is_active, sort_order)
+        VALUES
+        (?, ?, ?, ?, ?, 'current', TRUE, 1),
+        (?, ?, ?, NULL, ?, 'upcoming', TRUE, 1),
+        (?, ?, ?, NULL, ?, 'upcoming', TRUE, 2),
+        (?, ?, ?, NULL, ?, 'upcoming', TRUE, 3)
+      `,
+      [
+        "Burger Week",
+        "15$",
+        "Les burgers stars sont en avant cette semaine.",
+        "../assets/images/home/burger-week-promo.png",
+        "En cours cette semaine",
+        "Wing & Things",
+        "15$",
+        "Wings, frites et boissons pour les commandes de fin de semaine.",
+        "Vendredi soir",
+        "Midi Express",
+        "15$",
+        "Offres rapides sur les plats chauds pour booster les pauses déjeuner.",
+        "La semaine prochaine",
+        "Matin Point Chaud",
+        "15$",
+        "Pain chaud, pâtés et boissons chaudes dans une offre petit-déjeuner.",
+        "Prochain lancement"
+      ]
+    );
+  }
+
+  const [[dailySpecialCountRow]] = await db.query("SELECT COUNT(*) AS total FROM daily_specials");
+  if (Number(dailySpecialCountRow.total) === 0) {
+    const fallbackTitlesByDay = {
+      monday: "Diri lalo",
+      tuesday: "Sòs pwa ak diri blan",
+      wednesday: "Legim ak diri",
+      thursday: "Diri kole ak poul",
+      friday: "Griot ak bannann peze",
+      saturday: "Tasso kabrit ak diri dyondyon",
+      sunday: "Bouillon haïtien"
+    };
+
+    const weekdays = Object.keys(fallbackTitlesByDay);
+    for (const weekday of weekdays) {
+      const fallbackTitle = fallbackTitlesByDay[weekday];
+      const [rows] = await db.query(
+        `
+          SELECT p.id
+          FROM products p
+          WHERE LOWER(p.name) = LOWER(?)
+          LIMIT 1
+        `,
+        [fallbackTitle]
+      );
+
+      const productId = rows[0]?.id || null;
+      await db.query(
+        "INSERT INTO daily_specials (weekday, product_id, is_active) VALUES (?, ?, TRUE)",
+        [weekday, productId]
+      );
+    }
   }
 
   console.log("Migration terminee");

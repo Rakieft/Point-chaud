@@ -53,6 +53,83 @@ async function categoryExists(categoryId) {
   return rows.length > 0;
 }
 
+const DAILY_SPECIAL_WEEKDAYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday"
+];
+
+async function fetchPromotions(kind) {
+  const [rows] = await db.query(
+    `
+      SELECT id, title, price_label, description, image, period_label, kind, start_date, end_date, is_active, sort_order
+      FROM promotions
+      WHERE kind = ?
+      ORDER BY is_active DESC, sort_order ASC, id ASC
+    `,
+    [kind]
+  );
+
+  return rows.map(row => ({
+    ...row,
+    is_active: Boolean(row.is_active)
+  }));
+}
+
+async function fetchDailySpecials() {
+  const [rows] = await db.query(
+    `
+      SELECT
+        ds.id,
+        ds.weekday,
+        ds.product_id,
+        ds.is_active,
+        p.name AS product_name,
+        p.price AS product_price,
+        p.image AS product_image,
+        c.name AS category_name
+      FROM daily_specials ds
+      LEFT JOIN products p ON p.id = ds.product_id
+      LEFT JOIN categories c ON c.id = p.category_id
+      ORDER BY FIELD(ds.weekday, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')
+    `
+  );
+
+  return rows.map(row => ({
+    ...row,
+    is_active: Boolean(row.is_active),
+    product: row.product_id
+      ? {
+          id: Number(row.product_id),
+          name: row.product_name,
+          price: Number(row.product_price || 0),
+          image: row.product_image || "",
+          category_name: row.category_name || ""
+        }
+      : null
+  }));
+}
+
+async function buildMarketingPayload() {
+  const [currentPromotions, upcomingPromotions, dailySpecials] = await Promise.all([
+    fetchPromotions("current"),
+    fetchPromotions("upcoming"),
+    fetchDailySpecials()
+  ]);
+
+  const currentEvent = currentPromotions.find(item => item.is_active) || currentPromotions[0] || null;
+
+  return {
+    currentEvent,
+    upcomingEvents: upcomingPromotions,
+    dailySpecials
+  };
+}
+
 exports.getCatalog = async (req, res) => {
   try {
     const locationId = req.query.location_id ? Number(req.query.location_id) : null;
@@ -99,6 +176,219 @@ exports.getCatalog = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Impossible de recuperer le catalogue", error: error.message });
+  }
+};
+
+exports.getMarketingContent = async (req, res) => {
+  try {
+    const data = await buildMarketingPayload();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de recuperer les contenus marketing", error: error.message });
+  }
+};
+
+exports.getMarketingAdmin = async (req, res) => {
+  try {
+    const marketing = await buildMarketingPayload();
+    const [products] = await db.query(
+      `
+        SELECT
+          p.id,
+          p.name,
+          p.price,
+          p.image,
+          c.name AS category_name
+        FROM products p
+        LEFT JOIN categories c ON c.id = p.category_id
+        ORDER BY c.name, p.name
+      `
+    );
+
+    res.json({
+      ...marketing,
+      products: products.map(product => ({
+        ...product,
+        price: Number(product.price || 0)
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de recuperer la gestion marketing", error: error.message });
+  }
+};
+
+exports.saveCurrentPromotion = async (req, res) => {
+  const {
+    id,
+    title,
+    price_label,
+    description,
+    image,
+    period_label,
+    start_date,
+    end_date,
+    is_active
+  } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ message: "Le titre de l'evenement est obligatoire" });
+  }
+
+  try {
+    const payload = [
+      title,
+      price_label || null,
+      description || null,
+      image || null,
+      period_label || null,
+      start_date || null,
+      end_date || null,
+      is_active === false || is_active === "false" ? 0 : 1
+    ];
+
+    if (id) {
+      await db.query(
+        `
+          UPDATE promotions
+          SET title = ?, price_label = ?, description = ?, image = ?, period_label = ?, start_date = ?, end_date = ?, is_active = ?
+          WHERE id = ? AND kind = 'current'
+        `,
+        [...payload, id]
+      );
+    } else {
+      const [existingRows] = await db.query("SELECT id FROM promotions WHERE kind = 'current' ORDER BY id ASC LIMIT 1");
+      if (existingRows.length) {
+        await db.query(
+          `
+            UPDATE promotions
+            SET title = ?, price_label = ?, description = ?, image = ?, period_label = ?, start_date = ?, end_date = ?, is_active = ?
+            WHERE id = ?
+          `,
+          [...payload, existingRows[0].id]
+        );
+      } else {
+        await db.query(
+          `
+            INSERT INTO promotions (title, price_label, description, image, period_label, start_date, end_date, is_active, kind, sort_order)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'current', 1)
+          `,
+          payload
+        );
+      }
+    }
+
+    const data = await buildMarketingPayload();
+    res.json({ message: "Evenement du moment mis a jour", ...data });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de mettre a jour l'evenement du moment", error: error.message });
+  }
+};
+
+exports.createUpcomingPromotion = async (req, res) => {
+  const { title, price_label, description, image, period_label, start_date, end_date, is_active, sort_order } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ message: "Le titre de l'evenement est obligatoire" });
+  }
+
+  try {
+    await db.query(
+      `
+        INSERT INTO promotions (title, price_label, description, image, period_label, start_date, end_date, is_active, kind, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'upcoming', ?)
+      `,
+      [
+        title,
+        price_label || null,
+        description || null,
+        image || null,
+        period_label || null,
+        start_date || null,
+        end_date || null,
+        is_active === false || is_active === "false" ? 0 : 1,
+        Number(sort_order || 0)
+      ]
+    );
+
+    const data = await buildMarketingPayload();
+    res.status(201).json({ message: "Evenement a venir ajoute", ...data });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible d'ajouter l'evenement", error: error.message });
+  }
+};
+
+exports.updateUpcomingPromotion = async (req, res) => {
+  const { title, price_label, description, image, period_label, start_date, end_date, is_active, sort_order } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ message: "Le titre de l'evenement est obligatoire" });
+  }
+
+  try {
+    await db.query(
+      `
+        UPDATE promotions
+        SET title = ?, price_label = ?, description = ?, image = ?, period_label = ?, start_date = ?, end_date = ?, is_active = ?, sort_order = ?
+        WHERE id = ? AND kind = 'upcoming'
+      `,
+      [
+        title,
+        price_label || null,
+        description || null,
+        image || null,
+        period_label || null,
+        start_date || null,
+        end_date || null,
+        is_active === false || is_active === "false" ? 0 : 1,
+        Number(sort_order || 0),
+        req.params.id
+      ]
+    );
+
+    const data = await buildMarketingPayload();
+    res.json({ message: "Evenement a venir mis a jour", ...data });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de modifier l'evenement", error: error.message });
+  }
+};
+
+exports.deleteUpcomingPromotion = async (req, res) => {
+  try {
+    await db.query("DELETE FROM promotions WHERE id = ? AND kind = 'upcoming'", [req.params.id]);
+    const data = await buildMarketingPayload();
+    res.json({ message: "Evenement supprime", ...data });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de supprimer l'evenement", error: error.message });
+  }
+};
+
+exports.saveDailySpecials = async (req, res) => {
+  const entries = Array.isArray(req.body?.entries) ? req.body.entries : [];
+
+  try {
+    for (const weekday of DAILY_SPECIAL_WEEKDAYS) {
+      const row = entries.find(item => String(item.weekday) === weekday) || {};
+      const productId = row.product_id ? Number(row.product_id) : null;
+      const isActive = row.is_active === false || row.is_active === "false" ? 0 : 1;
+
+      const [existingRows] = await db.query("SELECT id FROM daily_specials WHERE weekday = ? LIMIT 1", [weekday]);
+      if (existingRows.length) {
+        await db.query(
+          "UPDATE daily_specials SET product_id = ?, is_active = ? WHERE id = ?",
+          [productId, isActive, existingRows[0].id]
+        );
+      } else {
+        await db.query(
+          "INSERT INTO daily_specials (weekday, product_id, is_active) VALUES (?, ?, ?)",
+          [weekday, productId, isActive]
+        );
+      }
+    }
+
+    const data = await buildMarketingPayload();
+    res.json({ message: "Plats du jour mis a jour", ...data });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de mettre a jour les plats du jour", error: error.message });
   }
 };
 

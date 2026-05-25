@@ -109,6 +109,15 @@ app.get("/api/public-config", (req, res) => {
     whatsappMessage: hasConfiguredValue(process.env.WHATSAPP_MESSAGE)
       ? process.env.WHATSAPP_MESSAGE
       : "Bonjour Point Chaud, je veux plus d'informations.",
+    whatsappBranches: {
+      route_freres: hasConfiguredValue(process.env.WHATSAPP_ROUTE_FRERES_NUMBER)
+        ? process.env.WHATSAPP_ROUTE_FRERES_NUMBER
+        : "",
+      petion_ville: hasConfiguredValue(process.env.WHATSAPP_PETION_VILLE_NUMBER)
+        ? process.env.WHATSAPP_PETION_VILLE_NUMBER
+        : "",
+      delmas: hasConfiguredValue(process.env.WHATSAPP_DELMAS_NUMBER) ? process.env.WHATSAPP_DELMAS_NUMBER : ""
+    },
     instagramUrl: hasConfiguredValue(process.env.INSTAGRAM_URL) ? process.env.INSTAGRAM_URL : "",
     tiktokUrl: hasConfiguredValue(process.env.TIKTOK_URL) ? process.env.TIKTOK_URL : ""
   });

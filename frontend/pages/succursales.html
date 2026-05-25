@@ -10,117 +10,166 @@
     <link rel="stylesheet" href="../assets/css/style.css" />
   </head>
   <body class="landing-page branch-selector-page">
-    <header class="topbar landing-topbar">
-      <div class="container topbar-inner">
-        <a class="brand" href="./index.html">POINT CHAUD</a>
-        <button
-          id="landing-menu-toggle"
-          class="landing-menu-toggle"
-          type="button"
-          aria-expanded="false"
-          aria-controls="landing-nav"
-          aria-label="Ouvrir le menu">
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-        <nav id="landing-nav" class="nav-links landing-nav">
-          <a href="./index.html">Accueil</a>
-          <a href="./succursales.html">Menu</a>
-          <a href="#evenements-point-chaud">Événements</a>
-          <a href="#plat-du-jour-point-chaud">Plat du jour</a>
-          <a href="./login.html">Connexion</a>
-        </nav>
+    <div id="branch-selector-public-shell">
+      <header class="topbar landing-topbar">
+        <div class="container topbar-inner">
+          <a class="brand" href="./index.html">POINT CHAUD</a>
+          <button
+            id="landing-menu-toggle"
+            class="landing-menu-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="landing-nav"
+            aria-label="Ouvrir le menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <nav id="landing-nav" class="nav-links landing-nav">
+            <a href="./index.html">Accueil</a>
+            <a href="./succursales.html">Menu</a>
+            <a href="#evenements-point-chaud">Événements</a>
+            <a href="#plat-du-jour-point-chaud">Plat du jour</a>
+            <a href="./login.html">Connexion</a>
+          </nav>
+        </div>
+      </header>
+
+      <main id="branch-selector-main-content">
+        <section class="section branch-selector-section">
+          <div class="container">
+            <div class="section-head home-section-head">
+              <div>
+                <h2>Choisir une succursale</h2>
+                <p>Le client sélectionne son point chaud avant de parcourir le menu.</p>
+              </div>
+            </div>
+            <div id="branch-selection-grid" class="branch-selection-grid"></div>
+          </div>
+        </section>
+
+        <section id="evenements-point-chaud" class="section branch-events-section">
+          <div class="container">
+            <div class="section-head home-section-head">
+              <div>
+                <h2>Événements du moment</h2>
+                <p>Ce qui tourne maintenant, puis ce qui arrive ensuite dans un affichage vertical plus dynamique.</p>
+              </div>
+            </div>
+
+            <div class="branch-events-layout">
+              <article id="branch-current-event-card" class="branch-current-event-card"></article>
+
+              <aside class="branch-upcoming-panel">
+                <div class="branch-upcoming-head">
+                  <span class="badge">À venir</span>
+                  <h3>Événements à surveiller</h3>
+                </div>
+                <div class="branch-upcoming-viewport">
+                  <div id="branch-upcoming-events-track" class="branch-upcoming-events-track"></div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </section>
+
+        <section id="plat-du-jour-point-chaud" class="section branch-daily-section">
+          <div class="container">
+            <div class="section-head home-section-head">
+              <div>
+                <h2>Plat du jour & semaine gourmande</h2>
+                <p>Le plat du jour s’affiche en grand, puis le reste de la semaine reste visible juste en dessous.</p>
+              </div>
+            </div>
+
+            <div class="branch-daily-layout">
+              <article id="dish-of-the-day-card" class="dish-of-the-day-card"></article>
+              <div class="week-menu-panel panel">
+                <div class="week-menu-head">
+                  <span class="badge">Semaine</span>
+                  <h3>Le reste de la semaine</h3>
+                </div>
+                <div id="week-menu-grid" class="week-menu-grid"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer id="footer-point-chaud" class="footer-pro home-footer-pro">
+        <div class="container footer-grid">
+          <div>
+            <h3>Point Chaud</h3>
+            <p>Commande en ligne, menu local et récupération plus simple pour chaque client.</p>
+          </div>
+          <div>
+            <h4>Navigation</h4>
+            <ul>
+              <li><a href="./index.html">Accueil</a></li>
+              <li><a href="./succursales.html">Choisir un point chaud</a></li>
+              <li><a href="./login.html">Connexion</a></li>
+            </ul>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <div id="branch-selector-client-shell" style="display:none;">
+      <div id="client-sidebar-overlay" class="client-sidebar-overlay"></div>
+      <div class="client-layout">
+        <aside id="client-sidebar" class="client-sidebar">
+          <div class="client-sidebar-head">
+            <div class="client-logo-mark">PC</div>
+            <div>
+              <strong>Point Chaud</strong>
+              <p>Commande & recuperation</p>
+            </div>
+            <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
+          </div>
+
+          <div class="client-sidebar-user">
+            <div data-client-avatar class="client-profile-avatar">CL</div>
+            <div class="stack-sm">
+              <strong data-client-name>Client</strong>
+              <small data-client-email>email</small>
+            </div>
+          </div>
+
+          <nav class="client-sidebar-nav">
+            <a href="./dashboard-client.html">Accueil</a>
+            <a class="active" href="./succursales.html">Produits</a>
+            <a href="./client-orders.html">Mes commandes</a>
+            <a href="./client-cart.html">Panier</a>
+            <a href="./client-profile.html">Profil</a>
+            <button type="button" onclick="logout()">Deconnexion</button>
+          </nav>
+        </aside>
+
+        <main class="client-main">
+          <header class="client-topbar">
+            <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
+            <div>
+              <p class="admin-eyebrow">Produits</p>
+              <h1>Choisir une succursale</h1>
+            </div>
+            <div class="client-topbar-user">
+              <div data-client-avatar class="client-topbar-avatar">CL</div>
+              <div>
+                <strong data-client-name>Client</strong>
+                <small data-client-phone>Telephone non renseigne</small>
+              </div>
+            </div>
+          </header>
+
+          <section class="client-main-content">
+            <div id="client-branch-selector-mount"></div>
+          </section>
+        </main>
       </div>
-    </header>
-
-    <main>
-      <!-- <section class="section branch-selector-hero-section">
-        <div class="container branch-selector-hero-grid">
-          <div class="branch-selector-copy">
-            <span class="hero-pill">Choisir avant de commander</span>
-            <h1>Dans quel Point Chaud veux-tu acheter aujourd’hui&nbsp;?</h1>
-            <p>
-              Sélectionne d’abord ta succursale. Tu verras ensuite uniquement le menu réellement disponible
-              dans ce point chaud, avec les bons produits et le bon stock.
-            </p>
-            <div class="hero-highlights branch-selector-highlights">
-              <span>Menu filtré par succursale</span>
-              <span>Produits disponibles seulement</span>
-              <span>Commande plus claire pour le client</span>
-            </div>
-          </div>
-
-          <div class="branch-selector-side-card panel">
-            <small>Parcours recommandé</small>
-            <strong>Choisis le point chaud</strong>
-            <p>Consulte les événements du moment, le plat du jour, puis entre directement dans le menu local.</p>
-            <a class="btn btn-primary" href="#branch-selection-grid">Voir les succursales</a>
-          </div>
-        </div>
-      </section> -->
-
-      <section class="section branch-selector-section">
-        <div class="container">
-          <div class="section-head home-section-head">
-            <div>
-              <h2>Choisir une succursale</h2>
-              
-            </div>
-          </div>
-          <div id="branch-selection-grid" class="branch-selection-grid"></div>
-        </div>
-      </section>
-
-      <section id="evenements-point-chaud" class="section branch-events-section">
-        <div class="container">
-          <div class="section-head home-section-head">
-            <div>
-              <h2 >Événements du moment</h2>
-              
-            </div>
-          </div>
-
-          <div class="branch-events-layout">
-            <article id="branch-current-event-card" class="branch-current-event-card"></article>
-
-            <aside class="branch-upcoming-panel">
-              <div class="branch-upcoming-head">
-                <span class="badge">À venir</span>
-                <h3>Événements à surveiller</h3>
-              </div>
-              <div class="branch-upcoming-viewport">
-                <div id="branch-upcoming-events-track" class="branch-upcoming-events-track"></div>
-              </div>
-            </aside>
-          </div>
-        </div>
-      </section>
-
-      <section id="plat-du-jour-point-chaud" class="section branch-daily-section">
-        <div class="container">
-          <div class="section-head home-section-head">
-            <div>
-              <h2>Plat du jour & semaine gourmande</h2>
-              
-            </div>
-          </div>
-
-          <div class="branch-daily-layout">
-            <article id="dish-of-the-day-card" class="dish-of-the-day-card"></article>
-            <div class="week-menu-panel panel">
-              <div class="week-menu-head">
-                <span class="badge">Semaine</span>
-                <h3>Le reste de la semaine</h3>
-              </div>
-              <div id="week-menu-grid" class="week-menu-grid"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
+    </div>
 
     <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/client-shell.js"></script>
     <script src="../assets/js/branch-selector.js"></script>
   </body>
 </html>

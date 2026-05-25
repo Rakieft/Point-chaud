@@ -64,6 +64,11 @@ const SUPPORT_CONFIG = {
     window.POINT_CHAUD_WHATSAPP_MESSAGE ||
     document.documentElement.dataset.whatsappMessage ||
     "Bonjour Point Chaud, je veux plus d'informations.",
+  whatsappBranches: {
+    route_freres: "",
+    petion_ville: "",
+    delmas: ""
+  },
   instagramUrl: window.POINT_CHAUD_INSTAGRAM_URL || document.documentElement.dataset.instagramUrl || "",
   tiktokUrl: window.POINT_CHAUD_TIKTOK_URL || document.documentElement.dataset.tiktokUrl || ""
 };
@@ -399,10 +404,138 @@ function shouldShowWhatsAppSupport() {
   return allowedPages.has(currentPageName());
 }
 
-function buildWhatsAppUrl() {
-  const phone = String(SUPPORT_CONFIG.whatsappNumber || "").replace(/\D/g, "");
-  const text = encodeURIComponent(SUPPORT_CONFIG.whatsappMessage || "Bonjour Point Chaud");
+function buildWhatsAppUrl(phoneNumber = SUPPORT_CONFIG.whatsappNumber, message = SUPPORT_CONFIG.whatsappMessage) {
+  const phone = String(phoneNumber || "").replace(/\D/g, "");
+  const text = encodeURIComponent(message || "Bonjour Point Chaud");
   return `https://wa.me/${phone}?text=${text}`;
+}
+
+function normalizeBranchKey(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+const WHATSAPP_BRANCH_OPTIONS = [
+  { key: "route_freres", label: "Route Freres" },
+  { key: "petion_ville", label: "Petion-Ville" },
+  { key: "delmas", label: "Delmas" }
+];
+
+function getPreferredWhatsAppBranchKey() {
+  const storedName = localStorage.getItem("pointchaud_selected_location_name") || "";
+  const normalized = normalizeBranchKey(storedName);
+  return WHATSAPP_BRANCH_OPTIONS.some(option => option.key === normalized) ? normalized : "";
+}
+
+function getBranchWhatsAppNumber(branchKey) {
+  const branchNumber = SUPPORT_CONFIG.whatsappBranches?.[branchKey];
+  const cleanedBranchNumber = String(branchNumber || "").replace(/\D/g, "");
+  if (cleanedBranchNumber) return cleanedBranchNumber;
+  return String(SUPPORT_CONFIG.whatsappNumber || "").replace(/\D/g, "");
+}
+
+function buildBranchWhatsAppMessage(branchLabel) {
+  const base = String(SUPPORT_CONFIG.whatsappMessage || "Bonjour Point Chaud, je veux plus d'informations.").trim();
+  return `${base} Succursale: ${branchLabel}.`;
+}
+
+function hasAnyWhatsAppChannel() {
+  const generic = String(SUPPORT_CONFIG.whatsappNumber || "").replace(/\D/g, "");
+  if (generic) return true;
+
+  return WHATSAPP_BRANCH_OPTIONS.some(option =>
+    Boolean(String(SUPPORT_CONFIG.whatsappBranches?.[option.key] || "").replace(/\D/g, ""))
+  );
+}
+
+function ensureWhatsAppBranchPopover() {
+  let popover = document.getElementById("whatsapp-branch-popover");
+  if (popover) return popover;
+
+  popover = document.createElement("div");
+  popover.id = "whatsapp-branch-popover";
+  popover.className = "whatsapp-branch-popover hidden";
+  popover.innerHTML = `
+    <div class="whatsapp-branch-popover-head">
+      <div class="whatsapp-branch-popover-copy">
+        <strong>Choisir un point chaud</strong>
+        <small>Sélectionne la succursale à contacter.</small>
+      </div>
+      <button class="whatsapp-branch-popover-close" type="button" data-whatsapp-branch-close aria-label="Fermer">×</button>
+    </div>
+    <div id="whatsapp-branch-options" class="whatsapp-branch-grid"></div>
+  `;
+
+  document.body.appendChild(popover);
+  popover.querySelector("[data-whatsapp-branch-close]")?.addEventListener("click", closeWhatsAppBranchModal);
+
+  if (!document.body.dataset.whatsappBranchPopoverBound) {
+    document.body.dataset.whatsappBranchPopoverBound = "true";
+
+    document.addEventListener("click", event => {
+      const currentPopover = document.getElementById("whatsapp-branch-popover");
+      const supportButton = document.getElementById("whatsapp-support-button");
+      if (!currentPopover || currentPopover.classList.contains("hidden")) return;
+      if (currentPopover.contains(event.target) || supportButton?.contains(event.target)) return;
+      closeWhatsAppBranchModal();
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        closeWhatsAppBranchModal();
+      }
+    });
+  }
+
+  return popover;
+}
+
+function closeWhatsAppBranchModal() {
+  const popover = document.getElementById("whatsapp-branch-popover");
+  if (!popover) return;
+  popover.classList.add("hidden");
+}
+
+function openWhatsAppBranch(branchKey, branchLabel) {
+  const phone = getBranchWhatsAppNumber(branchKey);
+  if (!phone) return;
+  const url = buildWhatsAppUrl(phone, buildBranchWhatsAppMessage(branchLabel));
+  closeWhatsAppBranchModal();
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function renderWhatsAppBranchOptions() {
+  const container = document.getElementById("whatsapp-branch-options");
+  if (!container) return;
+
+  const preferredKey = getPreferredWhatsAppBranchKey();
+  container.innerHTML = WHATSAPP_BRANCH_OPTIONS.map(option => {
+    const hasSpecificNumber = Boolean(String(SUPPORT_CONFIG.whatsappBranches?.[option.key] || "").replace(/\D/g, ""));
+    const isPreferred = preferredKey === option.key;
+    return `
+      <button class="whatsapp-branch-option${isPreferred ? " is-preferred" : ""}" type="button" data-branch-key="${option.key}" data-branch-label="${option.label}">
+        <strong>${option.label}</strong>
+        <small>${hasSpecificNumber ? "Numero direct" : "Numero general Point Chaud"}</small>
+      </button>
+    `;
+  }).join("");
+
+  container.querySelectorAll(".whatsapp-branch-option").forEach(button => {
+    button.addEventListener("click", () => {
+      openWhatsAppBranch(button.dataset.branchKey, button.dataset.branchLabel);
+    });
+  });
+}
+
+function openWhatsAppBranchModal(event) {
+  event?.preventDefault();
+  const modal = ensureWhatsAppBranchPopover();
+  renderWhatsAppBranchOptions();
+  modal.classList.toggle("hidden");
 }
 
 async function loadPublicConfig() {
@@ -418,6 +551,14 @@ async function loadPublicConfig() {
 
       if (config?.whatsappMessage) {
         SUPPORT_CONFIG.whatsappMessage = config.whatsappMessage;
+      }
+
+      if (config?.whatsappBranches && typeof config.whatsappBranches === "object") {
+        SUPPORT_CONFIG.whatsappBranches = {
+          route_freres: config.whatsappBranches.route_freres || "",
+          petion_ville: config.whatsappBranches.petion_ville || "",
+          delmas: config.whatsappBranches.delmas || ""
+        };
       }
 
       if (config?.instagramUrl) {
@@ -442,15 +583,14 @@ async function injectWhatsAppSupportButton() {
 
   await loadPublicConfig();
 
-  const cleanedPhone = String(SUPPORT_CONFIG.whatsappNumber || "").replace(/\D/g, "");
-  if (!cleanedPhone) {
+  if (!hasAnyWhatsAppChannel()) {
     return;
   }
 
   const anchor = document.createElement("a");
   anchor.id = "whatsapp-support-button";
   anchor.className = "whatsapp-support-button";
-  anchor.href = buildWhatsAppUrl();
+  anchor.href = "#";
   anchor.target = "_blank";
   anchor.rel = "noopener noreferrer";
   anchor.setAttribute("aria-label", "Discuter avec Point Chaud sur WhatsApp");
@@ -467,6 +607,7 @@ async function injectWhatsAppSupportButton() {
     </span>
   `;
 
+  anchor.addEventListener("click", openWhatsAppBranchModal);
   document.body.appendChild(anchor);
 }
 

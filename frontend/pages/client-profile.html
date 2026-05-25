@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Profil Client | Point Chaud</title>
+    <title>Mon profil | Point Chaud</title>
     <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
     <link rel="shortcut icon" href="../assets/images/logo-point.png" />
     <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
@@ -17,7 +17,7 @@
           <div class="client-logo-mark">PC</div>
           <div>
             <strong>Point Chaud</strong>
-            <p>Commande & récupération</p>
+            <p>Commande & recuperation</p>
           </div>
           <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
         </div>
@@ -32,11 +32,11 @@
 
         <nav class="client-sidebar-nav">
           <a href="./dashboard-client.html">Accueil</a>
-          <a href="./client-products.html">Produits</a>
-          <a href="./client-cart.html">Panier</a>
+          <a href="./succursales.html">Produits</a>
           <a href="./client-orders.html">Mes commandes</a>
+          <a href="./client-cart.html">Panier</a>
           <a class="active" href="./client-profile.html">Profil</a>
-          <button type="button" onclick="logout()">Déconnexion</button>
+          <button type="button" onclick="logout()">Deconnexion</button>
         </nav>
       </aside>
 
@@ -44,128 +44,98 @@
         <header class="client-topbar">
           <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
           <div>
-            <p class="admin-eyebrow">Profil</p>
-            <h1>Mon espace client</h1>
+            <p class="admin-eyebrow">Profil client</p>
+            <h1>Mon profil</h1>
           </div>
           <div class="client-topbar-user">
             <div data-client-avatar class="client-topbar-avatar">CL</div>
             <div>
               <strong data-client-name>Client</strong>
-              <small data-client-phone>Téléphone non renseigné</small>
+              <small data-client-phone>Telephone non renseigne</small>
             </div>
           </div>
         </header>
 
         <section class="client-main-content">
           <div id="profile-message" class="message-box"></div>
-          <section class="catalog-hero client-catalog-hero client-profile-hero">
-            <div class="catalog-hero-copy">
-              <span class="badge client-badge">Espace personnel</span>
-              <h2>Garde ton profil clair pour commander plus vite.</h2>
-              <p>
-                Mets à jour tes informations personnelles, ton email de contact et les détails utiles pour
-                simplifier tes prochaines commandes.
-              </p>
-              <div class="hero-highlights">
-                <span>Profil à jour</span>
-                <span>Contact fiable</span>
-                <span>Commande plus rapide</span>
-              </div>
-            </div>
-            <div class="catalog-hero-side">
-              <div class="catalog-mini-summary">
-                <small>Rappel</small>
-                <strong>Un bon profil fait gagner du temps</strong>
-                <span>Nom, email, téléphone et bio aident l'équipe à mieux traiter tes commandes.</span>
-              </div>
+
+          <section class="panel client-panel client-profile-card client-profile-identity">
+            <div data-client-avatar class="client-profile-avatar">CL</div>
+            <div class="client-profile-copy">
+              <strong data-client-name>Client</strong>
+              <p class="client-profile-copy-note">Email non renseigne - Telephone a completer</p>
             </div>
           </section>
 
-          <div class="dashboard-grid client-dashboard-grid">
-            <article class="panel client-panel client-profile-form-card">
+          <div class="dashboard-grid client-dashboard-grid client-profile-hero">
+            <article class="panel client-panel client-profile-summary-card">
               <div class="section-head">
                 <div>
-                  <h2>Mes informations</h2>
-                  <p>Modifie ton nom, ton email, ton téléphone et les informations personnelles utiles.</p>
+                  <h2>Resume</h2>
+                  <p>Retrouve tes informations utiles avant de commander.</p>
                 </div>
               </div>
-
-              <div class="client-profile-card client-profile-identity">
-                <div data-client-avatar class="client-profile-avatar">CL</div>
-                <div class="stack-sm client-profile-copy">
+              <div class="client-profile-summary-hero">
+                <div class="client-profile-summary-copy">
                   <strong data-client-name>Client</strong>
-                  <span data-client-email class="muted">email</span>
-                  <span data-client-phone class="muted">Téléphone non renseigné</span>
-                  <p id="client-profile-bio-preview" class="muted">
-                    Ajoute une courte bio pour aider l'équipe à mieux te reconnaître.
-                  </p>
+                  <p id="client-profile-contact-summary">Email non renseigne - Telephone a completer</p>
+                </div>
+                <div class="client-profile-summary-avatar-wrap">
+                  <div data-client-avatar class="client-profile-avatar">CL</div>
                 </div>
               </div>
-
-              <div class="client-order-summary-grid client-profile-meta-grid">
+              <div class="client-profile-meta-grid client-profile-meta-grid-clean">
                 <div class="client-meta-item">
-                  <small>Nom complet</small>
+                  <small>Nom</small>
                   <strong id="client-profile-summary-name">Client</strong>
                 </div>
                 <div class="client-meta-item">
                   <small>Email</small>
-                  <strong id="client-profile-summary-email">email</strong>
+                  <strong id="client-profile-summary-email">Email non renseigne</strong>
                 </div>
                 <div class="client-meta-item">
-                  <small>Téléphone</small>
-                  <strong id="client-profile-summary-phone">Téléphone non renseigné</strong>
+                  <small>Telephone</small>
+                  <strong id="client-profile-summary-phone">Telephone non renseigne</strong>
                 </div>
                 <div class="client-meta-item">
-                  <small>Role</small>
-                  <strong>Client</strong>
+                  <small>Bio</small>
+                  <strong id="client-profile-bio-summary">Une courte note peut aider l'equipe a mieux te servir.</strong>
+                </div>
+              </div>
+            </article>
+
+            <form id="client-profile-form" class="panel client-panel client-profile-form-card stack">
+              <div class="section-head">
+                <div>
+                  <h2>Modifier mon profil</h2>
+                  <p>Garde tes coordonnees a jour pour faciliter la commande et la livraison.</p>
                 </div>
               </div>
 
-              <form id="client-profile-form" class="admin-staff-form">
-                <label>Nom complet <input name="name" required /></label>
-                <label>Email <input name="email" type="email" required /></label>
-                <label>Téléphone <input name="phone" /></label>
-                <label>Avatar URL <input name="avatar_url" /></label>
-                <label>Mot de passe <input name="password" type="password" placeholder="Laisser vide pour ne pas changer" /></label>
-                <label class="admin-form-span">Biographie <textarea name="bio"></textarea></label>
-                <div class="card-actions admin-form-span">
-                  <button class="btn-primary" type="submit">Mettre a jour mon profil</button>
-                </div>
-              </form>
-            </article>
-
-            <div class="client-side-stack">
-              <article class="panel client-panel client-profile-summary-card">
-                <div class="stack-sm">
-                  <div>
-                    <p class="admin-eyebrow">Vue rapide</p>
-                    <h3>État de ton profil</h3>
-                  </div>
-                  <div class="client-helper-list">
-                    <div class="client-helper-item">
-                      <strong>Contact principal</strong>
-                  <p id="client-profile-contact-summary">Ajoute un email et un téléphone fiables.</p>
-                    </div>
-                    <div class="client-helper-item">
-                      <strong>Biographie</strong>
-                      <p id="client-profile-bio-summary">Une courte note peut aider l'équipe à mieux te servir.</p>
-                    </div>
-                    <div class="client-helper-item client-profile-security">
-                      <strong>Sécurité</strong>
-                      <p>Change ton mot de passe uniquement si nécessaire. Laisse le champ vide sinon.</p>
-                    </div>
-                  </div>
-                </div>
-              </article>
-
-              <article class="panel client-panel">
-                <h3>Navigation rapide</h3>
-                <div class="card-actions">
-                  <a class="btn btn-primary" href="./client-orders.html">Voir mes commandes</a>
-                  <a class="btn btn-light" href="./client-products.html">Commander</a>
-                </div>
-              </article>
-            </div>
+              <label>
+                Nom complet
+                <input name="name" type="text" required />
+              </label>
+              <label>
+                Email
+                <input name="email" type="email" required />
+              </label>
+              <label>
+                Telephone
+                <input name="phone" type="tel" />
+              </label>
+              <label>
+                Lien d'avatar
+                <input name="avatar_url" type="url" placeholder="https://..." />
+              </label>
+              <label>
+                Bio
+                <textarea name="bio" rows="4" placeholder="Une courte note pour ton espace client"></textarea>
+              </label>
+              <div class="card-actions">
+                <button class="btn btn-primary" type="submit">Enregistrer</button>
+              </div>
+            </form>
           </div>
         </section>
       </main>

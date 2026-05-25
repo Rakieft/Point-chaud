@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mes Commandes | Point Chaud</title>
+    <title>Mes commandes | Point Chaud</title>
     <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
     <link rel="shortcut icon" href="../assets/images/logo-point.png" />
     <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
@@ -17,7 +17,7 @@
           <div class="client-logo-mark">PC</div>
           <div>
             <strong>Point Chaud</strong>
-            <p>Commande & récupération</p>
+            <p>Commande & recuperation</p>
           </div>
           <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
         </div>
@@ -32,11 +32,11 @@
 
         <nav class="client-sidebar-nav">
           <a href="./dashboard-client.html">Accueil</a>
-          <a href="./client-products.html">Produits</a>
-          <a href="./client-cart.html">Panier</a>
+          <a href="./succursales.html">Produits</a>
           <a class="active" href="./client-orders.html">Mes commandes</a>
+          <a href="./client-cart.html">Panier</a>
           <a href="./client-profile.html">Profil</a>
-          <button type="button" onclick="logout()">Déconnexion</button>
+          <button type="button" onclick="logout()">Deconnexion</button>
         </nav>
       </aside>
 
@@ -44,53 +44,31 @@
         <header class="client-topbar">
           <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
           <div>
-            <p class="admin-eyebrow">Mes commandes</p>
-            <h1>Historique et paiement</h1>
+            <p class="admin-eyebrow">Suivi client</p>
+            <h1>Mes commandes</h1>
           </div>
           <div class="client-topbar-user">
             <div data-client-avatar class="client-topbar-avatar">CL</div>
             <div>
               <strong data-client-name>Client</strong>
-              <small data-client-phone>Téléphone non renseigné</small>
+              <small data-client-phone>Telephone non renseigne</small>
             </div>
           </div>
         </header>
 
         <section class="client-main-content">
           <div id="dashboard-message" class="message-box"></div>
-          <section class="catalog-hero client-catalog-hero client-orders-hero">
-            <div class="catalog-hero-copy">
-              <span class="badge client-badge">Suivi intelligent</span>
-              <h2>Retrouve chaque commande en quelques secondes.</h2>
-              <p>
-                Consulte un résumé rapide, vérifie l'état actuel puis ouvre uniquement la commande que tu veux
-                examiner plus en détail.
-              </p>
-              <div class="hero-highlights">
-                <span>Statuts clairs</span>
-                <span>Paiement guide</span>
-                <span>QR et livraison visibles</span>
-              </div>
-            </div>
-            <div class="catalog-hero-side">
-              <div class="catalog-mini-summary">
-                <small>Conseil</small>
-                <strong>Ouvre le détail au clic</strong>
-                <span>Chaque carte reste légère pour te montrer l'essentiel avant d'ouvrir la commande choisie.</span>
-              </div>
+
+          <section class="panel client-panel client-checkout-hero">
+            <div>
+              <span class="badge client-badge">Suivi complet</span>
+              <h2>Retrouve tes commandes en cours et ton historique.</h2>
+              <p>Ouvre une commande pour voir le detail, le paiement, le QR code ou la livraison.</p>
             </div>
           </section>
 
-          <div id="client-orders-summary" class="client-stats-grid"></div>
-
-          <div class="section-head">
-            <div>
-              <h2>Suivi des commandes</h2>
-              <p>Consulte un résumé rapide, puis clique sur une commande pour voir tous les détails.</p>
-            </div>
-            <a class="btn btn-light" href="./checkout.html">Nouvelle commande</a>
-          </div>
-          <div id="orders-list" class="client-orders-grid"></div>
+          <section id="client-orders-summary" class="client-stats-grid"></section>
+          <section id="orders-list" class="stack"></section>
         </section>
       </main>
     </div>
@@ -100,7 +78,7 @@
       <div class="admin-modal-card">
         <div class="admin-modal-head">
           <div>
-            <p class="admin-eyebrow">Détail commande</p>
+            <p class="admin-eyebrow">Detail commande</p>
             <h3 id="client-order-detail-title">Commande</h3>
           </div>
           <button class="admin-icon-btn" type="button" onclick="closeClientOrderDetail()">Fermer</button>
@@ -110,7 +88,6 @@
     </div>
 
     <script src="../assets/js/api.js"></script>
-    <script src="../assets/js/cart.js"></script>
     <script src="../assets/js/client-shell.js"></script>
     <script src="../assets/js/order.js"></script>
   </body>

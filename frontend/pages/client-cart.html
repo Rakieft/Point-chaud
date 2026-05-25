@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Panier Client | Point Chaud</title>
+    <title>Mon panier | Point Chaud</title>
     <link rel="icon" type="image/png" href="../assets/images/logo-point.png" />
     <link rel="shortcut icon" href="../assets/images/logo-point.png" />
     <link rel="apple-touch-icon" href="../assets/images/logo-point.png" />
@@ -17,7 +17,7 @@
           <div class="client-logo-mark">PC</div>
           <div>
             <strong>Point Chaud</strong>
-            <p>Commande & récupération</p>
+            <p>Commande & recuperation</p>
           </div>
           <button id="client-menu-close" class="client-menu-close" type="button">Fermer</button>
         </div>
@@ -32,11 +32,11 @@
 
         <nav class="client-sidebar-nav">
           <a href="./dashboard-client.html">Accueil</a>
-          <a href="./client-products.html">Produits</a>
-          <a class="active" href="./client-cart.html">Panier</a>
+          <a href="./succursales.html">Produits</a>
           <a href="./client-orders.html">Mes commandes</a>
+          <a class="active" href="./client-cart.html">Panier</a>
           <a href="./client-profile.html">Profil</a>
-          <button type="button" onclick="logout()">Déconnexion</button>
+          <button type="button" onclick="logout()">Deconnexion</button>
         </nav>
       </aside>
 
@@ -44,89 +44,45 @@
         <header class="client-topbar">
           <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
           <div>
-            <p class="admin-eyebrow">Panier</p>
+            <p class="admin-eyebrow">Panier client</p>
             <h1>Mon panier</h1>
           </div>
           <div class="client-topbar-user">
             <div data-client-avatar class="client-topbar-avatar">CL</div>
             <div>
               <strong data-client-name>Client</strong>
-              <small data-client-phone>Téléphone non renseigné</small>
+              <small data-client-phone>Telephone non renseigne</small>
             </div>
           </div>
         </header>
 
         <section class="client-main-content">
-          <section class="catalog-hero client-catalog-hero">
-            <div class="catalog-hero-copy">
-              <span class="badge client-badge">Panier en cours</span>
-              <h2>Vérifie tes produits avant de valider.</h2>
-              <p>
-                Ajuste les quantités, contrôle le total et continue ensuite vers la commande avec lieu, horaire
-                et mode de récupération ou livraison.
-              </p>
-              <div class="hero-highlights">
-                <span>Modification rapide</span>
-                <span>Total clair</span>
-                <span>Passage au checkout simplifie</span>
-              </div>
-            </div>
-            <div class="catalog-hero-side">
-              <div class="catalog-mini-summary">
-                <small>Étapes</small>
-                <strong>Panier → Checkout</strong>
-                <span>Succursale, horaire, validation manager puis paiement.</span>
+          <div id="cart-feedback" class="message-box"></div>
+
+          <section class="panel client-panel client-checkout-hero">
+            <div>
+              <span class="badge client-badge">Panier actif</span>
+              <h2>Verifie tes produits avant d'envoyer la commande.</h2>
+              <p>Controle les quantites, reste sur une seule succursale et continue ensuite vers la commande.</p>
+              <div class="catalog-location-inline" data-client-location-wrap hidden>
+                <strong data-client-location-name>Succursale active</strong>
+                <a href="./succursales.html">Changer</a>
               </div>
             </div>
           </section>
 
-          <div class="checkout-grid client-cart-grid">
-            <article class="cart-card client-panel client-cart-items-panel">
-              <div class="section-head">
-                <div>
-                  <h2>Produits choisis</h2>
-                  <p>Vérifie les quantités avant de continuer.</p>
-                </div>
-                <a class="btn btn-light" href="./client-products.html">Ajouter d'autres produits</a>
-              </div>
-
+          <div class="grid-2">
+            <article class="panel client-panel cart-card">
               <div id="cart-items"></div>
             </article>
 
-            <article class="cart-card client-panel client-cart-summary-panel">
-              <div class="stack">
-                <div>
-                  <p class="admin-eyebrow">Résumé commande</p>
-                  <h3>Total de la commande</h3>
-                </div>
-
-                <div class="client-cart-summary-box">
-                  <div class="line-item">
-                    <strong>Articles</strong>
-                    <span id="cart-count">0 article</span>
-                  </div>
-                  <div class="line-item">
-                    <strong>Sous-total</strong>
-                    <span id="cart-subtotal">0 HTG</span>
-                  </div>
-                  <div class="line-item">
-                    <strong>Total estime</strong>
-                    <span class="price" id="cart-total">0 HTG</span>
-                  </div>
-                </div>
-
-                <div class="client-cart-note">
-                  <strong>Ce qu'il se passe ensuite</strong>
-                  <p>
-                    Au checkout, tu choisis la succursale, l'heure, le retrait ou la livraison. Le paiement vient
-                    seulement après validation du manager.
-                  </p>
-                </div>
-
-                <div class="summary-actions client-cart-actions">
-                  <a class="btn btn-primary" href="./checkout.html">Continuer vers la commande</a>
-                  <a class="btn btn-light" href="./client-products.html">Retour au catalogue</a>
-                </div>
+            <article class="panel client-panel cart-card">
+              <h3>Resume</h3>
+              <p>Total confirme</p>
+              <div class="price" id="cart-total">0,00 HTG</div>
+              <div class="summary-actions">
+                <a class="btn btn-primary" href="./checkout.html">Continuer vers la commande</a>
+                <a class="btn btn-light" href="./succursales.html">Ajouter d'autres produits</a>
               </div>
             </article>
           </div>

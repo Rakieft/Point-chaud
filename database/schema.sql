@@ -170,3 +170,31 @@ CREATE TABLE security_events (
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
+
+-- =========================
+-- PROMOTIONS & DAILY SPECIALS
+-- =========================
+CREATE TABLE promotions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    price_label VARCHAR(50) NULL,
+    description TEXT NULL,
+    image VARCHAR(255) NULL,
+    period_label VARCHAR(120) NULL,
+    kind ENUM('current', 'upcoming') DEFAULT 'upcoming',
+    start_date DATE NULL,
+    end_date DATE NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE daily_specials (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    weekday ENUM('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday') NOT NULL,
+    product_id INT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_daily_specials_weekday (weekday),
+    CONSTRAINT fk_daily_specials_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+);
