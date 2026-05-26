@@ -373,6 +373,638 @@ exports.getReports = async (req, res) => {
   }
 };
 
+function getPreviousMonthSnapshot() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Port-au-Prince",
+    year: "numeric",
+    month: "2-digit"
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(new Date()).map(part => [part.type, part.value]));
+  let year = Number(parts.year);
+  let month = Number(parts.month) - 1;
+
+  if (month < 1) {
+    month = 12;
+    year -= 1;
+  }
+
+  return { year, month };
+}
+
+function normalizeAuditPeriod(query) {
+  const fallback = getPreviousMonthSnapshot();
+  const year = Number(query?.year || fallback.year);
+  const month = Number(query?.month || fallback.month);
+
+  if (!Number.isInteger(year) || year < 2020 || year > 2100) {
+    throw new Error("Annee de rapport invalide");
+  }
+
+  if (!Number.isInteger(month) || month < 1 || month > 12) {
+    throw new Error("Mois de rapport invalide");
+  }
+
+  const monthLabel = new Intl.DateTimeFormat("fr-FR", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC"
+  }).format(new Date(Date.UTC(year, month - 1, 15, 12, 0, 0)));
+
+  return {
+    year,
+    month,
+    startDate: `${year}-${String(month).padStart(2, "0")}-01`,
+    endDateExclusive:
+      month === 12
+        ? `${year + 1}-01-01`
+        : `${year}-${String(month + 1).padStart(2, "0")}-01`,
+    label: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)
+  };
+}
+
+function parseStoredPayload(value) {
+  if (!value) return null;
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return null;
+  }
+}
+
+function buildAuditCsv(report) {
+  const lines = [
+    ["Section", "Libelle", "Valeur"],
+    ["Periode", "Mois", report.period.label],
+    ["Periode", "Debut", report.period.start_date],
+    ["Periode", "Fin exclusive", report.period.end_date_exclusive],
+    ["Resume", "Commandes totales", report.summary.total_orders],
+    ["Resume", "Commandes confirmees", report.summary.confirmed_orders],
+    ["Resume", "Commandes annulees", report.summary.cancelled_orders],
+    ["Resume", "Paiements confirmes", report.summary.confirmed_payments],
+    ["Resume", "Paiements rejetes", report.summary.rejected_payments],
+    ["Resume", "Livraisons effectuees", report.summary.deliveries_completed],
+    ["Resume", "Retours livraison", report.summary.deliveries_returned],
+    ["Resume", "Revenu total HTG", Number(report.summary.total_revenue || 0).toFixed(2)],
+    ["Resume", "Panier moyen HTG", Number(report.summary.average_basket || 0).toFixed(2)]
+  ];
+
+  report.locations.forEach(location => {
+    lines.push(["Succursale", location.location_name, Number(location.revenue || 0).toFixed(2)]);
+    lines.push(["Succursale", `${location.location_name} commandes confirmees`, location.confirmed_orders]);
+  });
+
+  report.top_products.forEach((product, index) => {
+    lines.push(["Top produit", `#${index + 1} ${product.product_name}`, product.quantity_sold]);
+  });
+
+  report.promotions.forEach(promotion => {
+    lines.push(["Promotion", promotion.title, promotion.kind === "current" ? "En cours" : "A venir"]);
+  });
+
+  return lines
+    .map(columns =>
+      columns
+        .map(value => `"${String(value ?? "").replace(/"/g, '""')}"`)
+        .join(",")
+    )
+    .join("\n");
+}
+
+function escapePdfText(value) {
+  return String(value ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
+}
+
+function buildAuditPdfLines(report) {
+  const lines = [
+    "Point Chaud - Rapport mensuel d'audit",
+    `Periode: ${report.period.label}`,
+    `Scope: ${report.generated_for}`,
+    "",
+    "Resume",
+    `- Commandes totales: ${report.summary.total_orders}`,
+    `- Commandes confirmees: ${report.summary.confirmed_orders}`,
+    `- Commandes annulees: ${report.summary.cancelled_orders}`,
+    `- Paiements confirmes: ${report.summary.confirmed_payments}`,
+    `- Paiements rejetes: ${report.summary.rejected_payments}`,
+    `- Livraisons effectuees: ${report.summary.deliveries_completed}`,
+    `- Retours livraison: ${report.summary.deliveries_returned}`,
+    `- Revenu total: ${Number(report.summary.total_revenue || 0).toFixed(2)} HTG`,
+    `- Panier moyen: ${Number(report.summary.average_basket || 0).toFixed(2)} HTG`,
+    "",
+    "Ventes par succursale"
+  ];
+
+  if (report.locations.length) {
+    report.locations.forEach(location => {
+      lines.push(
+        `- ${location.location_name}: ${Number(location.revenue || 0).toFixed(2)} HTG / ${location.confirmed_orders} commande(s) confirmee(s)`
+      );
+      if (Array.isArray(location.products_sold) && location.products_sold.length) {
+        location.products_sold.slice(0, 5).forEach(product => {
+          lines.push(
+            `  * ${product.product_name}: ${product.quantity_sold} vente(s) / ${Number(product.revenue || 0).toFixed(2)} HTG`
+          );
+        });
+      } else {
+        lines.push("  * Aucun produit vendu sur cette periode");
+      }
+    });
+  } else {
+    lines.push("- Aucune donnee disponible");
+  }
+
+  lines.push("", "Top produits du mois");
+
+  if (report.top_products.length) {
+    report.top_products.forEach((product, index) => {
+      lines.push(
+        `- #${index + 1} ${product.product_name}: ${product.quantity_sold} vente(s) / ${Number(product.revenue || 0).toFixed(2)} HTG`
+      );
+    });
+  } else {
+    lines.push("- Aucune vente confirmee sur cette periode");
+  }
+
+  lines.push("", "Promotions observees");
+
+  if (report.promotions.length) {
+    report.promotions.forEach(promotion => {
+      lines.push(
+        `- ${promotion.title} (${promotion.kind === "current" ? "En cours" : "A venir"})${promotion.price_label ? ` - ${promotion.price_label}` : ""}`
+      );
+    });
+  } else {
+    lines.push("- Aucune promotion active sur cette periode");
+  }
+
+  return lines;
+}
+
+function wrapPdfLine(line, maxLength = 88) {
+  const normalized = String(line ?? "");
+  if (normalized.length <= maxLength) return [normalized];
+
+  const words = normalized.split(/\s+/);
+  const result = [];
+  let current = "";
+
+  for (const word of words) {
+    if (!current) {
+      current = word;
+      continue;
+    }
+
+    const next = `${current} ${word}`;
+    if (next.length <= maxLength) {
+      current = next;
+    } else {
+      result.push(current);
+      current = word;
+    }
+  }
+
+  if (current) result.push(current);
+  return result;
+}
+
+function buildSimplePdfBuffer(lines) {
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const marginLeft = 48;
+  const startY = 792;
+  const leading = 16;
+  const usableLinesPerPage = 44;
+  const wrappedLines = lines.flatMap(line => wrapPdfLine(line));
+  const pages = [];
+
+  for (let index = 0; index < wrappedLines.length; index += usableLinesPerPage) {
+    pages.push(wrappedLines.slice(index, index + usableLinesPerPage));
+  }
+
+  if (!pages.length) pages.push(["Rapport vide"]);
+
+  const objects = [];
+  objects.push("<< /Type /Catalog /Pages 2 0 R >>");
+
+  const pageObjectNumbers = pages.map((_, index) => 4 + index * 2);
+  const contentObjectNumbers = pages.map((_, index) => 5 + index * 2);
+  objects.push(`<< /Type /Pages /Count ${pages.length} /Kids [${pageObjectNumbers.map(number => `${number} 0 R`).join(" ")}] >>`);
+  objects.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+
+  pages.forEach((pageLines, index) => {
+    const pageObjectNumber = pageObjectNumbers[index];
+    const contentObjectNumber = contentObjectNumbers[index];
+    const textRows = pageLines.map((line, lineIndex) => {
+      if (lineIndex === 0) {
+        return `${marginLeft} ${startY} Td (${escapePdfText(line)}) Tj`;
+      }
+      return `T* (${escapePdfText(line)}) Tj`;
+    });
+    const stream = `BT\n/F1 11 Tf\n${leading} TL\n${textRows.join("\n")}\nET`;
+    objects[pageObjectNumber - 1] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${contentObjectNumber} 0 R >>`;
+    objects[contentObjectNumber - 1] = `<< /Length ${Buffer.byteLength(stream, "utf8")} >>\nstream\n${stream}\nendstream`;
+  });
+
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+
+  objects.forEach((body, index) => {
+    offsets.push(Buffer.byteLength(pdf, "utf8"));
+    pdf += `${index + 1} 0 obj\n${body}\nendobj\n`;
+  });
+
+  const xrefStart = Buffer.byteLength(pdf, "utf8");
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += "0000000000 65535 f \n";
+  for (let index = 1; index < offsets.length; index += 1) {
+    pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+
+  return Buffer.from(pdf, "utf8");
+}
+
+async function computeMonthlyAuditReport(actor, period) {
+  const scope = actor.role === "manager" ? "location" : "global";
+  const locationId = actor.role === "manager" ? Number(actor.assigned_location_id) : null;
+  const filters = ["o.created_at >= ?", "o.created_at < ?"];
+  const params = [period.startDate, period.endDateExclusive];
+
+  if (locationId) {
+    filters.push("o.location_id = ?");
+    params.push(locationId);
+  }
+
+  const whereClause = `WHERE ${filters.join(" AND ")}`;
+  const [summaryRows] = await db.query(
+    `
+      SELECT
+        COUNT(*) AS total_orders,
+        SUM(CASE WHEN o.status IN ('paid', 'completed') THEN 1 ELSE 0 END) AS confirmed_orders,
+        SUM(CASE WHEN o.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_orders,
+        SUM(CASE WHEN o.payment_status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed_payments,
+        SUM(CASE WHEN o.payment_status = 'rejected' THEN 1 ELSE 0 END) AS rejected_payments,
+        SUM(CASE WHEN o.order_type = 'delivery' AND o.delivery_status = 'delivered' THEN 1 ELSE 0 END) AS deliveries_completed,
+        SUM(CASE WHEN o.order_type = 'delivery' AND o.delivery_status = 'return_to_branch' THEN 1 ELSE 0 END) AS deliveries_returned,
+        COALESCE(
+          SUM(
+            CASE
+              WHEN o.status IN ('paid', 'completed') THEN COALESCE(items.items_total, 0) + COALESCE(o.delivery_fee, 0)
+              ELSE 0
+            END
+          ),
+          0
+        ) AS total_revenue
+      FROM orders o
+      LEFT JOIN (
+        SELECT order_id, SUM(quantity * price) AS items_total
+        FROM order_items
+        GROUP BY order_id
+      ) items ON items.order_id = o.id
+      ${whereClause}
+    `,
+    params
+  );
+
+  const summary = summaryRows[0] || {};
+  const confirmedOrders = Number(summary.confirmed_orders || 0);
+  const totalRevenue = Number(summary.total_revenue || 0);
+
+  const locationFilterSql = locationId ? "WHERE l.id = ?" : "";
+  const locationParams = locationId ? [locationId, period.startDate, period.endDateExclusive, locationId] : [period.startDate, period.endDateExclusive];
+  const [locationRows] = await db.query(
+    `
+      SELECT
+        l.id AS location_id,
+        l.name AS location_name,
+        COALESCE(
+          SUM(
+            CASE
+              WHEN o.status IN ('paid', 'completed') THEN COALESCE(items.items_total, 0) + COALESCE(o.delivery_fee, 0)
+              ELSE 0
+            END
+          ),
+          0
+        ) AS revenue,
+        COUNT(DISTINCT CASE WHEN o.status IN ('paid', 'completed') THEN o.id END) AS confirmed_orders
+      FROM locations l
+      LEFT JOIN orders o
+        ON o.location_id = l.id
+        AND o.created_at >= ?
+        AND o.created_at < ?
+        ${locationId ? "AND o.location_id = ?" : ""}
+      LEFT JOIN (
+        SELECT order_id, SUM(quantity * price) AS items_total
+        FROM order_items
+        GROUP BY order_id
+      ) items ON items.order_id = o.id
+      ${locationFilterSql}
+      GROUP BY l.id, l.name
+      ORDER BY l.name
+    `,
+    locationParams
+  );
+
+  const locationProductParams = [period.startDate, period.endDateExclusive];
+  let locationProductSql = `
+    SELECT
+      l.id AS location_id,
+      l.name AS location_name,
+      p.id AS product_id,
+      p.name AS product_name,
+      SUM(oi.quantity) AS quantity_sold,
+      SUM(oi.quantity * oi.price) AS revenue
+    FROM order_items oi
+    INNER JOIN orders o ON o.id = oi.order_id
+    INNER JOIN products p ON p.id = oi.product_id
+    INNER JOIN locations l ON l.id = o.location_id
+    WHERE o.created_at >= ?
+      AND o.created_at < ?
+      AND o.status IN ('paid', 'completed')
+  `;
+  if (locationId) {
+    locationProductSql += " AND o.location_id = ?";
+    locationProductParams.push(locationId);
+  }
+  locationProductSql += `
+    GROUP BY l.id, l.name, p.id, p.name
+    ORDER BY l.name, quantity_sold DESC, revenue DESC, p.name
+  `;
+  const [locationProductRows] = await db.query(locationProductSql, locationProductParams);
+
+  const topProductParams = [period.startDate, period.endDateExclusive];
+  let topProductSql = `
+    SELECT
+      p.id AS product_id,
+      p.name AS product_name,
+      SUM(oi.quantity) AS quantity_sold,
+      SUM(oi.quantity * oi.price) AS revenue
+    FROM order_items oi
+    INNER JOIN orders o ON o.id = oi.order_id
+    INNER JOIN products p ON p.id = oi.product_id
+    WHERE o.created_at >= ?
+      AND o.created_at < ?
+      AND o.status IN ('paid', 'completed')
+  `;
+  if (locationId) {
+    topProductSql += " AND o.location_id = ?";
+    topProductParams.push(locationId);
+  }
+  topProductSql += `
+    GROUP BY p.id, p.name
+    ORDER BY quantity_sold DESC, revenue DESC, p.name
+    LIMIT 10
+  `;
+  const [topProducts] = await db.query(topProductSql, topProductParams);
+
+  const promoParams = [period.endDateExclusive, period.startDate];
+  let promoSql = `
+    SELECT id, title, price_label, kind, period_label, start_date, end_date, is_active
+    FROM promotions
+    WHERE is_active = TRUE
+      AND (start_date IS NULL OR start_date < ?)
+      AND (end_date IS NULL OR end_date >= ?)
+  `;
+  promoSql += " ORDER BY kind, sort_order, id";
+  const [promotions] = await db.query(promoSql, promoParams);
+
+  const productsByLocation = locationProductRows.reduce((accumulator, row) => {
+    const key = Number(row.location_id);
+    if (!accumulator[key]) accumulator[key] = [];
+    accumulator[key].push({
+      product_id: Number(row.product_id),
+      product_name: row.product_name,
+      quantity_sold: Number(row.quantity_sold || 0),
+      revenue: Number(row.revenue || 0)
+    });
+    return accumulator;
+  }, {});
+
+  return {
+    period: {
+      year: period.year,
+      month: period.month,
+      label: period.label,
+      start_date: period.startDate,
+      end_date_exclusive: period.endDateExclusive
+    },
+    scope,
+    location_id: locationId,
+    generated_for: actor.role === "manager" ? actor.assigned_location_name : "Reseau complet",
+    summary: {
+      total_orders: Number(summary.total_orders || 0),
+      confirmed_orders: confirmedOrders,
+      cancelled_orders: Number(summary.cancelled_orders || 0),
+      confirmed_payments: Number(summary.confirmed_payments || 0),
+      rejected_payments: Number(summary.rejected_payments || 0),
+      deliveries_completed: Number(summary.deliveries_completed || 0),
+      deliveries_returned: Number(summary.deliveries_returned || 0),
+      total_revenue: totalRevenue,
+      average_basket: confirmedOrders ? totalRevenue / confirmedOrders : 0
+    },
+    locations: locationRows.map(row => ({
+      location_id: Number(row.location_id),
+      location_name: row.location_name,
+      revenue: Number(row.revenue || 0),
+      confirmed_orders: Number(row.confirmed_orders || 0),
+      products_sold: (productsByLocation[Number(row.location_id)] || []).slice(0, 10)
+    })),
+    top_products: topProducts.map(row => ({
+      product_id: Number(row.product_id),
+      product_name: row.product_name,
+      quantity_sold: Number(row.quantity_sold || 0),
+      revenue: Number(row.revenue || 0)
+    })),
+    promotions: promotions.map(row => ({
+      id: Number(row.id),
+      title: row.title,
+      price_label: row.price_label || "",
+      kind: row.kind,
+      period_label: row.period_label || ""
+    }))
+  };
+}
+
+async function loadStoredMonthlyAudit(actor, period) {
+  const scope = actor.role === "manager" ? "location" : "global";
+  const locationId = actor.role === "manager" ? Number(actor.assigned_location_id) : null;
+  const [rows] = await db.query(
+    `
+      SELECT *
+      FROM monthly_audit_reports
+      WHERE report_year = ?
+        AND report_month = ?
+        AND scope = ?
+        AND location_id <=> ?
+      ORDER BY generated_at DESC, id DESC
+      LIMIT 1
+    `,
+    [period.year, period.month, scope, locationId]
+  );
+
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: Number(row.id),
+    generated_at: row.generated_at,
+    generated_by: row.generated_by ? Number(row.generated_by) : null,
+    payload: parseStoredPayload(row.report_payload)
+  };
+}
+
+async function storeMonthlyAudit(actor, period, payload) {
+  const scope = actor.role === "manager" ? "location" : "global";
+  const locationId = actor.role === "manager" ? Number(actor.assigned_location_id) : null;
+  const serialized = JSON.stringify(payload);
+
+  const [updateResult] = await db.query(
+    `
+      UPDATE monthly_audit_reports
+      SET
+        report_payload = ?,
+        generated_by = ?,
+        generated_at = CURRENT_TIMESTAMP
+      WHERE report_year = ?
+        AND report_month = ?
+        AND scope = ?
+        AND location_id <=> ?
+    `,
+    [serialized, actor.id, period.year, period.month, scope, locationId]
+  );
+
+  if (!updateResult.affectedRows) {
+    await db.query(
+      `
+        INSERT INTO monthly_audit_reports (report_year, report_month, scope, location_id, report_payload, generated_by)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `,
+      [period.year, period.month, scope, locationId, serialized, actor.id]
+    );
+  } else {
+    await db.query(
+      `
+        DELETE FROM monthly_audit_reports
+        WHERE report_year = ?
+          AND report_month = ?
+          AND scope = ?
+          AND location_id <=> ?
+          AND id NOT IN (
+            SELECT keep_id
+            FROM (
+              SELECT id AS keep_id
+              FROM monthly_audit_reports
+              WHERE report_year = ?
+                AND report_month = ?
+                AND scope = ?
+                AND location_id <=> ?
+              ORDER BY generated_at DESC, id DESC
+              LIMIT 1
+            ) AS latest
+          )
+      `,
+      [period.year, period.month, scope, locationId, period.year, period.month, scope, locationId]
+    );
+  }
+
+  return loadStoredMonthlyAudit(actor, period);
+}
+
+exports.__monthlyAuditInternals = {
+  getPreviousMonthSnapshot,
+  normalizeAuditPeriod,
+  computeMonthlyAuditReport,
+  loadStoredMonthlyAudit,
+  storeMonthlyAudit
+};
+
+exports.getMonthlyAuditReport = async (req, res) => {
+  try {
+    const actor = await getScopedUser(req.user.id);
+    const period = normalizeAuditPeriod(req.query);
+    const stored = await loadStoredMonthlyAudit(actor, period);
+    const payload = stored?.payload || (await computeMonthlyAuditReport(actor, period));
+
+    res.json({
+      report: payload,
+      snapshot: stored
+        ? {
+            id: stored.id,
+            generated_at: stored.generated_at,
+            generated_by: stored.generated_by
+          }
+        : null
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de recuperer le rapport mensuel", error: error.message });
+  }
+};
+
+exports.generateMonthlyAuditReport = async (req, res) => {
+  try {
+    const actor = await getScopedUser(req.user.id);
+    const period = normalizeAuditPeriod(req.body || req.query);
+    const payload = await computeMonthlyAuditReport(actor, period);
+    const stored = await storeMonthlyAudit(actor, period, payload);
+
+    res.json({
+      message: "Rapport mensuel genere avec succes",
+      report: payload,
+      snapshot: stored
+        ? {
+            id: stored.id,
+            generated_at: stored.generated_at,
+            generated_by: stored.generated_by
+          }
+        : null
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de generer le rapport mensuel", error: error.message });
+  }
+};
+
+exports.exportMonthlyAuditReportCsv = async (req, res) => {
+  try {
+    const actor = await getScopedUser(req.user.id);
+    const period = normalizeAuditPeriod(req.query);
+    const stored = await loadStoredMonthlyAudit(actor, period);
+    const payload = stored?.payload || (await computeMonthlyAuditReport(actor, period));
+    const csv = buildAuditCsv(payload);
+    const scopeLabel = actor.role === "manager" ? `-${String(actor.assigned_location_name || "succursale").replace(/\s+/g, "-").toLowerCase()}` : "";
+    const filename = `audit-${period.year}-${String(period.month).padStart(2, "0")}${scopeLabel}.csv`;
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(`\uFEFF${csv}`);
+  } catch (error) {
+    res.status(500).json({ message: "Impossible d'exporter le rapport mensuel", error: error.message });
+  }
+};
+
+exports.exportMonthlyAuditReportPdf = async (req, res) => {
+  try {
+    const actor = await getScopedUser(req.user.id);
+    const period = normalizeAuditPeriod(req.query);
+    const stored = await loadStoredMonthlyAudit(actor, period);
+    const payload = stored?.payload || (await computeMonthlyAuditReport(actor, period));
+    const pdfBuffer = buildSimplePdfBuffer(buildAuditPdfLines(payload));
+    const scopeLabel =
+      actor.role === "manager"
+        ? `-${String(actor.assigned_location_name || "succursale").replace(/\s+/g, "-").toLowerCase()}`
+        : "";
+    const filename = `audit-${period.year}-${String(period.month).padStart(2, "0")}${scopeLabel}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    res.status(500).json({ message: "Impossible d'exporter le rapport mensuel PDF", error: error.message });
+  }
+};
+
 exports.getPaymentProofMaintenance = async (req, res) => {
   try {
     const stats = await getPaymentProofCleanupStats();

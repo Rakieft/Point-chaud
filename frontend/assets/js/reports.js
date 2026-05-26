@@ -57,6 +57,131 @@ function renderProofMaintenance(stats) {
     : "Nettoyer les commandes archivees maintenant";
 }
 
+function getPreviousAuditMonthValue() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Port-au-Prince",
+    year: "numeric",
+    month: "2-digit"
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(new Date()).map(part => [part.type, part.value]));
+  let year = Number(parts.year);
+  let month = Number(parts.month) - 1;
+  if (month < 1) {
+    month = 12;
+    year -= 1;
+  }
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+function readSelectedAuditPeriod() {
+  const input = document.getElementById("monthly-audit-month");
+  const rawValue = input?.value || getPreviousAuditMonthValue();
+  const [year, month] = rawValue.split("-").map(Number);
+  return { year, month, rawValue };
+}
+
+function clearMonthlyAuditMessage() {
+  const element = document.getElementById("monthly-audit-message");
+  if (!element) return;
+  element.className = "message-box";
+  element.textContent = "";
+}
+
+function renderAuditLocationProductLine(product, index) {
+  return `
+    <div class="admin-report-line admin-report-line-best admin-report-line-nested">
+      <div class="admin-report-rank">#${index + 1}</div>
+      <div class="admin-report-line-main">
+        <strong>${product.product_name}</strong>
+        <small>${product.quantity_sold} vente${Number(product.quantity_sold) > 1 ? "s" : ""}</small>
+      </div>
+      <div class="admin-report-line-meta">
+        <span class="badge">${formatMoney(product.revenue)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderMonthlyAuditReport(payload, snapshot) {
+  const summaryContainer = document.getElementById("monthly-audit-summary-grid");
+  const metaContainer = document.getElementById("monthly-audit-meta");
+  const listsContainer = document.getElementById("monthly-audit-lists");
+  if (!summaryContainer || !metaContainer || !listsContainer || !payload) return;
+  summaryContainer.innerHTML = "";
+
+  metaContainer.innerHTML = `
+    <article class="admin-report-stable-card">
+      <strong>Periode analysee</strong>
+      <p>${payload.period.label}</p>
+      <small>Scope: ${payload.generated_for}</small>
+      <small>${snapshot?.generated_at ? `Derniere generation: ${formatTimestamp(snapshot.generated_at)}` : "Rapport calcule en direct, pas encore archive."}</small>
+    </article>
+  `;
+
+  listsContainer.innerHTML = "";
+}
+
+async function loadMonthlyAuditReport() {
+  try {
+    const { year, month } = readSelectedAuditPeriod();
+    clearMonthlyAuditMessage();
+    const data = await apiRequest(`/users/monthly-audit?year=${year}&month=${month}`);
+    renderMonthlyAuditReport(data.report, data.snapshot);
+  } catch (error) {
+    showMessage("monthly-audit-message", "error", error.message);
+  }
+}
+
+async function generateMonthlyAuditReport() {
+  const button = document.getElementById("generate-monthly-audit-btn");
+  try {
+    if (button) button.disabled = true;
+    const { year, month } = readSelectedAuditPeriod();
+    const data = await apiRequest("/users/monthly-audit/generate", {
+      method: "POST",
+      body: JSON.stringify({ year, month })
+    });
+    showMessage("monthly-audit-message", "success", data.message);
+    renderMonthlyAuditReport(data.report, data.snapshot);
+  } catch (error) {
+    showMessage("monthly-audit-message", "error", error.message);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function downloadMonthlyAuditPdf() {
+  const button = document.getElementById("download-monthly-audit-pdf-btn");
+  try {
+    if (button) button.disabled = true;
+    const { year, month } = readSelectedAuditPeriod();
+    const response = await fetch(`${API_BASE_URL}/users/monthly-audit/export.pdf?year=${year}&month=${month}`, {
+      headers: storage.token ? { Authorization: `Bearer ${storage.token}` } : {},
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.message || "Impossible de telecharger le rapport");
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `audit-${year}-${String(month).padStart(2, "0")}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showMessage("monthly-audit-message", "success", "Le rapport PDF a bien ete telecharge.");
+  } catch (error) {
+    showMessage("monthly-audit-message", "error", error.message);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
 function populateReportsLocationFilter(reports) {
   const select = document.getElementById("reports-location-filter");
   if (!select) return;
@@ -170,6 +295,7 @@ async function renderReportsPage() {
     populateReportsLocationFilter(data.reports);
     const visibleReports = filterReports(data.reports);
     renderReportsSummary(visibleReports);
+    await loadMonthlyAuditReport();
 
     if (!visibleReports.length) {
       container.innerHTML = `<section class="admin-panel"><div class="empty-state"><p>Aucune donnee de vente disponible pour le moment.</p></div></section>`;
@@ -331,9 +457,17 @@ async function renderReportsPage() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const monthInput = document.getElementById("monthly-audit-month");
+  if (monthInput && !monthInput.value) {
+    monthInput.value = getPreviousAuditMonthValue();
+  }
+
   document.getElementById("run-proof-cleanup-btn")?.addEventListener("click", runProofCleanupNow);
   document.getElementById("reports-location-filter")?.addEventListener("change", renderReportsPage);
   document.getElementById("reports-focus-filter")?.addEventListener("change", renderReportsPage);
+  document.getElementById("monthly-audit-month")?.addEventListener("change", loadMonthlyAuditReport);
+  document.getElementById("generate-monthly-audit-btn")?.addEventListener("click", generateMonthlyAuditReport);
+  document.getElementById("download-monthly-audit-pdf-btn")?.addEventListener("click", downloadMonthlyAuditPdf);
   renderReportsPage();
   startLiveRefresh("reports-page", renderReportsPage, 20000);
 });

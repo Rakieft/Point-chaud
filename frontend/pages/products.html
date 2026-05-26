@@ -332,6 +332,8 @@
                   <label>
                     Image produit
                     <input name="image" placeholder="URL ou nom de fichier ex: pain-chaud.webp" />
+                    <input id="product-image-file" type="file" accept="image/png,image/jpeg,image/webp" />
+                    <div id="product-image-preview" class="admin-image-preview" hidden></div>
                     <small>
                       Les images locales peuvent etre placees dans <strong>frontend/assets/images/products/</strong>.
                       Le format recommande est <strong>WebP</strong>.

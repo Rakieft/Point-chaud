@@ -92,7 +92,7 @@ function fillAdminProductsFilterOptions(categories) {
 
   const previousValue = select.value || "";
   select.innerHTML =
-    `<option value="">Toutes les catégories</option>` +
+    `<option value="">Toutes les categories</option>` +
     categories.map(category => `<option value="${category.name}">${category.name}</option>`).join("");
   select.value = categories.some(category => category.name === previousValue) ? previousValue : "";
 }
@@ -106,10 +106,10 @@ function renderAdminProductsSummary(products) {
   const withImages = products.filter(product => Boolean(product.image)).length;
 
   container.innerHTML = [
-    ["Produits visibles", products.length, "Catalogue actuellement chargé"],
-    ["Catégories actives", categoriesCount, "Catégories ayant au moins un produit"],
-    ["Stock faible", lowStock, "Produits à réapprovisionner vite"],
-    ["Produits avec image", withImages, "Visuels déjà renseignés"]
+    ["Produits visibles", products.length, "Catalogue actuellement charge"],
+    ["Categories actives", categoriesCount, "Categories ayant au moins un produit"],
+    ["Stock faible", lowStock, "Produits a reapprovisionner vite"],
+    ["Produits avec image", withImages, "Visuels deja renseignes"]
   ]
     .map(
       ([label, value, text]) => `
@@ -135,7 +135,7 @@ function renderAdminCategoriesList(categories) {
             <article class="admin-category-chip">
               <div class="stack-sm">
                 <strong>${category.name}</strong>
-                <small class="muted">ID catégorie: ${category.id}</small>
+                <small class="muted">ID categorie: ${category.id}</small>
               </div>
               ${
                 isAdmin
@@ -151,7 +151,7 @@ function renderAdminCategoriesList(categories) {
           `
         )
         .join("")
-    : `<div class="empty-state"><p>Aucune catégorie pour le moment.</p></div>`;
+    : `<div class="empty-state"><p>Aucune categorie pour le moment.</p></div>`;
 }
 
 function resetCategoryForm() {
@@ -160,7 +160,7 @@ function resetCategoryForm() {
 
   form.reset();
   if (categoryId) categoryId.value = "";
-  if (submit) submit.textContent = "Ajouter la catégorie";
+  if (submit) submit.textContent = "Ajouter la categorie";
   if (cancel) cancel.style.display = "none";
 }
 
@@ -174,9 +174,27 @@ function resetProductForm() {
     productId.value = "";
   }
   renderLocationStockInputs(adminProductsCatalog?.locations || []);
+  updateAdminProductImagePreview("");
   if (title) {
     title.textContent = "Nouveau produit";
   }
+}
+
+function updateAdminProductImagePreview(imagePath) {
+  const preview = document.getElementById("product-image-preview");
+  if (!preview) return;
+
+  if (!imagePath) {
+    preview.hidden = true;
+    preview.innerHTML = "";
+    return;
+  }
+
+  preview.hidden = false;
+  preview.innerHTML = `
+    <img src="${imagePath}" alt="Apercu du produit" loading="lazy" />
+    <small>${imagePath}</small>
+  `;
 }
 
 function normalizeAdminProductValue(value) {
@@ -224,7 +242,7 @@ function renderAdminProductsTable(products) {
   if (lowStockSummary) {
     lowStockSummary.textContent = lowStockProducts.length
       ? `Alerte stock: ${lowStockProducts.length} produit(s) demandent une attention rapide.`
-      : "Alerte stock: aucune tension de stock détectée pour le moment.";
+      : "Alerte stock: aucune tension de stock detectee pour le moment.";
   }
 
   tbody.innerHTML = products.length
@@ -248,7 +266,7 @@ function renderAdminProductsTable(products) {
               </div>
             </div>
           </td>
-          <td data-label="Catégorie">${product.category_name || "Sans catégorie"}</td>
+          <td data-label="Categorie">${product.category_name || "Sans categorie"}</td>
           <td data-label="Prix">${formatMoney(product.price)}</td>
           <td data-label="Stock total">
             <span class="product-stock-badge ${Number(product.stock || 0) <= 5 ? "low" : "ok"}">
@@ -275,7 +293,7 @@ function renderAdminProductsTable(products) {
     : `
       <tr>
         <td colspan="6" class="admin-table-empty">
-          <div class="empty-state"><p>Aucun produit ne correspond à ce filtre.</p></div>
+          <div class="empty-state"><p>Aucun produit ne correspond a ce filtre.</p></div>
         </td>
       </tr>
     `;
@@ -329,6 +347,7 @@ function editProduct(productId) {
   if (price) price.value = product.price || "";
   if (stock) stock.value = product.stock || 0;
   if (image) image.value = product.image || "";
+  updateAdminProductImagePreview(product.image || "");
   if (categoryId) categoryId.value = product.category_id;
   renderLocationStockInputs(adminProductsCatalog?.locations || [], product);
 
@@ -397,6 +416,7 @@ function bindCategoryForm() {
 function bindProductForm() {
   const { form, productId } = getProductFormElements();
   const cancelBtn = document.getElementById("product-form-cancel");
+  const imageFileInput = document.getElementById("product-image-file");
   if (!form || form.dataset.bound === "true") return;
 
   form.addEventListener("submit", async event => {
@@ -427,7 +447,7 @@ function bindProductForm() {
           method: "POST",
           body: JSON.stringify(payload)
         });
-    showMessage("product-admin-message", "success", data.message || "Produit ajouté avec succès");
+        showMessage("product-admin-message", "success", data.message || "Produit ajoute avec succes");
       }
 
       resetProductForm();
@@ -438,6 +458,24 @@ function bindProductForm() {
   });
 
   cancelBtn?.addEventListener("click", resetProductForm);
+  imageFileInput?.addEventListener("change", async event => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await uploadAdminImageFile(file, "products");
+      const imageInput = form.elements.namedItem("image");
+      if (imageInput) {
+        imageInput.value = data.imagePath || "";
+      }
+      updateAdminProductImagePreview(data.imagePath || "");
+      showMessage("product-admin-message", "success", data.message);
+    } catch (error) {
+      showMessage("product-admin-message", "error", error.message);
+    } finally {
+      event.currentTarget.value = "";
+    }
+  });
   form.dataset.bound = "true";
 }
 
@@ -477,7 +515,7 @@ function editCategory(categoryId) {
 
 async function deleteCategory(categoryId) {
   if (storage.user?.role !== "admin") return;
-  if (!confirm("Supprimer cette catégorie si elle est vide ?")) return;
+  if (!confirm("Supprimer cette categorie si elle est vide ?")) return;
 
   try {
     const data = await apiRequest(`/products/categories/${categoryId}`, {

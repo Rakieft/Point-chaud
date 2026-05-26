@@ -10,7 +10,9 @@ async function getClientSessionUser() {
 }
 
 function showClientProductsView() {
-  const sessionUser = storage.user;
+  const sessionUser =
+    storage.user ||
+    (typeof window.readSession === "function" ? window.readSession()?.user : null);
   if (!sessionUser || sessionUser.role !== "client") return false;
 
   const publicView = document.getElementById("public-products-view");
@@ -1096,8 +1098,7 @@ async function renderClientProductsPage() {
   try {
     await loadCatalogMarketingContent();
     const params = new URLSearchParams(window.location.search);
-    const storedLocationId = Number(localStorage.getItem("pointchaud_selected_location_id") || 0);
-    const locationId = Number(params.get("location_id") || storedLocationId || 0);
+    const locationId = Number(params.get("location_id") || 0);
     if (!locationId) {
       clientCatalogControls.forEach(control => {
         control.disabled = true;
@@ -1589,6 +1590,212 @@ function formatDeliveryStatusLabel(status) {
   return labels[status] || "Retrait";
 }
 
+function escapeClientPrintHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function openClientPrintWindow(title, bodyMarkup) {
+  const printWindow = window.open("", "_blank", "width=980,height=1280");
+  if (!printWindow) return;
+
+  printWindow.document.open();
+  printWindow.document.write(`
+    <!doctype html>
+    <html lang="fr">
+      <head>
+        <meta charset="utf-8" />
+        <title>${escapeClientPrintHtml(title)}</title>
+        <style>
+          :root {
+            color-scheme: light;
+            --ink: #261711;
+            --muted: #75584b;
+            --line: #d9c3b3;
+            --soft: #fff7f1;
+          }
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            padding: 24px;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: var(--ink);
+            background: #fff;
+          }
+          .print-sheet {
+            width: 100%;
+            max-width: 820px;
+            margin: 0 auto;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            overflow: hidden;
+          }
+          .print-head {
+            padding: 22px 24px 18px;
+            background: linear-gradient(135deg, #3e160d 0%, #cf5c20 55%, #f08a46 100%);
+            color: #fff;
+          }
+          .print-type {
+            display: inline-flex;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.16);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+          }
+          .print-head h1 {
+            margin: 14px 0 6px;
+            font-size: 30px;
+            line-height: 1.05;
+          }
+          .print-head p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.92;
+          }
+          .print-body { padding: 22px 24px 26px; }
+          .print-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 18px;
+          }
+          .print-card {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px 16px;
+            background: var(--soft);
+          }
+          .print-card h2 {
+            margin: 0 0 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+          }
+          .print-card p {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.55;
+          }
+          .print-list {
+            display: grid;
+            gap: 10px;
+          }
+          .print-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            border-bottom: 1px dashed var(--line);
+            padding-bottom: 8px;
+          }
+          .print-line:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+          }
+          .print-line strong {
+            display: block;
+            font-size: 15px;
+          }
+          .print-line small {
+            display: block;
+            color: var(--muted);
+            margin-top: 2px;
+          }
+          .print-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+            padding: 16px 18px;
+            border-radius: 16px;
+            background: #2b1710;
+            color: #fff;
+          }
+          .print-total strong { font-size: 26px; }
+          @media print {
+            body { padding: 0; }
+            .print-sheet {
+              max-width: none;
+              border: 0;
+              border-radius: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>${bodyMarkup}</body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.onload = () => {
+    printWindow.print();
+  };
+}
+
+function buildClientOrderPrintMarkup(order) {
+  const itemsMarkup = order.items
+    .map(
+      item => `
+        <div class="print-line">
+          <div>
+            <strong>${escapeClientPrintHtml(item.name)}</strong>
+            <small>${escapeClientPrintHtml(item.quantity)} x ${escapeClientPrintHtml(formatMoney(item.price))}</small>
+          </div>
+          <strong>${escapeClientPrintHtml(formatMoney(Number(item.quantity) * Number(item.price)))}</strong>
+        </div>
+      `
+    )
+    .join("");
+
+  return `
+    <article class="print-sheet">
+      <header class="print-head">
+        <span class="print-type">Fiche client</span>
+        <h1>Commande #${escapeClientPrintHtml(order.id)}</h1>
+        <p>${escapeClientPrintHtml(order.location_name)} • ${escapeClientPrintHtml(order.customer_name)}</p>
+      </header>
+      <div class="print-body">
+        <div class="print-grid">
+          <section class="print-card">
+            <h2>Commande</h2>
+            <p><strong>Mode :</strong> ${escapeClientPrintHtml(order.order_type === "delivery" ? "Livraison" : "Retrait")}</p>
+            <p><strong>Date prévue :</strong> ${escapeClientPrintHtml(formatDateTime(order.pickup_date, order.pickup_time))}</p>
+            <p><strong>Statut :</strong> ${escapeClientPrintHtml(getClientOrderState(order).badgeText)}</p>
+          </section>
+          <section class="print-card">
+            <h2>Coordonnées</h2>
+            <p><strong>Client :</strong> ${escapeClientPrintHtml(order.customer_name)}</p>
+            <p><strong>Email :</strong> ${escapeClientPrintHtml(order.customer_email || "Non renseigné")}</p>
+            <p><strong>Téléphone :</strong> ${escapeClientPrintHtml(order.customer_phone || "Non renseigné")}</p>
+            ${order.order_type === "delivery" ? `<p><strong>Adresse :</strong> ${escapeClientPrintHtml(order.delivery_address || "Non renseignée")}</p>` : ""}
+          </section>
+        </div>
+        <section class="print-card">
+          <h2>Détail de la commande</h2>
+          <div class="print-list">${itemsMarkup}</div>
+        </section>
+        <div class="print-total">
+          <span>Total</span>
+          <strong>${escapeClientPrintHtml(formatMoney(order.total))}</strong>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function printClientOrderSheet(orderId) {
+  const order = clientOrdersCache.find(item => Number(item.id) === Number(orderId));
+  if (!order) return;
+  openClientPrintWindow(`Fiche client - Commande #${order.id}`, buildClientOrderPrintMarkup(order));
+}
+
 let clientOrdersCache = [];
 let latestClientBankAccounts = [];
 
@@ -1747,6 +1954,9 @@ function openClientOrderDetail(orderId) {
             : ""
         }
       </section>
+    </div>
+    <div class="card-actions admin-detail-actions">
+      <button class="btn-light" type="button" onclick="printClientOrderSheet(${order.id})">Imprimer ma fiche</button>
     </div>
   `;
 
@@ -2559,3 +2769,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
 window.handleCheckoutOrderSubmit = handleCheckoutOrderSubmit;
 window.submitCheckoutOrderForm = submitCheckoutOrderForm;
+window.printClientOrderSheet = printClientOrderSheet;

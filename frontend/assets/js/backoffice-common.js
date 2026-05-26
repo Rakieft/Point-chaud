@@ -71,101 +71,6 @@ function backofficeUploadsBaseUrl() {
   return API_BASE_URL.replace("/api", "");
 }
 
-function getBackofficeProofUrl(filename) {
-  return `${backofficeUploadsBaseUrl()}/uploads/${filename}`;
-}
-
-function isBackofficeImageProof(filename) {
-  return /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(String(filename || ""));
-}
-
-function ensureBackofficeProofViewerModal() {
-  let modal = document.getElementById("backoffice-proof-viewer-modal");
-  if (modal) return modal;
-
-  modal = document.createElement("div");
-  modal.id = "backoffice-proof-viewer-modal";
-  modal.className = "admin-modal hidden";
-  modal.innerHTML = `
-    <div class="admin-modal-backdrop" data-proof-viewer-close></div>
-    <div class="admin-modal-card admin-proof-viewer-modal-card">
-      <div class="admin-modal-head">
-        <div>
-          <p class="admin-eyebrow">Preuve de paiement</p>
-          <h2 id="backoffice-proof-viewer-title">Apercu agrandi</h2>
-        </div>
-        <div class="admin-proof-viewer-head-actions">
-          <a
-            id="backoffice-proof-download"
-            class="btn btn-light"
-            href="#"
-            target="_blank"
-            rel="noopener"
-            download>
-            Telecharger
-          </a>
-          <button class="btn-light" type="button" data-proof-viewer-close>Fermer</button>
-        </div>
-      </div>
-      <div id="backoffice-proof-viewer-body" class="admin-proof-viewer-body"></div>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-  modal.querySelectorAll("[data-proof-viewer-close]").forEach(element => {
-    element.addEventListener("click", closeBackofficeProofViewer);
-  });
-
-  return modal;
-}
-
-function openBackofficeProofViewer(filename, orderId) {
-  if (!filename) return;
-
-  const modal = ensureBackofficeProofViewerModal();
-  const title = document.getElementById("backoffice-proof-viewer-title");
-  const body = document.getElementById("backoffice-proof-viewer-body");
-  const downloadLink = document.getElementById("backoffice-proof-download");
-  const proofUrl = getBackofficeProofUrl(filename);
-
-  if (!body || !downloadLink) return;
-
-  if (title) {
-    title.textContent = orderId ? `Commande #${orderId}` : "Preuve de paiement";
-  }
-
-  downloadLink.href = proofUrl;
-
-  if (isBackofficeImageProof(filename)) {
-    body.innerHTML = `
-      <div class="admin-proof-viewer-frame">
-        <img src="${proofUrl}" alt="Preuve de paiement commande ${orderId || ""}" />
-      </div>
-    `;
-  } else {
-    body.innerHTML = `
-      <div class="admin-proof-file-panel">
-        <strong>Ce fichier ne peut pas etre agrandi en image ici.</strong>
-        <p>Tu peux le telecharger ou l'ouvrir dans un nouvel onglet pour le verifier plus confortablement.</p>
-        <div class="admin-action-group">
-          <a class="btn btn-light" href="${proofUrl}" target="_blank" rel="noopener">Ouvrir le fichier</a>
-          <a class="btn btn-primary" href="${proofUrl}" download>Telecharger</a>
-        </div>
-      </div>
-    `;
-  }
-
-  modal.classList.remove("hidden");
-  document.body.classList.add("modal-open");
-}
-
-function closeBackofficeProofViewer() {
-  const modal = document.getElementById("backoffice-proof-viewer-modal");
-  if (!modal) return;
-  modal.classList.add("hidden");
-  document.body.classList.remove("modal-open");
-}
-
 function backofficeInitials(name) {
   return (name || "ST")
     .split(" ")
@@ -858,49 +763,6 @@ function openBackofficeOrderDetail(order) {
       </section>
 
       <section class="admin-detail-panel">
-        <h4>Paiement</h4>
-        <div class="stack-sm">
-          <span>Statut paiement: ${
-            order.status === "cancelled" ? "Non requis" : backofficeStatusLabel(order.payment_status)
-          }</span>
-          <span>Reference: ${order.transaction_reference || "Aucune"}</span>
-          ${
-            order.payment_proof
-              ? `
-                <div class="admin-proof-preview">
-                  ${
-                    isBackofficeImageProof(order.payment_proof)
-                      ? `
-                        <img
-                          src="${getBackofficeProofUrl(order.payment_proof)}"
-                          alt="Preuve commande ${order.id}"
-                          role="button"
-                          tabindex="0"
-                          onclick="openBackofficeProofViewer('${order.payment_proof}', ${order.id})"
-                          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBackofficeProofViewer('${order.payment_proof}', ${order.id});}"
-                          onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
-                      `
-                      : ""
-                  }
-                  <div class="admin-proof-fallback" style="display:${isBackofficeImageProof(order.payment_proof) ? "none" : "grid"};">
-                    <p>Apercu non disponible directement pour cette preuve.</p>
-                  </div>
-                </div>
-                <div class="admin-proof-actions">
-                  <button class="btn btn-light" type="button" onclick="openBackofficeProofViewer('${order.payment_proof}', ${order.id})">
-                    Voir en grand
-                  </button>
-                  <a class="btn btn-primary" href="${getBackofficeProofUrl(order.payment_proof)}" target="_blank" rel="noopener" download>
-                    Telecharger la preuve
-                  </a>
-                </div>
-              `
-              : `<p class="muted">Aucune preuve de paiement envoyee pour cette commande.</p>`
-          }
-        </div>
-      </section>
-
-      <section class="admin-detail-panel">
         <h4>QR code</h4>
         ${
           order.qrCode
@@ -928,10 +790,314 @@ function openBackofficeOrderDetail(order) {
           : ""
       }
     </div>
+    <div class="card-actions admin-detail-actions">
+      <button class="btn-primary" type="button" onclick="printKitchenOrderSheet(${order.id})">Imprimer fiche cuisine</button>
+      <button class="btn-light" type="button" onclick="printClientReceiptFromBackoffice(${order.id})">Imprimer fiche client</button>
+    </div>
   `;
 
   modal.classList.remove("hidden");
   document.body.classList.add("modal-open");
+}
+
+function escapePrintHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function openPrintDocument(title, bodyMarkup) {
+  const printWindow = window.open("", "_blank", "width=980,height=1280");
+  if (!printWindow) return;
+
+  printWindow.document.open();
+  printWindow.document.write(`
+    <!doctype html>
+    <html lang="fr">
+      <head>
+        <meta charset="utf-8" />
+        <title>${escapePrintHtml(title)}</title>
+        <style>
+          :root {
+            color-scheme: light;
+            --ink: #261711;
+            --muted: #75584b;
+            --line: #d9c3b3;
+            --accent: #d86628;
+            --soft: #fff7f1;
+          }
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            padding: 24px;
+            font-family: "Segoe UI", Arial, sans-serif;
+            color: var(--ink);
+            background: #fff;
+          }
+          .print-sheet {
+            width: 100%;
+            max-width: 820px;
+            margin: 0 auto;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            overflow: hidden;
+            background: #fff;
+          }
+          .print-head {
+            padding: 22px 24px 18px;
+            background: linear-gradient(135deg, #3e160d 0%, #cf5c20 55%, #f08a46 100%);
+            color: #fff;
+          }
+          .print-type {
+            display: inline-flex;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.16);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+          }
+          .print-head h1 {
+            margin: 14px 0 6px;
+            font-size: 32px;
+            line-height: 1.05;
+          }
+          .print-head p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.92;
+          }
+          .print-body {
+            padding: 22px 24px 26px;
+          }
+          .print-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 18px;
+          }
+          .print-card {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px 16px;
+            background: var(--soft);
+          }
+          .print-card h2 {
+            margin: 0 0 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+          }
+          .print-card p,
+          .print-card li,
+          .print-card span {
+            font-size: 14px;
+            line-height: 1.5;
+          }
+          .print-card p { margin: 0; }
+          .print-list {
+            display: grid;
+            gap: 10px;
+          }
+          .print-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            border-bottom: 1px dashed var(--line);
+            padding-bottom: 8px;
+          }
+          .print-line:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+          }
+          .print-line strong {
+            display: block;
+            font-size: 15px;
+          }
+          .print-line small {
+            display: block;
+            color: var(--muted);
+            margin-top: 2px;
+          }
+          .print-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+            padding: 16px 18px;
+            border-radius: 16px;
+            background: #2b1710;
+            color: #fff;
+          }
+          .print-total strong {
+            font-size: 26px;
+          }
+          .kitchen-note {
+            min-height: 84px;
+            border: 1px dashed var(--line);
+            border-radius: 12px;
+            background: #fff;
+            margin-top: 8px;
+            padding: 12px;
+            color: var(--muted);
+          }
+          .kitchen-flags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+          }
+          .kitchen-flag {
+            min-width: 132px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 700;
+          }
+          @media print {
+            body { padding: 0; }
+            .print-sheet {
+              max-width: none;
+              border: 0;
+              border-radius: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        ${bodyMarkup}
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.onload = () => {
+    printWindow.print();
+  };
+}
+
+function buildKitchenPrintMarkup(order) {
+  const orderLabel = order.order_type === "delivery" ? "Livraison cuisine" : "Retrait cuisine";
+  const itemsMarkup = order.items
+    .map(
+      item => `
+        <div class="print-line">
+          <div>
+            <strong>${escapePrintHtml(item.name)}</strong>
+            <small>${escapePrintHtml(formatMoney(item.price))} / unite</small>
+          </div>
+          <strong>x${escapePrintHtml(item.quantity)}</strong>
+        </div>
+      `
+    )
+    .join("");
+
+  return `
+    <article class="print-sheet">
+      <header class="print-head">
+        <span class="print-type">${escapePrintHtml(orderLabel)}</span>
+        <h1>Commande #${escapePrintHtml(order.id)}</h1>
+        <p>${escapePrintHtml(order.location_name)} • ${escapePrintHtml(formatDateTime(order.pickup_date, order.pickup_time))}</p>
+      </header>
+      <div class="print-body">
+        <div class="print-grid">
+          <section class="print-card">
+            <h2>Preparation</h2>
+            <p><strong>Client :</strong> ${escapePrintHtml(order.customer_name)}</p>
+            <p><strong>Mode :</strong> ${escapePrintHtml(order.order_type === "delivery" ? "Livraison" : "Retrait")}</p>
+            <p><strong>Heure cible :</strong> ${escapePrintHtml(formatDateTime(order.pickup_date, order.pickup_time))}</p>
+            ${order.order_type === "delivery" ? `<p><strong>Adresse :</strong> ${escapePrintHtml(order.delivery_address || "Non renseignee")}</p>` : ""}
+          </section>
+          <section class="print-card">
+            <h2>Consignes</h2>
+            <div class="kitchen-flags">
+              <span class="kitchen-flag">Cuisine reçue</span>
+              <span class="kitchen-flag">En préparation</span>
+              <span class="kitchen-flag">Prête à sortir</span>
+            </div>
+            <div class="kitchen-note">${escapePrintHtml(order.notes || "Aucune note particuliere pour la cuisine.")}</div>
+          </section>
+        </div>
+        <section class="print-card">
+          <h2>Articles a preparer</h2>
+          <div class="print-list">${itemsMarkup}</div>
+        </section>
+        <div class="print-total">
+          <span>Total commande</span>
+          <strong>${escapePrintHtml(formatMoney(order.total))}</strong>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function buildClientPrintMarkup(order) {
+  const itemsMarkup = order.items
+    .map(
+      item => `
+        <div class="print-line">
+          <div>
+            <strong>${escapePrintHtml(item.name)}</strong>
+            <small>${escapePrintHtml(item.quantity)} x ${escapePrintHtml(formatMoney(item.price))}</small>
+          </div>
+          <strong>${escapePrintHtml(formatMoney(Number(item.quantity) * Number(item.price)))}</strong>
+        </div>
+      `
+    )
+    .join("");
+
+  return `
+    <article class="print-sheet">
+      <header class="print-head">
+        <span class="print-type">Fiche client</span>
+        <h1>Commande #${escapePrintHtml(order.id)}</h1>
+        <p>${escapePrintHtml(order.location_name)} • ${escapePrintHtml(order.customer_name)}</p>
+      </header>
+      <div class="print-body">
+        <div class="print-grid">
+          <section class="print-card">
+            <h2>Informations</h2>
+            <p><strong>Client :</strong> ${escapePrintHtml(order.customer_name)}</p>
+            <p><strong>Email :</strong> ${escapePrintHtml(order.customer_email)}</p>
+            <p><strong>Téléphone :</strong> ${escapePrintHtml(order.customer_phone || "Non renseigné")}</p>
+          </section>
+          <section class="print-card">
+            <h2>Commande</h2>
+            <p><strong>Mode :</strong> ${escapePrintHtml(order.order_type === "delivery" ? "Livraison" : "Retrait")}</p>
+            <p><strong>Date prévue :</strong> ${escapePrintHtml(formatDateTime(order.pickup_date, order.pickup_time))}</p>
+            <p><strong>Statut :</strong> ${escapePrintHtml(backofficeStatusLabel(order.status))}</p>
+            ${order.order_type === "delivery" ? `<p><strong>Adresse :</strong> ${escapePrintHtml(order.delivery_address || "Non renseignée")}</p>` : ""}
+          </section>
+        </div>
+        <section class="print-card">
+          <h2>Détail de la commande</h2>
+          <div class="print-list">${itemsMarkup}</div>
+        </section>
+        <div class="print-total">
+          <span>Total à payer</span>
+          <strong>${escapePrintHtml(formatMoney(order.total))}</strong>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function printKitchenOrderSheet(orderId) {
+  const order = ordersCache.find(item => Number(item.id) === Number(orderId)) || filteredOrdersCache.find(item => Number(item.id) === Number(orderId));
+  if (!order) return;
+  openPrintDocument(`Fiche cuisine - Commande #${order.id}`, buildKitchenPrintMarkup(order));
+}
+
+function printClientReceiptFromBackoffice(orderId) {
+  const order = ordersCache.find(item => Number(item.id) === Number(orderId)) || filteredOrdersCache.find(item => Number(item.id) === Number(orderId));
+  if (!order) return;
+  openPrintDocument(`Fiche client - Commande #${order.id}`, buildClientPrintMarkup(order));
 }
 
 function closeOrderDetail() {
@@ -942,5 +1108,6 @@ function closeOrderDetail() {
 }
 
 window.openBackofficeNotificationByKeyword = openBackofficeNotificationByKeyword;
-window.openBackofficeProofViewer = openBackofficeProofViewer;
 window.openDeliverySignatureModal = openDeliverySignatureModal;
+window.printKitchenOrderSheet = printKitchenOrderSheet;
+window.printClientReceiptFromBackoffice = printClientReceiptFromBackoffice;

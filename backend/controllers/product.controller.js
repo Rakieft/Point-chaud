@@ -66,17 +66,45 @@ const DAILY_SPECIAL_WEEKDAYS = [
 async function fetchPromotions(kind) {
   const [rows] = await db.query(
     `
-      SELECT id, title, price_label, description, image, period_label, kind, start_date, end_date, is_active, sort_order
-      FROM promotions
-      WHERE kind = ?
-      ORDER BY is_active DESC, sort_order ASC, id ASC
+      SELECT
+        promo.id,
+        promo.title,
+        promo.price_label,
+        promo.description,
+        promo.image,
+        promo.product_id,
+        promo.period_label,
+        promo.kind,
+        promo.start_date,
+        promo.end_date,
+        promo.is_active,
+        promo.sort_order,
+        p.name AS product_name,
+        p.price AS product_price,
+        p.image AS product_image,
+        c.name AS category_name
+      FROM promotions promo
+      LEFT JOIN products p ON p.id = promo.product_id
+      LEFT JOIN categories c ON c.id = p.category_id
+      WHERE promo.kind = ?
+      ORDER BY promo.is_active DESC, promo.sort_order ASC, promo.id ASC
     `,
     [kind]
   );
 
   return rows.map(row => ({
     ...row,
-    is_active: Boolean(row.is_active)
+    product_id: row.product_id ? Number(row.product_id) : null,
+    is_active: Boolean(row.is_active),
+    product: row.product_id
+      ? {
+          id: Number(row.product_id),
+          name: row.product_name,
+          price: Number(row.product_price || 0),
+          image: row.product_image || "",
+          category_name: row.category_name || ""
+        }
+      : null
   }));
 }
 
@@ -129,6 +157,26 @@ async function buildMarketingPayload() {
     dailySpecials
   };
 }
+
+exports.uploadAdminImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Aucune image n'a ete envoyee" });
+    }
+
+    const scope = ["products", "promotions"].includes(String(req.query.scope || "").toLowerCase())
+      ? String(req.query.scope).toLowerCase()
+      : "general";
+
+    res.status(201).json({
+      message: "Image telechargee avec succes",
+      imagePath: `/uploads/${scope}/${req.file.filename}`,
+      filename: req.file.filename
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de telecharger l'image", error: error.message });
+  }
+};
 
 exports.getCatalog = async (req, res) => {
   try {
@@ -224,6 +272,7 @@ exports.saveCurrentPromotion = async (req, res) => {
     price_label,
     description,
     image,
+    product_id,
     period_label,
     start_date,
     end_date,
@@ -240,6 +289,7 @@ exports.saveCurrentPromotion = async (req, res) => {
       price_label || null,
       description || null,
       image || null,
+      product_id ? Number(product_id) : null,
       period_label || null,
       start_date || null,
       end_date || null,
@@ -250,7 +300,7 @@ exports.saveCurrentPromotion = async (req, res) => {
       await db.query(
         `
           UPDATE promotions
-          SET title = ?, price_label = ?, description = ?, image = ?, period_label = ?, start_date = ?, end_date = ?, is_active = ?
+          SET title = ?, price_label = ?, description = ?, image = ?, product_id = ?, period_label = ?, start_date = ?, end_date = ?, is_active = ?
           WHERE id = ? AND kind = 'current'
         `,
         [...payload, id]
@@ -259,18 +309,18 @@ exports.saveCurrentPromotion = async (req, res) => {
       const [existingRows] = await db.query("SELECT id FROM promotions WHERE kind = 'current' ORDER BY id ASC LIMIT 1");
       if (existingRows.length) {
         await db.query(
-          `
-            UPDATE promotions
-            SET title = ?, price_label = ?, description = ?, image = ?, period_label = ?, start_date = ?, end_date = ?, is_active = ?
-            WHERE id = ?
-          `,
-          [...payload, existingRows[0].id]
+        `
+          UPDATE promotions
+          SET title = ?, price_label = ?, description = ?, image = ?, product_id = ?, period_label = ?, start_date = ?, end_date = ?, is_active = ?
+          WHERE id = ?
+        `,
+        [...payload, existingRows[0].id]
         );
       } else {
         await db.query(
-          `
-            INSERT INTO promotions (title, price_label, description, image, period_label, start_date, end_date, is_active, kind, sort_order)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'current', 1)
+        `
+            INSERT INTO promotions (title, price_label, description, image, product_id, period_label, start_date, end_date, is_active, kind, sort_order)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'current', 1)
           `,
           payload
         );
@@ -285,7 +335,7 @@ exports.saveCurrentPromotion = async (req, res) => {
 };
 
 exports.createUpcomingPromotion = async (req, res) => {
-  const { title, price_label, description, image, period_label, start_date, end_date, is_active, sort_order } = req.body;
+  const { title, price_label, description, image, product_id, period_label, start_date, end_date, is_active, sort_order } = req.body;
 
   if (!title) {
     return res.status(400).json({ message: "Le titre de l'evenement est obligatoire" });
@@ -294,14 +344,15 @@ exports.createUpcomingPromotion = async (req, res) => {
   try {
     await db.query(
       `
-        INSERT INTO promotions (title, price_label, description, image, period_label, start_date, end_date, is_active, kind, sort_order)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'upcoming', ?)
+        INSERT INTO promotions (title, price_label, description, image, product_id, period_label, start_date, end_date, is_active, kind, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'upcoming', ?)
       `,
       [
         title,
         price_label || null,
         description || null,
         image || null,
+        product_id ? Number(product_id) : null,
         period_label || null,
         start_date || null,
         end_date || null,
@@ -318,7 +369,7 @@ exports.createUpcomingPromotion = async (req, res) => {
 };
 
 exports.updateUpcomingPromotion = async (req, res) => {
-  const { title, price_label, description, image, period_label, start_date, end_date, is_active, sort_order } = req.body;
+  const { title, price_label, description, image, product_id, period_label, start_date, end_date, is_active, sort_order } = req.body;
 
   if (!title) {
     return res.status(400).json({ message: "Le titre de l'evenement est obligatoire" });
@@ -328,7 +379,7 @@ exports.updateUpcomingPromotion = async (req, res) => {
     await db.query(
       `
         UPDATE promotions
-        SET title = ?, price_label = ?, description = ?, image = ?, period_label = ?, start_date = ?, end_date = ?, is_active = ?, sort_order = ?
+        SET title = ?, price_label = ?, description = ?, image = ?, product_id = ?, period_label = ?, start_date = ?, end_date = ?, is_active = ?, sort_order = ?
         WHERE id = ? AND kind = 'upcoming'
       `,
       [
@@ -336,6 +387,7 @@ exports.updateUpcomingPromotion = async (req, res) => {
         price_label || null,
         description || null,
         image || null,
+        product_id ? Number(product_id) : null,
         period_label || null,
         start_date || null,
         end_date || null,

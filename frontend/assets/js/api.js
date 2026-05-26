@@ -129,6 +129,15 @@ async function apiRequest(path, options = {}) {
   return data;
 }
 
+async function uploadAdminImageFile(file, scope = "general") {
+  const formData = new FormData();
+  formData.append("image", file);
+  return apiRequest(`/products/upload-image?scope=${encodeURIComponent(scope)}`, {
+    method: "POST",
+    body: formData
+  });
+}
+
 function stopLiveRefresh(key) {
   const current = liveRefreshRegistry.get(key);
   if (!current) return;
@@ -658,6 +667,58 @@ async function injectIndexSocialLinks() {
     .join("");
 }
 
+function getMarketingPromoImage(event, fallbackImage) {
+  if (event?.image) return event.image;
+  if (event?.product) return resolveProductImage(event.product);
+  return fallbackImage;
+}
+
+async function renderHomepagePromotions() {
+  const currentTitle = document.getElementById("home-current-promo-title");
+  const upcomingTitle = document.getElementById("home-upcoming-promo-title");
+  if (!currentTitle || !upcomingTitle) return;
+
+  try {
+    const data = await apiRequest("/products/marketing");
+    const currentEvent = data?.currentEvent || null;
+    const upcomingEvent = Array.isArray(data?.upcomingEvents)
+      ? data.upcomingEvents.find(event => event.is_active) || data.upcomingEvents[0] || null
+      : null;
+
+    if (currentEvent) {
+      const currentImage = document.getElementById("home-current-promo-image");
+      document.getElementById("home-current-promo-badge").textContent = "Evenement du moment";
+      currentTitle.textContent = currentEvent.title || currentEvent.product?.name || "Promotion";
+      document.getElementById("home-current-promo-period").textContent = currentEvent.period_label || "En ce moment";
+      document.getElementById("home-current-promo-price").textContent =
+        currentEvent.price_label || (currentEvent.product ? formatMoney(currentEvent.product.price) : "15$");
+      document.getElementById("home-current-promo-description").textContent =
+        currentEvent.description || "Retrouve l'offre du moment chez Point Chaud.";
+      if (currentImage) {
+        currentImage.src = getMarketingPromoImage(currentEvent, "../assets/images/home/burger-week-promo.png");
+        currentImage.alt = currentEvent.title || currentEvent.product?.name || "Promotion Point Chaud";
+      }
+    }
+
+    if (upcomingEvent) {
+      const upcomingImage = document.getElementById("home-upcoming-promo-image");
+      document.getElementById("home-upcoming-promo-badge").textContent = "A venir";
+      upcomingTitle.textContent = upcomingEvent.title || upcomingEvent.product?.name || "A venir";
+      document.getElementById("home-upcoming-promo-period").textContent = upcomingEvent.period_label || "Bientot";
+      document.getElementById("home-upcoming-promo-price").textContent =
+        upcomingEvent.price_label || (upcomingEvent.product ? formatMoney(upcomingEvent.product.price) : "15$");
+      document.getElementById("home-upcoming-promo-description").textContent =
+        upcomingEvent.description || "La prochaine offre sera bientot disponible.";
+      if (upcomingImage) {
+        upcomingImage.src = getMarketingPromoImage(upcomingEvent, "../assets/images/home/wing-things-promo.png");
+        upcomingImage.alt = upcomingEvent.title || upcomingEvent.product?.name || "Prochaine promotion Point Chaud";
+      }
+    }
+  } catch (error) {
+    console.warn("Promotions accueil indisponibles", error);
+  }
+}
+
 async function renderHomepageFeaturedProducts() {
   const container = document.getElementById("home-featured-products-grid");
   if (!container) return;
@@ -753,6 +814,7 @@ document.addEventListener("DOMContentLoaded", () => {
   injectThemeToggle();
   injectWhatsAppSupportButton();
   injectIndexSocialLinks();
+  renderHomepagePromotions();
   renderHomepageFeaturedProducts();
   setupLandingMenuToggle();
 });

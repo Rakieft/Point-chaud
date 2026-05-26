@@ -108,6 +108,42 @@ async function deleteQaCategories(connection) {
   return rows.map(row => ({ id: Number(row.id), name: row.name }));
 }
 
+async function deleteTemporaryCatalogData(connection) {
+  const [tempProducts] = await connection.query(
+    `
+      SELECT p.id, p.name
+      FROM products p
+      LEFT JOIN order_items oi ON oi.product_id = p.id
+      WHERE oi.id IS NULL
+        AND p.name IN ('Juzzler')
+    `
+  );
+
+  for (const row of tempProducts) {
+    await connection.query("DELETE FROM product_stocks WHERE product_id = ?", [row.id]);
+    await connection.query("DELETE FROM products WHERE id = ?", [row.id]);
+  }
+
+  const [tempCategories] = await connection.query(
+    `
+      SELECT c.id, c.name
+      FROM categories c
+      LEFT JOIN products p ON p.category_id = c.id
+      WHERE p.id IS NULL
+        AND c.name IN ('Test Cat Temp', 'Juzzler')
+    `
+  );
+
+  for (const row of tempCategories) {
+    await connection.query("DELETE FROM categories WHERE id = ?", [row.id]);
+  }
+
+  return {
+    deletedProducts: tempProducts.map(row => ({ id: Number(row.id), name: row.name })),
+    deletedCategories: tempCategories.map(row => ({ id: Number(row.id), name: row.name }))
+  };
+}
+
 async function restoreDemoStaffState(connection) {
   const demoAccounts = [
     ["kieftraphterjoly@gmail.com", "admin", null],
@@ -160,6 +196,7 @@ async function main() {
 
     const restoredProducts = await restoreSeedStocks(connection);
     const deletedQaCategories = await deleteQaCategories(connection);
+    const deletedTemporaryCatalogData = await deleteTemporaryCatalogData(connection);
     const restoredDemoAccounts = await restoreDemoStaffState(connection);
 
     await connection.commit();
@@ -178,6 +215,7 @@ async function main() {
           restoredProducts,
           restoredDemoAccounts,
           deletedQaCategories,
+          deletedTemporaryCatalogData,
           uploadCleanup
         },
         null,

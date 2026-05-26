@@ -180,13 +180,15 @@ CREATE TABLE promotions (
     price_label VARCHAR(50) NULL,
     description TEXT NULL,
     image VARCHAR(255) NULL,
+    product_id INT NULL,
     period_label VARCHAR(120) NULL,
     kind ENUM('current', 'upcoming') DEFAULT 'upcoming',
     start_date DATE NULL,
     end_date DATE NULL,
     is_active BOOLEAN DEFAULT TRUE,
     sort_order INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_promotions_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
 );
 
 CREATE TABLE daily_specials (
@@ -197,4 +199,18 @@ CREATE TABLE daily_specials (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_daily_specials_weekday (weekday),
     CONSTRAINT fk_daily_specials_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+);
+
+CREATE TABLE monthly_audit_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    report_year INT NOT NULL,
+    report_month INT NOT NULL,
+    scope ENUM('global', 'location') DEFAULT 'global',
+    location_id INT NULL,
+    report_payload JSON NOT NULL,
+    generated_by INT NULL,
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_monthly_audit_scope (report_year, report_month, scope, location_id),
+    CONSTRAINT fk_monthly_audit_location FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
+    CONSTRAINT fk_monthly_audit_user FOREIGN KEY (generated_by) REFERENCES users(id) ON DELETE SET NULL
 );

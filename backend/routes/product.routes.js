@@ -2,12 +2,14 @@ const express = require("express");
 const productController = require("../controllers/product.controller");
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
+const imageUpload = require("../middlewares/image-upload.middleware");
 
 const router = express.Router();
 
 router.get("/", productController.getCatalog);
 router.get("/marketing", productController.getMarketingContent);
 router.get("/marketing/admin", auth, role("admin"), productController.getMarketingAdmin);
+router.post("/upload-image", auth, role("admin"), imageUpload.single("image"), productController.uploadAdminImage);
 router.put("/marketing/current", auth, role("admin"), productController.saveCurrentPromotion);
 router.post("/marketing/upcoming", auth, role("admin"), productController.createUpcomingPromotion);
 router.patch("/marketing/upcoming/:id", auth, role("admin"), productController.updateUpcomingPromotion);

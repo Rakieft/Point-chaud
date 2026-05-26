@@ -68,6 +68,31 @@ async function columnDefinitionIncludes(table, column, fragment) {
   return rows.length ? String(rows[0].COLUMN_TYPE).includes(fragment) : false;
 }
 
+async function cleanupLegacyCatalogData() {
+  const textFixes = [
+    ["locations", "name", "Route FrÃ¨res", "Route Frères"],
+    ["locations", "address", "Route FrÃ¨res, Port-au-Prince", "Route Frères, Port-au-Prince"],
+    ["locations", "name", "PÃ©tion-Ville", "Pétion-Ville"],
+    ["locations", "address", "PÃ©tion-Ville", "Pétion-Ville"],
+    ["categories", "name", "PÃ¢tÃ©", "Pâté"],
+    ["products", "name", "PÃ¢tÃ© poulet", "Pâté poulet"],
+    ["products", "description", "PÃ¢tÃ© chaud", "Pâté chaud"],
+    ["products", "name", "SÃ²s pwa ak diri blan", "Sòs pwa ak diri blan"],
+    ["products", "name", "S?s pwa ak diri blan", "Sòs pwa ak diri blan"],
+    ["products", "name", "Bouillon haÃ¯tien", "Bouillon haïtien"],
+    ["products", "name", "Bouillon ha?tien", "Bouillon haïtien"]
+  ];
+
+  for (const [table, column, from, to] of textFixes) {
+    await db.query(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`, [to, from]);
+  }
+
+  await db.query(
+    "DELETE FROM categories WHERE name IN ('Test Cat Temp', 'Juzzler') AND id NOT IN (SELECT DISTINCT category_id FROM products WHERE category_id IS NOT NULL)"
+  );
+  await db.query("DELETE FROM products WHERE name = 'Juzzler'");
+}
+
 async function run() {
   if (!(await tableExists("security_events"))) {
     await db.query(`
@@ -114,6 +139,24 @@ async function run() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uk_daily_specials_weekday (weekday),
         CONSTRAINT fk_daily_specials_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+      )
+    `);
+  }
+
+  if (!(await tableExists("monthly_audit_reports"))) {
+    await db.query(`
+      CREATE TABLE monthly_audit_reports (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        report_year INT NOT NULL,
+        report_month INT NOT NULL,
+        scope ENUM('global', 'location') DEFAULT 'global',
+        location_id INT NULL,
+        report_payload JSON NOT NULL,
+        generated_by INT NULL,
+        generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uk_monthly_audit_scope (report_year, report_month, scope, location_id),
+        CONSTRAINT fk_monthly_audit_location FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
+        CONSTRAINT fk_monthly_audit_user FOREIGN KEY (generated_by) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
   }
@@ -336,6 +379,16 @@ async function run() {
   }
 
   const [[promotionCountRow]] = await db.query("SELECT COUNT(*) AS total FROM promotions");
+  if (!(await columnExists("promotions", "product_id"))) {
+    await db.query("ALTER TABLE promotions ADD COLUMN product_id INT NULL AFTER image");
+  }
+
+  if (!(await foreignKeyExists("promotions", "fk_promotions_product"))) {
+    await db.query(
+      "ALTER TABLE promotions ADD CONSTRAINT fk_promotions_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL"
+    );
+  }
+
   if (Number(promotionCountRow.total) === 0) {
     await db.query(
       `
@@ -400,6 +453,8 @@ async function run() {
       );
     }
   }
+
+  await cleanupLegacyCatalogData();
 
   console.log("Migration terminee");
 }

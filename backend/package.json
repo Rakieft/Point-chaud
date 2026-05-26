@@ -5,6 +5,7 @@
   "main": "app.js",
   "scripts": {
     "migrate": "node scripts/migrate-db.js",
+    "harmonize:catalog": "node scripts/harmonize-catalog-text.js",
     "smoke": "node scripts/smoke-test.js",
     "cleanup:proofs": "node scripts/cleanup-payment-proofs.js",
     "cleanup:orders": "node scripts/cleanup-payment-proofs.js",

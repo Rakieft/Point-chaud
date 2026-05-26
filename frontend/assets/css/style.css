@@ -4518,147 +4518,100 @@ html[data-theme="dark"] .admin-product-thumb-wrap {
   font-weight: 700;
 }
 
-.marketing-event-chip {
-  align-items: start;
+.admin-sidebar-logo {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  flex: 0 0 auto;
 }
 
-.marketing-admin-hero {
-  position: relative;
-  overflow: hidden;
+.marketing-event-chip {
+  align-items: start;
+  border: 1px solid rgba(232, 118, 47, 0.16);
   background:
-    radial-gradient(circle at top right, rgba(255, 214, 153, 0.4), transparent 30%),
-    linear-gradient(135deg, rgba(68, 24, 11, 0.98), rgba(131, 35, 12, 0.94) 52%, rgba(224, 110, 21, 0.9));
-  color: #fff8f2;
+    linear-gradient(180deg, rgba(255, 249, 244, 0.96) 0%, rgba(255, 244, 236, 0.92) 100%);
+  box-shadow: 0 18px 30px rgba(96, 41, 14, 0.06);
 }
 
-.marketing-admin-hero-copy {
-  display: grid;
-  gap: 14px;
+.marketing-hero-grid {
+  align-items: stretch;
 }
 
-.marketing-admin-hero-copy p,
-.marketing-admin-hero-copy h2,
-.marketing-admin-hero-copy small {
-  color: inherit;
-}
-
-.marketing-admin-hero-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.marketing-admin-hero-pills span {
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(255, 248, 241, 0.14);
-  border: 1px solid rgba(255, 248, 241, 0.18);
-  font-weight: 700;
-}
-
-.marketing-admin-hero-panel {
-  background: linear-gradient(180deg, rgba(255, 248, 241, 0.18), rgba(255, 248, 241, 0.04));
-  color: #fff8f2;
-}
-
-.marketing-admin-stage {
-  align-items: start;
-}
-
-.marketing-preview-panel,
-.marketing-list-panel {
-  height: 100%;
-}
-
-.marketing-current-preview {
-  display: grid;
-}
-
-.marketing-preview-card {
-  min-height: 360px;
-  display: flex;
-  align-items: end;
-  border-radius: 28px;
-  overflow: hidden;
-  background-size: cover;
-  background-position: center;
-  box-shadow: 0 24px 56px rgba(88, 33, 15, 0.24);
-}
-
-.marketing-preview-copy {
-  width: 100%;
-  padding: 28px;
-  display: grid;
-  gap: 10px;
-  color: #fff8f2;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(32, 14, 8, 0.78));
-}
-
-.marketing-preview-copy .badge,
-.marketing-preview-copy small,
-.marketing-preview-copy p,
-.marketing-preview-copy strong,
-.marketing-preview-copy h3 {
-  color: inherit;
-  margin: 0;
-}
-
-.marketing-admin-form {
-  align-items: start;
-}
-
-.marketing-toggle-row {
-  min-height: 46px;
-}
-
-.marketing-event-chip {
-  padding: 20px;
-  gap: 16px;
-  border-radius: 24px;
-}
-
-.marketing-event-chip.is-active {
-  border-color: rgba(225, 99, 51, 0.28);
-  background: linear-gradient(180deg, rgba(255, 251, 247, 0.98), rgba(255, 241, 231, 0.96));
-}
-
-.marketing-event-chip.is-draft {
-  background: linear-gradient(180deg, rgba(252, 250, 247, 0.98), rgba(245, 239, 234, 0.96));
-}
-
-.marketing-event-chip-copy {
-  min-width: 0;
-}
-
-.marketing-event-chip-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.marketing-event-chip-meta span {
-  padding: 7px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(225, 99, 51, 0.12);
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-.marketing-week-legend {
+.marketing-preview-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
-.marketing-legend-card {
-  padding: 18px 20px;
-  border-radius: 22px;
-  border: 1px solid #f0d7ca;
-  background: linear-gradient(180deg, rgba(255, 251, 247, 0.98), rgba(255, 241, 231, 0.96));
-  box-shadow: 0 14px 32px rgba(109, 46, 18, 0.08);
+.marketing-preview-card {
+  min-height: 220px;
+  border-radius: 26px;
+  overflow: hidden;
+  padding: 22px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+  box-shadow: 0 28px 42px rgba(94, 40, 15, 0.12);
+}
+
+.marketing-preview-card-dish {
+  min-height: 180px;
+  background:
+    linear-gradient(135deg, rgba(33, 18, 11, 0.95) 0%, rgba(89, 44, 17, 0.78) 55%, rgba(234, 121, 38, 0.25) 100%);
+}
+
+.marketing-preview-copy {
   display: grid;
-  gap: 6px;
+  gap: 10px;
+  color: #fff8f1;
+  max-width: 85%;
+}
+
+.marketing-preview-copy small {
+  color: rgba(255, 241, 229, 0.86);
+}
+
+.marketing-preview-copy h3 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2vw, 1.9rem);
+  line-height: 1.04;
+  color: #fff;
+}
+
+.marketing-preview-copy p {
+  margin: 0;
+  color: rgba(255, 242, 232, 0.88);
+}
+
+.admin-image-preview {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid rgba(231, 122, 49, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 249, 244, 0.92);
+}
+
+.admin-image-preview img {
+  width: 100%;
+  max-width: 220px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 14px;
+  box-shadow: 0 14px 24px rgba(94, 40, 15, 0.12);
+}
+
+.admin-image-preview small {
+  color: #7a5a49;
+  word-break: break-all;
+}
+
+.marketing-day-card.is-active {
+  border: 1px solid rgba(230, 112, 39, 0.18);
+  box-shadow: 0 18px 30px rgba(96, 41, 14, 0.06);
 }
 
 .marketing-week-grid {
@@ -4670,21 +4623,34 @@ html[data-theme="dark"] .admin-product-thumb-wrap {
 .marketing-day-card {
   display: grid;
   gap: 12px;
-  padding: 20px;
+  padding: 18px;
   border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 246, 240, 0.96));
-}
-
-.marketing-day-card-head {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 .marketing-day-card label {
   display: grid;
   gap: 8px;
+}
+
+html[data-theme="dark"] .marketing-event-chip,
+html[data-theme="dark"] .marketing-day-card.is-active {
+  background:
+    linear-gradient(180deg, rgba(42, 31, 24, 0.96) 0%, rgba(31, 23, 18, 0.94) 100%);
+  border-color: rgba(230, 127, 55, 0.22);
+}
+
+html[data-theme="dark"] .marketing-preview-card-dish {
+  background:
+    linear-gradient(135deg, rgba(23, 16, 13, 0.97) 0%, rgba(71, 39, 18, 0.82) 55%, rgba(224, 112, 31, 0.22) 100%);
+}
+
+html[data-theme="dark"] .admin-image-preview {
+  background: rgba(36, 29, 24, 0.96);
+  border-color: rgba(230, 127, 55, 0.18);
+}
+
+html[data-theme="dark"] .admin-image-preview small {
+  color: #d8b89e;
 }
 
 .admin-inline-editor {
@@ -4706,20 +4672,9 @@ html[data-theme="dark"] .client-payment-account-card,
 html[data-theme="dark"] .client-bank-item,
 html[data-theme="dark"] .client-payment-method,
 html[data-theme="dark"] .driver-priority-card,
-html[data-theme="dark"] .driver-profile-card,
-html[data-theme="dark"] .marketing-legend-card,
-html[data-theme="dark"] .marketing-day-card,
-html[data-theme="dark"] .marketing-event-chip.is-active,
-html[data-theme="dark"] .marketing-event-chip.is-draft {
+html[data-theme="dark"] .driver-profile-card {
   background: rgba(36, 30, 25, 0.96);
   border-color: var(--border);
-  color: var(--text);
-}
-
-html[data-theme="dark"] .marketing-event-chip-meta span,
-html[data-theme="dark"] .marketing-admin-hero-pills span {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.08);
   color: var(--text);
 }
 
@@ -5328,6 +5283,55 @@ html[data-theme="dark"] .driver-quick-action-card strong {
   color: var(--text-soft);
 }
 
+.admin-report-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.admin-report-meta .admin-report-stable-card {
+  min-height: 100%;
+}
+
+.admin-report-meta .admin-report-stable-card small {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-soft);
+}
+
+#monthly-audit-summary-grid:empty,
+#monthly-audit-lists:empty {
+  display: none;
+}
+
+.admin-audit-location-card {
+  border-radius: 18px;
+  border: 1px solid #f2ddd3;
+  background: linear-gradient(180deg, rgba(255, 251, 248, 0.98), rgba(255, 245, 239, 0.98));
+  padding: 14px;
+}
+
+.admin-audit-location-card + .admin-audit-location-card {
+  margin-top: 12px;
+}
+
+.admin-audit-location-details {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.admin-report-line-nested {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid #f0d7ca;
+}
+
+.empty-state.compact {
+  padding: 14px;
+  min-height: 0;
+}
+
 .admin-report-details {
   border-top: 1px solid #f0d7ca;
   padding-top: 16px;
@@ -5552,6 +5556,10 @@ html[data-theme="dark"] .driver-quick-action-card strong {
   }
 
   .marketing-week-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing-preview-grid {
     grid-template-columns: 1fr;
   }
 

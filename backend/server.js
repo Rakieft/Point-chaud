@@ -1,5 +1,6 @@
 const app = require("./app");
 const { startPaymentProofCleanupScheduler } = require("./services/payment-proof-cleanup.service");
+const { startMonthlyAuditScheduler } = require("./services/monthly-audit-scheduler.service");
 
 const PORT = process.env.PORT || 5000;
 const isProduction = process.env.NODE_ENV === "production";
@@ -37,6 +38,7 @@ validateSecurityConfig();
 
 const server = app.listen(PORT, () => {
   startPaymentProofCleanupScheduler();
+  startMonthlyAuditScheduler();
   console.log(`Server running on port ${PORT}`);
 });
 

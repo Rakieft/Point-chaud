@@ -80,6 +80,29 @@
               </label>
             </div>
           </section>
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Audit mensuel</p>
+                <h2>Rapport du mois passe</h2>
+                <p class="muted">Genere, archive et telecharge le rapport qui servira aux audits mensuels.</p>
+              </div>
+            </div>
+            <div id="monthly-audit-message" class="message-box"></div>
+            <div class="admin-orders-toolbar">
+              <label>
+                Mois du rapport
+                <input id="monthly-audit-month" type="month" />
+              </label>
+              <div class="admin-action-group">
+                <button id="generate-monthly-audit-btn" class="btn-primary" type="button">Generer le rapport</button>
+                <button id="download-monthly-audit-pdf-btn" class="btn-light" type="button">Telecharger PDF</button>
+              </div>
+            </div>
+            <div id="monthly-audit-summary-grid" class="admin-product-summary"></div>
+            <div id="monthly-audit-meta" class="admin-report-meta"></div>
+            <div id="monthly-audit-lists" class="admin-report-columns"></div>
+          </section>
           <section id="proof-maintenance-panel" class="admin-panel admin-only" style="display:none;">
             <div class="admin-section-head">
               <div>
