@@ -10,7 +10,7 @@ async function getClientSessionUser() {
 }
 
 function showClientProductsView() {
-  const sessionUser = storage.user || readSession()?.user;
+  const sessionUser = storage.user;
   if (!sessionUser || sessionUser.role !== "client") return false;
 
   const publicView = document.getElementById("public-products-view");
@@ -1096,7 +1096,8 @@ async function renderClientProductsPage() {
   try {
     await loadCatalogMarketingContent();
     const params = new URLSearchParams(window.location.search);
-    const locationId = Number(params.get("location_id") || 0);
+    const storedLocationId = Number(localStorage.getItem("pointchaud_selected_location_id") || 0);
+    const locationId = Number(params.get("location_id") || storedLocationId || 0);
     if (!locationId) {
       clientCatalogControls.forEach(control => {
         control.disabled = true;

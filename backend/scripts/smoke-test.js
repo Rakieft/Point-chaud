@@ -2,6 +2,10 @@ const fs = require("fs/promises");
 const path = require("path");
 
 const base = process.env.SMOKE_BASE_URL || "http://localhost:5000/api";
+const HAITI_TIMEZONE = "America/Port-au-Prince";
+const ORDER_CUTOFF_HOUR = 20;
+const ORDER_CUTOFF_MINUTE = 45;
+const ORDER_MIN_LEAD_MINUTES = 5;
 
 async function request(pathname, { method = "GET", token, json, form } = {}) {
   const headers = {};
@@ -45,12 +49,64 @@ async function login(email, password) {
   return data.token;
 }
 
+function getHaitiNowSnapshot() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: HAITI_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  });
+
+  const parts = Object.fromEntries(formatter.formatToParts(new Date()).map(part => [part.type, part.value]));
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    hour: Number(parts.hour),
+    minute: Number(parts.minute)
+  };
+}
+
+function addDaysToDateString(dateString, daysToAdd) {
+  const [year, month, day] = String(dateString || "")
+    .split("-")
+    .map(Number);
+  const safeDate = new Date(Date.UTC(year, (month || 1) - 1, day || 1, 0, 0, 0));
+  safeDate.setUTCDate(safeDate.getUTCDate() + Number(daysToAdd || 0));
+  return safeDate.toISOString().slice(0, 10);
+}
+
+function buildUpcomingSchedule(offsetMinutes = 0) {
+  const now = getHaitiNowSnapshot();
+  const totalMinutesNow = now.hour * 60 + now.minute;
+  const requestedMinutes = totalMinutesNow + ORDER_MIN_LEAD_MINUTES + Number(offsetMinutes || 0);
+  const cutoffMinutes = ORDER_CUTOFF_HOUR * 60 + ORDER_CUTOFF_MINUTE;
+
+  if (requestedMinutes <= cutoffMinutes) {
+    const hours = String(Math.floor(requestedMinutes / 60)).padStart(2, "0");
+    const minutes = String(requestedMinutes % 60).padStart(2, "0");
+    return {
+      pickup_date: now.date,
+      pickup_time: `${hours}:${minutes}:00`
+    };
+  }
+
+  return {
+    pickup_date: addDaysToDateString(now.date, 1),
+    pickup_time: "09:00:00"
+  };
+}
+
 async function main() {
   const adminToken = await login("kieftraphterjoly@gmail.com", "admin123");
   const clientToken = await login("client@pointchaud.com", "client123");
   const managerToken = await login("manager@pointchaud.com", "manager123");
   const routeManagerToken = await login("route.manager@pointchaud.com", "manager123");
   const driverToken = await login("driver.delmas@pointchaud.com", "manager123");
+  const pickupSchedule = buildUpcomingSchedule(0);
+  const deliverySchedule = buildUpcomingSchedule(45);
+  const rejectedSchedule = buildUpcomingSchedule(90);
 
   const delmasCatalogBefore = await request("/products?location_id=3");
   const routeCatalogBefore = await request("/products?location_id=1");
@@ -62,17 +118,21 @@ async function main() {
     throw new Error("Produits de smoke test introuvables");
   }
 
-  const proofPath = path.join(__dirname, "payment-proof-test.txt");
-  await fs.writeFile(proofPath, "proof for smoke test");
-  const proofBlob = new Blob([await fs.readFile(proofPath)], { type: "text/plain" });
+  const proofPath = path.join(__dirname, "payment-proof-test.png");
+  const tinyPngBytes = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF9sAAAAASUVORK5CYII=",
+    "base64"
+  );
+  await fs.writeFile(proofPath, tinyPngBytes);
+  const proofBlob = new Blob([await fs.readFile(proofPath)], { type: "image/png" });
 
   const pickupCreate = await request("/orders", {
     method: "POST",
     token: clientToken,
     json: {
       location_id: 3,
-      pickup_date: "2026-05-02",
-      pickup_time: "09:30:00",
+      pickup_date: pickupSchedule.pickup_date,
+      pickup_time: pickupSchedule.pickup_time,
       notes: "Smoke pickup",
       order_type: "pickup",
       items: [{ product_id: pickupProductBefore.id, quantity: 1 }]
@@ -126,8 +186,8 @@ async function main() {
     token: clientToken,
     json: {
       location_id: 3,
-      pickup_date: "2026-05-02",
-      pickup_time: "11:15:00",
+      pickup_date: deliverySchedule.pickup_date,
+      pickup_time: deliverySchedule.pickup_time,
       notes: "Smoke delivery",
       order_type: "delivery",
       delivery_address: "12 Rue Clerveaux, Delmas",
@@ -183,7 +243,12 @@ async function main() {
   const delivered = await request(`/orders/${deliveryCreate.order.id}/delivery-status`, {
     method: "PATCH",
     token: driverToken,
-    json: { delivery_status: "delivered" }
+    json: {
+      delivery_status: "delivered",
+      signature_name: "Client Smoke Test",
+      signature_data:
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF9sAAAAASUVORK5CYII="
+    }
   });
 
   const rejectedCreate = await request("/orders", {
@@ -191,8 +256,8 @@ async function main() {
     token: clientToken,
     json: {
       location_id: 3,
-      pickup_date: "2026-05-03",
-      pickup_time: "08:10:00",
+      pickup_date: rejectedSchedule.pickup_date,
+      pickup_time: rejectedSchedule.pickup_time,
       notes: "Smoke reject",
       order_type: "pickup",
       items: [{ product_id: pickupProductBefore.id, quantity: 1 }]
