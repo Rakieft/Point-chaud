@@ -11,27 +11,43 @@ function distributeStock(total, locationIds) {
     if (remainder > 0) remainder -= 1;
     return {
       location_id: locationId,
-      stock: next
+      stock: next,
+      price_override: null
     };
   });
 }
 
+function normalizePriceOverride(value) {
+  if (value === "" || value === null || typeof value === "undefined") return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) return null;
+  return numeric;
+}
+
 function normalizeLocationStocks(rawStocks, locations, fallbackTotal = 0) {
   if (Array.isArray(rawStocks) && rawStocks.length) {
-    const byLocation = new Map(
-      rawStocks.map(item => [Number(item.location_id), Math.max(0, Number(item.stock || 0))])
-    );
+    const byLocation = new Map(rawStocks.map(item => [
+      Number(item.location_id),
+      {
+        stock: Math.max(0, Number(item.stock || 0)),
+        price_override: normalizePriceOverride(item.price_override)
+      }
+    ]));
 
     return locations.map(location => ({
       location_id: Number(location.id),
-      stock: byLocation.has(Number(location.id)) ? byLocation.get(Number(location.id)) : 0
+      stock: byLocation.has(Number(location.id)) ? byLocation.get(Number(location.id)).stock : 0,
+      price_override: byLocation.has(Number(location.id))
+        ? byLocation.get(Number(location.id)).price_override
+        : null
     }));
   }
 
   if (rawStocks && typeof rawStocks === "object") {
     return locations.map(location => ({
       location_id: Number(location.id),
-      stock: Math.max(0, Number(rawStocks[location.id] || rawStocks[String(location.id)] || 0))
+      stock: Math.max(0, Number(rawStocks[location.id] || rawStocks[String(location.id)] || 0)),
+      price_override: null
     }));
   }
 
@@ -45,12 +61,16 @@ async function getLocations(connection = db) {
 
 async function ensureLocationStockRows(connection, productId, fallbackTotal = 0) {
   const locations = await getLocations(connection);
-  const [rows] = await connection.query("SELECT location_id, stock FROM product_stocks WHERE product_id = ?", [productId]);
+  const [rows] = await connection.query(
+    "SELECT location_id, stock, price_override FROM product_stocks WHERE product_id = ?",
+    [productId]
+  );
 
   if (rows.length === locations.length) {
     return rows.map(row => ({
       location_id: Number(row.location_id),
-      stock: Number(row.stock)
+      stock: Number(row.stock),
+      price_override: normalizePriceOverride(row.price_override)
     }));
   }
 
@@ -67,8 +87,8 @@ async function setProductLocationStocks(connection, productId, rawStocks) {
 
   for (const item of normalized) {
     await connection.query(
-      "INSERT INTO product_stocks (product_id, location_id, stock) VALUES (?, ?, ?)",
-      [productId, item.location_id, item.stock]
+      "INSERT INTO product_stocks (product_id, location_id, stock, price_override) VALUES (?, ?, ?, ?)",
+      [productId, item.location_id, item.stock, normalizePriceOverride(item.price_override)]
     );
   }
 
@@ -104,6 +124,7 @@ async function fetchLocationStocksForProducts(connection, productIds) {
         ps.product_id,
         ps.location_id,
         ps.stock,
+        ps.price_override,
         l.name AS location_name
       FROM product_stocks ps
       INNER JOIN locations l ON l.id = ps.location_id
@@ -120,7 +141,8 @@ async function fetchLocationStocksForProducts(connection, productIds) {
     current.push({
       location_id: Number(row.location_id),
       location_name: row.location_name,
-      stock: Number(row.stock)
+      stock: Number(row.stock),
+      price_override: normalizePriceOverride(row.price_override)
     });
     map.set(productId, current);
   }

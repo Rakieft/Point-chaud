@@ -73,6 +73,20 @@ function getPreviousAuditMonthValue() {
   return `${year}-${String(month).padStart(2, "0")}`;
 }
 
+function getRecentSaturdayValue() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Port-au-Prince",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(new Date()).map(part => [part.type, part.value]));
+  const date = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), 12, 0, 0));
+  const diffToSaturday = (date.getUTCDay() - 6 + 7) % 7;
+  date.setUTCDate(date.getUTCDate() - diffToSaturday);
+  return date.toISOString().slice(0, 10);
+}
+
 function readSelectedAuditPeriod() {
   const input = document.getElementById("monthly-audit-month");
   const rawValue = input?.value || getPreviousAuditMonthValue();
@@ -82,6 +96,13 @@ function readSelectedAuditPeriod() {
 
 function clearMonthlyAuditMessage() {
   const element = document.getElementById("monthly-audit-message");
+  if (!element) return;
+  element.className = "message-box";
+  element.textContent = "";
+}
+
+function clearDriverWeeklyMessage() {
+  const element = document.getElementById("driver-weekly-message");
   if (!element) return;
   element.className = "message-box";
   element.textContent = "";
@@ -119,6 +140,115 @@ function renderMonthlyAuditReport(payload, snapshot) {
   `;
 
   listsContainer.innerHTML = "";
+}
+
+function renderDriverWeeklyReport(payload, snapshot) {
+  const summaryContainer = document.getElementById("driver-weekly-summary-grid");
+  const metaContainer = document.getElementById("driver-weekly-meta");
+  const listContainer = document.getElementById("driver-weekly-list");
+  if (!summaryContainer || !metaContainer || !listContainer || !payload) return;
+
+  summaryContainer.innerHTML = [
+    ["Livreurs concernes", payload.summary.total_drivers, "Livreurs inclus dans cette paie"],
+    ["Livraisons effectuees", payload.summary.delivered_orders, "Courses terminees cette semaine"],
+    ["Retours succursale", payload.summary.returned_orders, "Courses non remises"],
+    ["Frais de livraison", formatMoney(payload.summary.total_delivery_fees), "Montant livraison observe sur la periode"]
+  ]
+    .map(
+      ([label, value, text]) => `
+        <article class="admin-product-chip">
+          <strong>${label}</strong>
+          <span>${value}</span>
+          <small>${text}</small>
+        </article>
+      `
+    )
+    .join("");
+
+  metaContainer.innerHTML = `
+    <article class="admin-report-stable-card">
+      <strong>Semaine analysee</strong>
+      <p>${payload.period.label}</p>
+      <small>Scope: ${payload.generated_for}</small>
+      <small>${snapshot?.generated_at ? `Derniere generation: ${formatTimestamp(snapshot.generated_at)}` : "Rapport calcule en direct, pas encore archive."}</small>
+    </article>
+  `;
+
+  listContainer.innerHTML = payload.drivers.length
+    ? payload.drivers
+        .map(
+          driver => `
+            <article class="admin-report-list">
+              <h3>${driver.driver_name}</h3>
+              <div class="admin-report-stable-card">
+                <strong>${driver.assigned_location_name || "Sans succursale"}</strong>
+                <p>${driver.delivered_orders} livraison(s), ${driver.returned_orders} retour(s)</p>
+                <small>Frais livraison observes: ${formatMoney(driver.delivery_fees_total || 0)}</small>
+              </div>
+              <div class="admin-report-columns-compact">
+                <div class="admin-report-line admin-report-line-best">
+                  <div class="admin-report-rank">OK</div>
+                  <div class="admin-report-line-main">
+                    <strong>Livraisons remises</strong>
+                    <small>Commandes effectivement livrees</small>
+                  </div>
+                  <div class="admin-report-line-meta">
+                    <span class="badge">${driver.delivered_orders}</span>
+                  </div>
+                </div>
+                <div class="admin-report-line admin-report-line-low">
+                  <div class="admin-report-rank">RT</div>
+                  <div class="admin-report-line-main">
+                    <strong>Retours succursale</strong>
+                    <small>Commandes non remises</small>
+                  </div>
+                  <div class="admin-report-line-meta">
+                    <span class="badge">${driver.returned_orders}</span>
+                  </div>
+                </div>
+              </div>
+              ${
+                driver.orders.length
+                  ? `
+                    <details class="admin-report-details" open>
+                      <summary>
+                        <span class="report-summary-label report-summary-label-closed">Ouvrir le detail des courses</span>
+                        <span class="report-summary-label report-summary-label-open">Fermer le detail des courses</span>
+                      </summary>
+                      <div class="admin-report-list">
+                        ${driver.orders
+                          .map(
+                            order => `
+                              <div class="admin-report-line admin-report-line-stock">
+                                <div class="admin-report-rank">#${order.order_id}</div>
+                                <div class="admin-report-line-main">
+                                  <strong>${order.customer_name}</strong>
+                                  <small>${order.delivery_status === "delivered" ? "Livree" : "Retour"} • ${order.event_at_label}</small>
+                                  <small>${order.location_name}${order.delivery_address ? ` • ${order.delivery_address}` : ""}</small>
+                                </div>
+                                <div class="admin-report-line-meta">
+                                  <span class="badge">${formatMoney(order.delivery_fee || 0)}</span>
+                                  <span class="product-stock-badge ${order.delivery_status === "delivered" ? "ok" : "low"}">${order.delivery_status === "delivered" ? "Livree" : "Retour"}</span>
+                                </div>
+                              </div>
+                            `
+                          )
+                          .join("")}
+                      </div>
+                    </details>
+                  `
+                  : `<div class="empty-state"><p>Aucune course sur cette periode.</p></div>`
+              }
+            </article>
+          `
+        )
+        .join("")
+    : `<div class="empty-state"><p>Aucun livreur ou aucune course a afficher pour cette semaine.</p></div>`;
+}
+
+function readSelectedDriverWeek() {
+  const input = document.getElementById("driver-weekly-saturday");
+  return input?.value || getRecentSaturdayValue();
 }
 
 async function loadMonthlyAuditReport() {
@@ -177,6 +307,70 @@ async function downloadMonthlyAuditPdf() {
     showMessage("monthly-audit-message", "success", "Le rapport PDF a bien ete telecharge.");
   } catch (error) {
     showMessage("monthly-audit-message", "error", error.message);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function loadDriverWeeklyReport() {
+  try {
+    const weekEnding = readSelectedDriverWeek();
+    clearDriverWeeklyMessage();
+    const data = await apiRequest(`/users/driver-weekly-report?week_ending=${encodeURIComponent(weekEnding)}`);
+    renderDriverWeeklyReport(data.report, data.snapshot);
+  } catch (error) {
+    showMessage("driver-weekly-message", "error", error.message);
+  }
+}
+
+async function generateDriverWeeklyReport() {
+  const button = document.getElementById("generate-driver-weekly-btn");
+  try {
+    if (button) button.disabled = true;
+    const weekEnding = readSelectedDriverWeek();
+    const data = await apiRequest("/users/driver-weekly-report/generate", {
+      method: "POST",
+      body: JSON.stringify({ week_ending: weekEnding })
+    });
+    showMessage("driver-weekly-message", "success", data.message);
+    renderDriverWeeklyReport(data.report, data.snapshot);
+  } catch (error) {
+    showMessage("driver-weekly-message", "error", error.message);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function downloadDriverWeeklyPdf() {
+  const button = document.getElementById("download-driver-weekly-pdf-btn");
+  try {
+    if (button) button.disabled = true;
+    const weekEnding = readSelectedDriverWeek();
+    const response = await fetch(
+      `${API_BASE_URL}/users/driver-weekly-report/export.pdf?week_ending=${encodeURIComponent(weekEnding)}`,
+      {
+        headers: storage.token ? { Authorization: `Bearer ${storage.token}` } : {},
+        cache: "no-store"
+      }
+    );
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.message || "Impossible de telecharger le rapport chauffeur");
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `livreurs-${weekEnding}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showMessage("driver-weekly-message", "success", "Le rapport chauffeur PDF a bien ete telecharge.");
+  } catch (error) {
+    showMessage("driver-weekly-message", "error", error.message);
   } finally {
     if (button) button.disabled = false;
   }
@@ -296,6 +490,7 @@ async function renderReportsPage() {
     const visibleReports = filterReports(data.reports);
     renderReportsSummary(visibleReports);
     await loadMonthlyAuditReport();
+    await loadDriverWeeklyReport();
 
     if (!visibleReports.length) {
       container.innerHTML = `<section class="admin-panel"><div class="empty-state"><p>Aucune donnee de vente disponible pour le moment.</p></div></section>`;
@@ -461,6 +656,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (monthInput && !monthInput.value) {
     monthInput.value = getPreviousAuditMonthValue();
   }
+  const driverWeekInput = document.getElementById("driver-weekly-saturday");
+  if (driverWeekInput && !driverWeekInput.value) {
+    driverWeekInput.value = getRecentSaturdayValue();
+  }
 
   document.getElementById("run-proof-cleanup-btn")?.addEventListener("click", runProofCleanupNow);
   document.getElementById("reports-location-filter")?.addEventListener("change", renderReportsPage);
@@ -468,6 +667,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("monthly-audit-month")?.addEventListener("change", loadMonthlyAuditReport);
   document.getElementById("generate-monthly-audit-btn")?.addEventListener("click", generateMonthlyAuditReport);
   document.getElementById("download-monthly-audit-pdf-btn")?.addEventListener("click", downloadMonthlyAuditPdf);
+  document.getElementById("driver-weekly-saturday")?.addEventListener("change", loadDriverWeeklyReport);
+  document.getElementById("generate-driver-weekly-btn")?.addEventListener("click", generateDriverWeeklyReport);
+  document.getElementById("download-driver-weekly-pdf-btn")?.addEventListener("click", downloadDriverWeeklyPdf);
   renderReportsPage();
   startLiveRefresh("reports-page", renderReportsPage, 20000);
 });

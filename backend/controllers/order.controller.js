@@ -116,7 +116,7 @@ exports.createOrder = async (req, res) => {
         SELECT
           p.id,
           p.name,
-          p.price,
+          COALESCE(ps.price_override, p.price) AS price,
           COALESCE(ps.stock, 0) AS stock
         FROM products p
         LEFT JOIN product_stocks ps ON ps.product_id = p.id AND ps.location_id = ?
@@ -175,7 +175,7 @@ exports.createOrder = async (req, res) => {
         [result.insertId, item.product_id, item.quantity, product.price]
       );
 
-      await ensureLocationStockRows(connection, item.product_id, Number(product.stock || 0));
+      await ensureLocationStockRows(connection, item.product_id);
       await connection.query(
         "UPDATE product_stocks SET stock = stock - ? WHERE product_id = ? AND location_id = ?",
         [item.quantity, item.product_id, location_id]
@@ -367,7 +367,7 @@ exports.updateOrderByStaff = async (req, res) => {
         SELECT
           p.id,
           p.name,
-          p.price,
+          COALESCE(ps.price_override, p.price) AS price,
           COALESCE(ps.stock, 0) AS stock
         FROM products p
         LEFT JOIN product_stocks ps ON ps.product_id = p.id AND ps.location_id = ?

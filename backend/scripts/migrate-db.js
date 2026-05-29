@@ -161,20 +161,43 @@ async function run() {
     `);
   }
 
-  if (!(await tableExists("product_stocks"))) {
+  if (!(await tableExists("weekly_driver_reports"))) {
     await db.query(`
-      CREATE TABLE product_stocks (
+      CREATE TABLE weekly_driver_reports (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        product_id INT NOT NULL,
-        location_id INT NOT NULL,
-        stock INT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uk_product_location (product_id, location_id),
-        CONSTRAINT fk_product_stocks_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-        CONSTRAINT fk_product_stocks_location FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
+        week_start_date DATE NOT NULL,
+        week_end_date DATE NOT NULL,
+        scope ENUM('global', 'location') DEFAULT 'global',
+        location_id INT NULL,
+        report_payload JSON NOT NULL,
+        generated_by INT NULL,
+        generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uk_weekly_driver_scope (week_start_date, week_end_date, scope, location_id),
+        CONSTRAINT fk_weekly_driver_location FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
+        CONSTRAINT fk_weekly_driver_user FOREIGN KEY (generated_by) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
   }
+
+    if (!(await tableExists("product_stocks"))) {
+      await db.query(`
+        CREATE TABLE product_stocks (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          product_id INT NOT NULL,
+          location_id INT NOT NULL,
+          stock INT DEFAULT 0,
+          price_override DECIMAL(10,2) NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY uk_product_location (product_id, location_id),
+          CONSTRAINT fk_product_stocks_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+          CONSTRAINT fk_product_stocks_location FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
+        )
+      `);
+    }
+
+    if (!(await columnExists("product_stocks", "price_override"))) {
+      await db.query("ALTER TABLE product_stocks ADD COLUMN price_override DECIMAL(10,2) NULL AFTER stock");
+    }
 
   if (!(await columnDefinitionIncludes("users", "role", "'driver'"))) {
     await db.query("ALTER TABLE users MODIFY COLUMN role ENUM('client', 'admin', 'manager', 'driver') DEFAULT 'client'");

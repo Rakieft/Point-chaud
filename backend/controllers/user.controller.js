@@ -422,6 +422,58 @@ function normalizeAuditPeriod(query) {
   };
 }
 
+function getRecentSaturdaySnapshot() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Port-au-Prince",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(new Date()).map(part => [part.type, part.value]));
+  const baseDate = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), 12, 0, 0));
+  const currentDay = baseDate.getUTCDay();
+  const diffToSaturday = (currentDay - 6 + 7) % 7;
+  baseDate.setUTCDate(baseDate.getUTCDate() - diffToSaturday);
+  return baseDate.toISOString().slice(0, 10);
+}
+
+function formatDateLabelFr(dateString) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC"
+  }).format(new Date(`${dateString}T12:00:00Z`));
+}
+
+function normalizeDriverWeekPeriod(query) {
+  const weekEnding = String(query?.week_ending || getRecentSaturdaySnapshot());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekEnding)) {
+    throw new Error("Date de semaine invalide");
+  }
+
+  const endDate = new Date(`${weekEnding}T12:00:00Z`);
+  if (Number.isNaN(endDate.getTime())) {
+    throw new Error("Date de semaine invalide");
+  }
+
+  if (endDate.getUTCDay() !== 6) {
+    throw new Error("Choisis la date du samedi a payer");
+  }
+
+  const startDate = new Date(endDate);
+  startDate.setUTCDate(endDate.getUTCDate() - 5);
+  const endDateExclusive = new Date(endDate);
+  endDateExclusive.setUTCDate(endDate.getUTCDate() + 1);
+
+  return {
+    weekEnding,
+    weekStart: startDate.toISOString().slice(0, 10),
+    weekEndExclusive: endDateExclusive.toISOString().slice(0, 10),
+    label: `Semaine du ${formatDateLabelFr(startDate.toISOString().slice(0, 10))} au ${formatDateLabelFr(weekEnding)}`
+  };
+}
+
 function parseStoredPayload(value) {
   if (!value) return null;
   if (typeof value === "object") return value;
@@ -452,6 +504,13 @@ function buildAuditCsv(report) {
   report.locations.forEach(location => {
     lines.push(["Succursale", location.location_name, Number(location.revenue || 0).toFixed(2)]);
     lines.push(["Succursale", `${location.location_name} commandes confirmees`, location.confirmed_orders]);
+    (location.products_sold || []).forEach(product => {
+      lines.push([
+        "Produit succursale",
+        `${location.location_name} - ${product.product_name}`,
+        `${product.quantity_sold} vente(s) / ${Number(product.revenue || 0).toFixed(2)} HTG / prix moyen ${Number(product.average_unit_price || 0).toFixed(2)} HTG / min ${Number(product.min_unit_price || 0).toFixed(2)} / max ${Number(product.max_unit_price || 0).toFixed(2)}`
+      ]);
+    });
   });
 
   report.top_products.forEach((product, index) => {
@@ -505,8 +564,14 @@ function buildAuditPdfLines(report) {
       );
       if (Array.isArray(location.products_sold) && location.products_sold.length) {
         location.products_sold.slice(0, 5).forEach(product => {
+          const hasPriceVariation =
+            Number(product.min_unit_price || 0) !== Number(product.max_unit_price || 0);
           lines.push(
-            `  * ${product.product_name}: ${product.quantity_sold} vente(s) / ${Number(product.revenue || 0).toFixed(2)} HTG`
+            `  * ${product.product_name}: ${product.quantity_sold} vente(s) / ${Number(product.revenue || 0).toFixed(2)} HTG / prix moyen ${Number(product.average_unit_price || 0).toFixed(2)} HTG${
+              hasPriceVariation
+                ? ` (min ${Number(product.min_unit_price || 0).toFixed(2)} - max ${Number(product.max_unit_price || 0).toFixed(2)})`
+                : ""
+            }`
           );
         });
       } else {
@@ -540,6 +605,41 @@ function buildAuditPdfLines(report) {
   } else {
     lines.push("- Aucune promotion active sur cette periode");
   }
+
+  return lines;
+}
+
+function buildDriverWeeklyPdfLines(report) {
+  const lines = [
+    "Point Chaud - Rapport hebdomadaire livreurs",
+    `Periode: ${report.period.label}`,
+    `Scope: ${report.generated_for}`,
+    "",
+    "Resume",
+    `- Livreurs concernes: ${report.summary.total_drivers}`,
+    `- Livraisons effectuees: ${report.summary.delivered_orders}`,
+    `- Retours succursale: ${report.summary.returned_orders}`,
+    `- Commandes livraison traitees: ${report.summary.total_delivery_orders}`,
+    `- Frais de livraison encaisses: ${Number(report.summary.total_delivery_fees || 0).toFixed(2)} HTG`,
+    "",
+    "Detail par livreur"
+  ];
+
+  report.drivers.forEach(driver => {
+    lines.push(
+      `- ${driver.driver_name} (${driver.assigned_location_name || "Sans succursale"}): ${driver.delivered_orders} livraison(s), ${driver.returned_orders} retour(s), ${Number(driver.delivery_fees_total || 0).toFixed(2)} HTG de frais`
+    );
+
+    if (Array.isArray(driver.orders) && driver.orders.length) {
+      driver.orders.forEach(order => {
+        lines.push(
+          `  * Commande #${order.order_id} - ${order.customer_name || "Client"} - ${order.delivery_status === "delivered" ? "Livree" : "Retour"} - ${order.event_at_label} - ${Number(order.delivery_fee || 0).toFixed(2)} HTG`
+        );
+      });
+    } else {
+      lines.push("  * Aucune livraison sur cette periode");
+    }
+  });
 
   return lines;
 }
@@ -711,14 +811,17 @@ async function computeMonthlyAuditReport(actor, period) {
 
   const locationProductParams = [period.startDate, period.endDateExclusive];
   let locationProductSql = `
-    SELECT
-      l.id AS location_id,
-      l.name AS location_name,
-      p.id AS product_id,
-      p.name AS product_name,
-      SUM(oi.quantity) AS quantity_sold,
-      SUM(oi.quantity * oi.price) AS revenue
-    FROM order_items oi
+      SELECT
+        l.id AS location_id,
+        l.name AS location_name,
+        p.id AS product_id,
+        p.name AS product_name,
+        SUM(oi.quantity) AS quantity_sold,
+        SUM(oi.quantity * oi.price) AS revenue,
+        AVG(oi.price) AS average_unit_price,
+        MIN(oi.price) AS min_unit_price,
+        MAX(oi.price) AS max_unit_price
+      FROM order_items oi
     INNER JOIN orders o ON o.id = oi.order_id
     INNER JOIN products p ON p.id = oi.product_id
     INNER JOIN locations l ON l.id = o.location_id
@@ -731,9 +834,9 @@ async function computeMonthlyAuditReport(actor, period) {
     locationProductParams.push(locationId);
   }
   locationProductSql += `
-    GROUP BY l.id, l.name, p.id, p.name
-    ORDER BY l.name, quantity_sold DESC, revenue DESC, p.name
-  `;
+      GROUP BY l.id, l.name, p.id, p.name
+      ORDER BY l.name, quantity_sold DESC, revenue DESC, p.name
+    `;
   const [locationProductRows] = await db.query(locationProductSql, locationProductParams);
 
   const topProductParams = [period.startDate, period.endDateExclusive];
@@ -775,12 +878,15 @@ async function computeMonthlyAuditReport(actor, period) {
   const productsByLocation = locationProductRows.reduce((accumulator, row) => {
     const key = Number(row.location_id);
     if (!accumulator[key]) accumulator[key] = [];
-    accumulator[key].push({
-      product_id: Number(row.product_id),
-      product_name: row.product_name,
-      quantity_sold: Number(row.quantity_sold || 0),
-      revenue: Number(row.revenue || 0)
-    });
+      accumulator[key].push({
+        product_id: Number(row.product_id),
+        product_name: row.product_name,
+        quantity_sold: Number(row.quantity_sold || 0),
+        revenue: Number(row.revenue || 0),
+        average_unit_price: Number(row.average_unit_price || 0),
+        min_unit_price: Number(row.min_unit_price || 0),
+        max_unit_price: Number(row.max_unit_price || 0)
+      });
     return accumulator;
   }, {});
 
@@ -813,11 +919,11 @@ async function computeMonthlyAuditReport(actor, period) {
       confirmed_orders: Number(row.confirmed_orders || 0),
       products_sold: (productsByLocation[Number(row.location_id)] || []).slice(0, 10)
     })),
-    top_products: topProducts.map(row => ({
-      product_id: Number(row.product_id),
-      product_name: row.product_name,
-      quantity_sold: Number(row.quantity_sold || 0),
-      revenue: Number(row.revenue || 0)
+      top_products: topProducts.map(row => ({
+        product_id: Number(row.product_id),
+        product_name: row.product_name,
+        quantity_sold: Number(row.quantity_sold || 0),
+        revenue: Number(row.revenue || 0)
     })),
     promotions: promotions.map(row => ({
       id: Number(row.id),
@@ -913,6 +1019,188 @@ async function storeMonthlyAudit(actor, period, payload) {
   return loadStoredMonthlyAudit(actor, period);
 }
 
+async function computeDriverWeeklyReport(actor, period) {
+  const scope = actor.role === "manager" ? "location" : "global";
+  const locationId = actor.role === "manager" ? Number(actor.assigned_location_id) : null;
+  const driverFilter = locationId ? "AND u.assigned_location_id = ?" : "";
+  const driverParams = locationId ? [locationId] : [];
+  const orderLocationFilter = locationId ? "AND o.location_id = ?" : "";
+  const baseOrderParams = [period.weekStart, period.weekEndExclusive];
+  const orderParams = locationId ? [...baseOrderParams, locationId] : baseOrderParams;
+
+  const [driverRows] = await db.query(
+    `
+      SELECT
+        u.id AS driver_id,
+        u.name AS driver_name,
+        u.phone AS driver_phone,
+        u.assigned_location_id,
+        l.name AS assigned_location_name
+      FROM users u
+      LEFT JOIN locations l ON l.id = u.assigned_location_id
+      WHERE u.role = 'driver'
+        AND u.is_active = TRUE
+        ${driverFilter}
+      ORDER BY u.name
+    `,
+    driverParams
+  );
+
+  const [orderRows] = await db.query(
+    `
+      SELECT
+        o.id AS order_id,
+        o.assigned_driver_id AS driver_id,
+        o.location_id,
+        l.name AS location_name,
+        u.name AS customer_name,
+        o.delivery_status,
+        o.delivery_fee,
+        o.delivery_address,
+        CASE
+          WHEN o.delivery_status = 'delivered' THEN o.delivered_at
+          ELSE o.returned_at
+        END AS event_at,
+        COALESCE(items.items_total, 0) + COALESCE(o.delivery_fee, 0) AS order_total
+      FROM orders o
+      LEFT JOIN users u ON u.id = o.user_id
+      LEFT JOIN locations l ON l.id = o.location_id
+      LEFT JOIN (
+        SELECT order_id, SUM(quantity * price) AS items_total
+        FROM order_items
+        GROUP BY order_id
+      ) items ON items.order_id = o.id
+      WHERE o.order_type = 'delivery'
+        AND o.assigned_driver_id IS NOT NULL
+        AND (
+          (o.delivery_status = 'delivered' AND o.delivered_at >= ? AND o.delivered_at < ?)
+          OR
+          (o.delivery_status = 'return_to_branch' AND o.returned_at >= ? AND o.returned_at < ?)
+        )
+        ${orderLocationFilter}
+      ORDER BY event_at ASC, o.id ASC
+    `,
+    locationId ? [period.weekStart, period.weekEndExclusive, period.weekStart, period.weekEndExclusive, locationId] : [period.weekStart, period.weekEndExclusive, period.weekStart, period.weekEndExclusive]
+  );
+
+  const ordersByDriver = orderRows.reduce((accumulator, row) => {
+    const key = Number(row.driver_id);
+    if (!accumulator[key]) accumulator[key] = [];
+    accumulator[key].push({
+      order_id: Number(row.order_id),
+      location_id: Number(row.location_id),
+      location_name: row.location_name || "",
+      customer_name: row.customer_name || "Client",
+      delivery_status: row.delivery_status,
+      delivery_fee: Number(row.delivery_fee || 0),
+      delivery_address: row.delivery_address || "",
+      order_total: Number(row.order_total || 0),
+      event_at: row.event_at,
+      event_at_label: row.event_at ? formatTimestamp(row.event_at) : "Date indisponible"
+    });
+    return accumulator;
+  }, {});
+
+  const drivers = driverRows.map(row => {
+    const driverOrders = ordersByDriver[Number(row.driver_id)] || [];
+    const deliveredOrders = driverOrders.filter(order => order.delivery_status === "delivered");
+    const returnedOrders = driverOrders.filter(order => order.delivery_status === "return_to_branch");
+
+    return {
+      driver_id: Number(row.driver_id),
+      driver_name: row.driver_name,
+      driver_phone: row.driver_phone || "",
+      assigned_location_id: row.assigned_location_id ? Number(row.assigned_location_id) : null,
+      assigned_location_name: row.assigned_location_name || "",
+      delivered_orders: deliveredOrders.length,
+      returned_orders: returnedOrders.length,
+      total_delivery_orders: driverOrders.length,
+      delivery_fees_total: deliveredOrders.reduce((sum, order) => sum + Number(order.delivery_fee || 0), 0),
+      orders: driverOrders
+    };
+  });
+
+  return {
+    period: {
+      week_start: period.weekStart,
+      week_end: period.weekEnding,
+      week_end_exclusive: period.weekEndExclusive,
+      label: period.label
+    },
+    scope,
+    location_id: locationId,
+    generated_for: actor.role === "manager" ? actor.assigned_location_name : "Reseau complet",
+    summary: {
+      total_drivers: drivers.length,
+      delivered_orders: drivers.reduce((sum, driver) => sum + Number(driver.delivered_orders || 0), 0),
+      returned_orders: drivers.reduce((sum, driver) => sum + Number(driver.returned_orders || 0), 0),
+      total_delivery_orders: drivers.reduce((sum, driver) => sum + Number(driver.total_delivery_orders || 0), 0),
+      total_delivery_fees: drivers.reduce((sum, driver) => sum + Number(driver.delivery_fees_total || 0), 0)
+    },
+    drivers
+  };
+}
+
+async function loadStoredDriverWeeklyReport(actor, period) {
+  const scope = actor.role === "manager" ? "location" : "global";
+  const locationId = actor.role === "manager" ? Number(actor.assigned_location_id) : null;
+  const [rows] = await db.query(
+    `
+      SELECT *
+      FROM weekly_driver_reports
+      WHERE week_start_date = ?
+        AND week_end_date = ?
+        AND scope = ?
+        AND location_id <=> ?
+      ORDER BY generated_at DESC, id DESC
+      LIMIT 1
+    `,
+    [period.weekStart, period.weekEnding, scope, locationId]
+  );
+
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: Number(row.id),
+    generated_at: row.generated_at,
+    generated_by: row.generated_by ? Number(row.generated_by) : null,
+    payload: parseStoredPayload(row.report_payload)
+  };
+}
+
+async function storeDriverWeeklyReport(actor, period, payload) {
+  const scope = actor.role === "manager" ? "location" : "global";
+  const locationId = actor.role === "manager" ? Number(actor.assigned_location_id) : null;
+  const serialized = JSON.stringify(payload);
+
+  const [updateResult] = await db.query(
+    `
+      UPDATE weekly_driver_reports
+      SET
+        report_payload = ?,
+        generated_by = ?,
+        generated_at = CURRENT_TIMESTAMP
+      WHERE week_start_date = ?
+        AND week_end_date = ?
+        AND scope = ?
+        AND location_id <=> ?
+    `,
+    [serialized, actor.id, period.weekStart, period.weekEnding, scope, locationId]
+  );
+
+  if (!updateResult.affectedRows) {
+    await db.query(
+      `
+        INSERT INTO weekly_driver_reports (week_start_date, week_end_date, scope, location_id, report_payload, generated_by)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `,
+      [period.weekStart, period.weekEnding, scope, locationId, serialized, actor.id]
+    );
+  }
+
+  return loadStoredDriverWeeklyReport(actor, period);
+}
+
 exports.__monthlyAuditInternals = {
   getPreviousMonthSnapshot,
   normalizeAuditPeriod,
@@ -1002,6 +1290,72 @@ exports.exportMonthlyAuditReportPdf = async (req, res) => {
     res.send(pdfBuffer);
   } catch (error) {
     res.status(500).json({ message: "Impossible d'exporter le rapport mensuel PDF", error: error.message });
+  }
+};
+
+exports.getDriverWeeklyReport = async (req, res) => {
+  try {
+    const actor = await getScopedUser(req.user.id);
+    const period = normalizeDriverWeekPeriod(req.query);
+    const stored = await loadStoredDriverWeeklyReport(actor, period);
+    const payload = stored?.payload || (await computeDriverWeeklyReport(actor, period));
+
+    res.json({
+      report: payload,
+      snapshot: stored
+        ? {
+            id: stored.id,
+            generated_at: stored.generated_at,
+            generated_by: stored.generated_by
+          }
+        : null
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de recuperer le rapport chauffeur", error: error.message });
+  }
+};
+
+exports.generateDriverWeeklyReport = async (req, res) => {
+  try {
+    const actor = await getScopedUser(req.user.id);
+    const period = normalizeDriverWeekPeriod(req.body || req.query);
+    const payload = await computeDriverWeeklyReport(actor, period);
+    const stored = await storeDriverWeeklyReport(actor, period, payload);
+
+    res.json({
+      message: "Rapport chauffeur genere avec succes",
+      report: payload,
+      snapshot: stored
+        ? {
+            id: stored.id,
+            generated_at: stored.generated_at,
+            generated_by: stored.generated_by
+          }
+        : null
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de generer le rapport chauffeur", error: error.message });
+  }
+};
+
+exports.exportDriverWeeklyReportPdf = async (req, res) => {
+  try {
+    const actor = await getScopedUser(req.user.id);
+    const period = normalizeDriverWeekPeriod(req.query);
+    const stored = await loadStoredDriverWeeklyReport(actor, period);
+    const payload = stored?.payload || (await computeDriverWeeklyReport(actor, period));
+    const pdfBuffer = buildSimplePdfBuffer(buildDriverWeeklyPdfLines(payload));
+    const scopeLabel =
+      actor.role === "manager"
+        ? `-${String(actor.assigned_location_name || "succursale").replace(/\s+/g, "-").toLowerCase()}`
+        : "";
+    const filename = `livreurs-${period.weekEnding}${scopeLabel}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    res.status(500).json({ message: "Impossible d'exporter le rapport chauffeur PDF", error: error.message });
   }
 };
 

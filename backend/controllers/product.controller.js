@@ -182,22 +182,23 @@ exports.getCatalog = async (req, res) => {
   try {
     const locationId = req.query.location_id ? Number(req.query.location_id) : null;
     const [products] = await db.query(`
-      SELECT
-        p.id,
-        p.name,
-        p.description,
-        p.price,
-        p.image,
-        p.stock,
-        p.category_id,
-        c.name AS category_name,
-        ${locationId ? "COALESCE(MAX(CASE WHEN ps.location_id = ? THEN ps.stock END), 0)" : "NULL"} AS location_stock
-      FROM products p
-      LEFT JOIN categories c ON c.id = p.category_id
-      LEFT JOIN product_stocks ps ON ps.product_id = p.id
-      GROUP BY p.id, p.name, p.description, p.price, p.image, p.stock, p.category_id, c.name
-      ORDER BY c.name, p.name
-    `, locationId ? [locationId] : []);
+        SELECT
+          p.id,
+          p.name,
+          p.description,
+          p.price,
+          p.image,
+          p.stock,
+          p.category_id,
+          c.name AS category_name,
+          ${locationId ? "COALESCE(MAX(CASE WHEN ps.location_id = ? THEN ps.stock END), 0)" : "NULL"} AS location_stock,
+          ${locationId ? "MAX(CASE WHEN ps.location_id = ? THEN ps.price_override END)" : "NULL"} AS location_price_override
+        FROM products p
+        LEFT JOIN categories c ON c.id = p.category_id
+        LEFT JOIN product_stocks ps ON ps.product_id = p.id
+        GROUP BY p.id, p.name, p.description, p.price, p.image, p.stock, p.category_id, c.name
+        ORDER BY c.name, p.name
+      `, locationId ? [locationId, locationId] : []);
 
     const productIds = products.map(product => Number(product.id));
     const stocksMap = await fetchLocationStocksForProducts(db, productIds);
@@ -207,12 +208,16 @@ exports.getCatalog = async (req, res) => {
     const [bankAccounts] = await db.query("SELECT * FROM bank_accounts ORDER BY bank_name");
 
     res.json({
-      products: products.map(product => ({
-        ...product,
-        stock: Number(product.stock || 0),
-        location_stock: product.location_stock === null ? null : Number(product.location_stock || 0),
-        location_stocks: stocksMap.get(Number(product.id)) || []
-      })),
+        products: products.map(product => ({
+          ...product,
+          price: product.location_price_override === null ? Number(product.price || 0) : Number(product.location_price_override || 0),
+          base_price: Number(product.price || 0),
+          stock: Number(product.stock || 0),
+          location_stock: product.location_stock === null ? null : Number(product.location_stock || 0),
+          location_price_override:
+            product.location_price_override === null ? null : Number(product.location_price_override || 0),
+          location_stocks: stocksMap.get(Number(product.id)) || []
+        })),
       categories,
       locations,
       bankAccounts,

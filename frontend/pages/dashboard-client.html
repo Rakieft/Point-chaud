@@ -31,25 +31,37 @@
         </div>
 
         <nav class="client-sidebar-nav">
-          <a class="active" href="./dashboard-client.html">Accueil</a>
-          <a href="./succursales.html">Produits</a>
-          <a href="./client-orders.html">Mes commandes</a>
-          <a href="./client-cart.html">Panier</a>
-          <a href="./client-profile.html">Profil</a>
-          <button type="button" onclick="logout()">Deconnexion</button>
+          <a class="active" href="./dashboard-client.html">
+            Accueil
+          </a>
+          <a href="./succursales.html">
+            Produits
+          </a>
+          <a href="./client-orders.html">
+            Mes commandes
+          </a>
+          <a href="./client-cart.html">
+            Panier
+          </a>
+          <a href="./client-profile.html">
+            Profil
+          </a>
+          <button type="button" onclick="logout()">
+            Deconnexion
+          </button>
         </nav>
       </aside>
 
       <main class="client-main">
         <header class="client-topbar">
           <button id="client-menu-toggle" class="client-menu-toggle" type="button">Menu</button>
-          <div>
-            <p class="admin-eyebrow">Accueil</p>
+          <div class="client-topbar-title">
+            <p class="admin-eyebrow">Dashboard client</p>
             <h1>Bienvenue, <span data-client-name>client</span></h1>
           </div>
           <div class="client-topbar-tools">
             <button id="client-notifications-button" class="admin-icon-btn" type="button">
-              <span aria-hidden="true">Notifications</span>
+              <span>Notifications</span>
               <span id="client-notification-count" class="admin-notification-count">0</span>
             </button>
             <div class="client-topbar-user">
@@ -66,8 +78,8 @@
           <div id="dashboard-message" class="message-box"></div>
 
           <section class="catalog-hero client-catalog-hero client-dashboard-hero">
-            <div class="catalog-hero-copy">
-              <span class="badge client-badge">Dashboard client</span>
+            <div class="catalog-hero-copy client-dashboard-hero-copy">
+              <span class="badge client-badge">Espace client Point Chaud</span>
               <h2>Bienvenue, <span id="client-name">client</span></h2>
               <p>
                 Suis facilement tes commandes, paie uniquement apres validation et retrouve ton QR code des
@@ -77,19 +89,7 @@
                 <a class="btn btn-primary" href="./succursales.html">Explorer le catalogue</a>
                 <a class="btn btn-light" href="./client-cart.html">Voir mon panier</a>
               </div>
-            </div>
-            <div class="catalog-hero-side">
-              <div class="catalog-mini-summary client-dashboard-summary-card">
-                <small>Depuis ton espace client</small>
-                <strong>Tout ton parcours en un coup d'oeil</strong>
-                <div class="client-dashboard-summary-list">
-                  <span>Explorer les categories populaires</span>
-                  <span>Ajouter au panier et confirmer la commande</span>
-                  <span>Attendre la validation manager</span>
-                  <span>Payer puis envoyer la preuve</span>
-                  <span>Recuperer avec QR ou suivre la livraison</span>
-                </div>
-              </div>
+              
             </div>
           </section>
 
@@ -100,7 +100,7 @@
               <div class="section-head">
                 <div>
                   <h2>Prochaines actions</h2>
-                  <p>Ce que tu devrais faire maintenant selon l'etat de tes commandes.</p>
+                  
                 </div>
               </div>
               <div id="client-next-actions" class="client-helper-list"></div>
@@ -110,7 +110,7 @@
               <div class="section-head">
                 <div>
                   <h2>Commandes actives</h2>
-                  <p>Resume rapide avant d'ouvrir le detail complet.</p>
+                 
                 </div>
                 <a class="btn btn-light" href="./client-orders.html">Voir tout</a>
               </div>

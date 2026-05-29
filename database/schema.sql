@@ -156,6 +156,21 @@ CREATE TABLE notifications (
 );
 
 -- =========================
+-- PRODUCT STOCKS / PRICE BY LOCATION
+-- =========================
+CREATE TABLE product_stocks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    location_id INT NOT NULL,
+    stock INT DEFAULT 0,
+    price_override DECIMAL(10,2) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_product_location (product_id, location_id),
+    CONSTRAINT fk_product_stocks_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT fk_product_stocks_location FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
+);
+
+-- =========================
 -- SECURITY EVENTS
 -- =========================
 CREATE TABLE security_events (
@@ -213,4 +228,18 @@ CREATE TABLE monthly_audit_reports (
     UNIQUE KEY uk_monthly_audit_scope (report_year, report_month, scope, location_id),
     CONSTRAINT fk_monthly_audit_location FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
     CONSTRAINT fk_monthly_audit_user FOREIGN KEY (generated_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE weekly_driver_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    week_start_date DATE NOT NULL,
+    week_end_date DATE NOT NULL,
+    scope ENUM('global', 'location') DEFAULT 'global',
+    location_id INT NULL,
+    report_payload JSON NOT NULL,
+    generated_by INT NULL,
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_weekly_driver_scope (week_start_date, week_end_date, scope, location_id),
+    CONSTRAINT fk_weekly_driver_location FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
+    CONSTRAINT fk_weekly_driver_user FOREIGN KEY (generated_by) REFERENCES users(id) ON DELETE SET NULL
 );

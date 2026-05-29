@@ -324,6 +324,29 @@ function resolveProductImage(product) {
   return slug ? `../assets/images/products/${slug}.webp` : buildProductPlaceholder(product);
 }
 
+function resolveMarketingImagePath(imagePath, fallbackImage = "") {
+  const image = String(imagePath || "").trim();
+  if (!image) return fallbackImage;
+
+  if (/^(https?:)?\/\//i.test(image) || image.startsWith("data:") || image.startsWith("../")) {
+    return image;
+  }
+
+  if (image.startsWith("/")) {
+    return image;
+  }
+
+  if (image.startsWith("uploads/")) {
+    return `/${image}`;
+  }
+
+  if (/\.(png|jpe?g|webp|gif|svg)$/i.test(image)) {
+    return `../assets/images/home/${image}`;
+  }
+
+  return fallbackImage || image;
+}
+
 function handleProductImageError(imageElement, productName, categoryName) {
   if (!imageElement || imageElement.dataset.fallbackApplied === "true") {
     return;
@@ -668,7 +691,7 @@ async function injectIndexSocialLinks() {
 }
 
 function getMarketingPromoImage(event, fallbackImage) {
-  if (event?.image) return event.image;
+  if (event?.image) return resolveMarketingImagePath(event.image, fallbackImage);
   if (event?.product) return resolveProductImage(event.product);
   return fallbackImage;
 }

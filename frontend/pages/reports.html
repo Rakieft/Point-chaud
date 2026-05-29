@@ -103,6 +103,29 @@
             <div id="monthly-audit-meta" class="admin-report-meta"></div>
             <div id="monthly-audit-lists" class="admin-report-columns"></div>
           </section>
+          <section class="admin-panel">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Livreurs & paie</p>
+                <h2>Rapport hebdomadaire des chauffeurs</h2>
+                <p class="muted">Suis les livraisons de la semaine payee et telecharge le PDF utile pour la paie du samedi.</p>
+              </div>
+            </div>
+            <div id="driver-weekly-message" class="message-box"></div>
+            <div class="admin-orders-toolbar">
+              <label>
+                Samedi de paie
+                <input id="driver-weekly-saturday" type="date" />
+              </label>
+              <div class="admin-action-group">
+                <button id="generate-driver-weekly-btn" class="btn-primary" type="button">Generer le rapport</button>
+                <button id="download-driver-weekly-pdf-btn" class="btn-light" type="button">Telecharger PDF</button>
+              </div>
+            </div>
+            <div id="driver-weekly-summary-grid" class="admin-product-summary"></div>
+            <div id="driver-weekly-meta" class="admin-report-meta"></div>
+            <div id="driver-weekly-list" class="admin-report-columns"></div>
+          </section>
           <section id="proof-maintenance-panel" class="admin-panel admin-only" style="display:none;">
             <div class="admin-section-head">
               <div>

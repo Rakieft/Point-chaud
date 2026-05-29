@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.get("/", productController.getCatalog);
 router.get("/marketing", productController.getMarketingContent);
-router.get("/marketing/admin", auth, role("admin"), productController.getMarketingAdmin);
+router.get("/marketing/admin", auth, role("admin", "manager"), productController.getMarketingAdmin);
 router.post("/upload-image", auth, role("admin"), imageUpload.single("image"), productController.uploadAdminImage);
 router.put("/marketing/current", auth, role("admin"), productController.saveCurrentPromotion);
 router.post("/marketing/upcoming", auth, role("admin"), productController.createUpcomingPromotion);

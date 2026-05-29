@@ -3,6 +3,69 @@ function getCartStockLimit(item) {
   return Number.isFinite(limit) && limit > 0 ? limit : 0;
 }
 
+function resolveCatalogLocationStock(product, locationId) {
+  if (!product) return 0;
+  const selectedLocationId = Number(locationId || 0);
+  if (!selectedLocationId) {
+    return Number(product.stock || 0);
+  }
+
+  const localStock = product?.location_stocks?.find(
+    entry => Number(entry.location_id) === selectedLocationId
+  )?.stock;
+
+  return Number(localStock ?? product.location_stock ?? 0);
+}
+
+function resolveCatalogLocationPrice(product, locationId) {
+  if (!product) return 0;
+  const selectedLocationId = Number(locationId || 0);
+  if (!selectedLocationId) {
+    return Number(product.price || 0);
+  }
+
+  const localOverride = product?.location_stocks?.find(
+    entry => Number(entry.location_id) === selectedLocationId
+  )?.price_override;
+
+  if (localOverride !== null && typeof localOverride !== "undefined" && localOverride !== "") {
+    return Number(localOverride || 0);
+  }
+
+  if (product.location_price_override !== null && typeof product.location_price_override !== "undefined") {
+    return Number(product.location_price_override || 0);
+  }
+
+  return Number(product.price || 0);
+}
+
+function syncCartWithCatalog(catalog, fallbackLocationId = 0) {
+  const products = Array.isArray(catalog?.products) ? catalog.products : [];
+  if (!products.length) return getCart();
+
+  const productMap = new Map(products.map(product => [Number(product.id), product]));
+  const syncedCart = getCart()
+    .map(item => {
+      const product = productMap.get(Number(item.product_id));
+      if (!product) return item;
+
+      const locationId = Number(item.location_id || fallbackLocationId || 0);
+      const maxStock = resolveCatalogLocationStock(product, locationId);
+      const safeQuantity = maxStock > 0 ? Math.min(Number(item.quantity || 0), maxStock) : 0;
+
+      return {
+        ...item,
+        price: resolveCatalogLocationPrice(product, locationId),
+        max_stock: maxStock,
+        quantity: safeQuantity
+      };
+    })
+    .filter(item => Number(item.quantity || 0) > 0);
+
+  saveCart(syncedCart);
+  return syncedCart;
+}
+
 function showCartFeedback(message, type = "warning") {
   if (typeof showMessage === "function" && document.getElementById("cart-feedback")) {
     showMessage("cart-feedback", type, message);
@@ -148,7 +211,7 @@ function renderCartPage() {
   totalEl.textContent = formatMoney(total);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const pathname = window.location.pathname || "";
   const isProductsPage = pathname.endsWith("/products.html");
 
@@ -156,5 +219,22 @@ document.addEventListener("DOMContentLoaded", () => {
     guardGuestCartLinks();
   }
 
+  if (typeof apiRequest === "function") {
+    try {
+      const catalog = await apiRequest("/products");
+      const cart = getCart();
+      const lockedLocationId = Number(
+        cart.find(item => Number(item.location_id || 0))?.location_id ||
+          localStorage.getItem("pointchaud_selected_location_id") ||
+          0
+      );
+      syncCartWithCatalog(catalog, lockedLocationId);
+    } catch (error) {
+      // Ignore live refresh failures here and keep the stored cart visible.
+    }
+  }
+
   renderCartPage();
 });
+
+window.syncCartWithCatalog = syncCartWithCatalog;

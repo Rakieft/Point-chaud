@@ -127,7 +127,7 @@ async function loadBranchMarketingContent() {
         CURRENT_EVENT.period = data.currentEvent.period_label || CURRENT_EVENT.period;
         CURRENT_EVENT.price = data.currentEvent.price_label || CURRENT_EVENT.price;
         CURRENT_EVENT.description = data.currentEvent.description || CURRENT_EVENT.description;
-        CURRENT_EVENT.image = data.currentEvent.image || CURRENT_EVENT.image;
+        CURRENT_EVENT.image = getMarketingPromoImage(data.currentEvent, CURRENT_EVENT.image);
       }
 
       if (Array.isArray(data?.upcomingEvents) && data.upcomingEvents.length) {
@@ -292,11 +292,15 @@ function renderBranchCards(locations, products) {
 function renderCurrentEvent() {
   const container = document.getElementById("branch-current-event-card");
   if (!container) return;
+  const eventImage = resolveMarketingImagePath(CURRENT_EVENT.image, "../assets/images/home/burger-week-promo.png");
 
-  container.style.backgroundImage = `
+  container.style.background = `
     linear-gradient(96deg, rgba(41, 16, 9, 0.94) 0%, rgba(85, 28, 8, 0.72) 38%, rgba(118, 43, 10, 0.24) 62%, rgba(255, 120, 28, 0.1) 100%),
-    url("${CURRENT_EVENT.image}")
+    url("${eventImage}")
   `;
+  container.style.backgroundSize = "cover";
+  container.style.backgroundPosition = "center";
+  container.style.backgroundRepeat = "no-repeat";
 
   container.innerHTML = `
     <div class="branch-current-event-copy">

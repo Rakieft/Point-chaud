@@ -42,20 +42,46 @@ function renderLocationStockInputs(locations, product = null) {
   const container = document.getElementById("product-location-stocks");
   if (!container) return;
 
-  const stocksByLocation = new Map((product?.location_stocks || []).map(item => [Number(item.location_id), Number(item.stock || 0)]));
+  const stocksByLocation = new Map(
+    (product?.location_stocks || []).map(item => [
+      Number(item.location_id),
+      {
+        stock: Number(item.stock || 0),
+        price_override:
+          item.price_override === null || typeof item.price_override === "undefined" || item.price_override === ""
+            ? ""
+            : Number(item.price_override)
+      }
+    ])
+  );
 
   container.innerHTML = locations
     .map(
       location => `
-        <label>
-          ${location.name}
-          <input
-            type="number"
-            min="0"
-            data-location-stock-input
-            data-location-id="${location.id}"
-            value="${stocksByLocation.has(Number(location.id)) ? stocksByLocation.get(Number(location.id)) : 0}" />
-        </label>
+        <div class="admin-location-stock-card">
+          <strong>${location.name}</strong>
+          <label>
+            Stock
+            <input
+              type="number"
+              min="0"
+              data-location-stock-input
+              data-location-id="${location.id}"
+              value="${stocksByLocation.has(Number(location.id)) ? stocksByLocation.get(Number(location.id)).stock : 0}" />
+          </label>
+          <label>
+            Prix special pour cette succursale
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              data-location-price-input
+              data-location-id="${location.id}"
+              placeholder="Utiliser le prix global"
+              value="${stocksByLocation.has(Number(location.id)) ? stocksByLocation.get(Number(location.id)).price_override : ""}" />
+            <small>Laisse vide pour garder le prix global.</small>
+          </label>
+        </div>
       `
     )
     .join("");
@@ -263,6 +289,16 @@ function renderAdminProductsTable(products) {
               <div class="stack-sm">
                 <strong>${product.name}</strong>
                 <div><small>${product.description || "Sans description"}</small></div>
+                ${
+                  (product.location_stocks || []).some(
+                    item =>
+                      item.price_override !== null &&
+                      typeof item.price_override !== "undefined" &&
+                      item.price_override !== ""
+                  )
+                    ? `<div class="admin-inline-badges"><span class="admin-branch-price-badge">Prix special actif</span></div>`
+                    : ""
+                }
               </div>
             </div>
           </td>
@@ -273,7 +309,16 @@ function renderAdminProductsTable(products) {
               ${Number(product.stock || 0) <= 5 ? `Faible (${product.stock})` : `OK (${product.stock})`}
             </span>
           </td>
-          <td data-label="Par succursale">${(product.location_stocks || []).map(item => `${item.location_name}: ${item.stock}`).join("<br>")}</td>
+          <td data-label="Par succursale">${(product.location_stocks || [])
+            .map(
+              item =>
+                `${item.location_name}: ${item.stock}${
+                  item.price_override !== null && typeof item.price_override !== "undefined"
+                    ? ` · ${formatMoney(item.price_override)}`
+                    : ""
+                }`
+            )
+            .join("<br>")}</td>
           <td data-label="Actions">
             <div class="admin-action-group">
               ${
@@ -429,7 +474,9 @@ function bindProductForm() {
         location_id: Number(location.id),
         stock: Number(
           form.querySelector(`[data-location-stock-input][data-location-id="${location.id}"]`)?.value || 0
-        )
+        ),
+        price_override:
+          form.querySelector(`[data-location-price-input][data-location-id="${location.id}"]`)?.value?.trim() || null
       }))
     );
     const currentProductId = payload.product_id;

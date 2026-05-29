@@ -201,7 +201,6 @@ function renderClientStats(orders, notifications) {
   const readyOrders = orders.filter(order => order.status === "paid").length;
 
   const cards = [
-    ["Commandes totales", orders.length, "Historique complet de tes commandes"],
     ["En attente", pendingValidation, "Le manager n'a pas encore valide"],
     ["Paiements a faire", awaitingPayment, "Tu peux payer ces commandes"],
     ["Commandes pretes", readyOrders, "QR code disponible pour recuperation"]
@@ -896,7 +895,7 @@ async function loadCatalogMarketingContent() {
         CATALOG_CURRENT_EVENT.title = data.currentEvent.title || CATALOG_CURRENT_EVENT.title;
         CATALOG_CURRENT_EVENT.price = data.currentEvent.price_label || CATALOG_CURRENT_EVENT.price || "15$";
         CATALOG_CURRENT_EVENT.text = data.currentEvent.description || CATALOG_CURRENT_EVENT.text;
-        CATALOG_CURRENT_EVENT.image = data.currentEvent.image || CATALOG_CURRENT_EVENT.image;
+        CATALOG_CURRENT_EVENT.image = getMarketingPromoImage(data.currentEvent, CATALOG_CURRENT_EVENT.image);
       }
 
       if (Array.isArray(data?.dailySpecials) && data.dailySpecials.length) {
@@ -2501,7 +2500,14 @@ async function renderCheckoutPage() {
       }
     }
 
+    if (typeof window.syncCartWithCatalog === "function") {
+      window.syncCartWithCatalog(catalog, Number(locationSelect?.value || 0));
+    }
+
     const syncDeliveryFields = () => {
+      if (typeof window.syncCartWithCatalog === "function") {
+        window.syncCartWithCatalog(catalog, Number(locationSelect?.value || 0));
+      }
       const isDelivery = orderTypeSelect?.value === "delivery";
       if (deliveryFields) {
         deliveryFields.style.display = isDelivery ? "grid" : "none";
