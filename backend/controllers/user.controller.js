@@ -446,6 +446,23 @@ function formatDateLabelFr(dateString) {
   }).format(new Date(`${dateString}T12:00:00Z`));
 }
 
+function formatTimestamp(dateValue) {
+  if (!dateValue) return "Date indisponible";
+
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return "Date indisponible";
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/Port-au-Prince"
+  }).format(date);
+}
+
 function normalizeDriverWeekPeriod(query) {
   const weekEnding = String(query?.week_ending || getRecentSaturdaySnapshot());
   if (!/^\d{4}-\d{2}-\d{2}$/.test(weekEnding)) {

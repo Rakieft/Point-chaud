@@ -1816,6 +1816,8 @@ function openClientOrderDetail(orderId) {
     title.textContent = `Commande #${order.id}`;
   }
 
+  const paymentValidated = order.payment_status === "confirmed" || ["paid", "completed"].includes(order.status);
+
   content.innerHTML = `
     <div class="admin-detail-grid">
       <section class="admin-detail-panel">
@@ -1879,6 +1881,11 @@ function openClientOrderDetail(orderId) {
                 </div>
 
                 <div class="client-payment-flow stack" data-bank-accounts='${JSON.stringify(latestClientBankAccounts || []).replace(/'/g, "&apos;")}'>
+                    <div class="client-payment-detail-card client-payment-amount-reminder">
+                      <strong>Montant a envoyer</strong>
+                      <div class="client-payment-detail-number">${formatMoney(order.total)}</div>
+                      <p>${order.order_type === "delivery" ? `Ce total inclut deja les frais de livraison (${formatMoney(Number(order.delivery_fee || 0))}).` : "Envoie exactement ce montant pour eviter tout retard de verification."}</p>
+                    </div>
                     <div class="client-payment-selector">
                       <button class="client-payment-option" type="button" data-payment-method-choice="moncash">
                         <strong>MonCash</strong>
@@ -1916,7 +1923,7 @@ function openClientOrderDetail(orderId) {
                         <input name="proof" type="file" accept=".png,.jpg,.jpeg,.pdf" required />
                       </label>
                       <div class="client-payment-proof-checklist">
-                        <span>Montant exact.</span>
+                        <span>Envoie exactement ${formatMoney(order.total)}.</span>
                         <span>Reference correcte.</span>
                         <span>Preuve lisible.</span>
                       </div>
@@ -1955,7 +1962,7 @@ function openClientOrderDetail(orderId) {
       </section>
     </div>
     <div class="card-actions admin-detail-actions">
-      <button class="btn-light" type="button" onclick="printClientOrderSheet(${order.id})">Imprimer ma fiche</button>
+      ${paymentValidated ? `<button class="btn-light" type="button" onclick="printClientOrderSheet(${order.id})">Imprimer ma fiche</button>` : ""}
     </div>
   `;
 

@@ -708,6 +708,9 @@ function openBackofficeOrderDetail(order) {
     title.textContent = `Commande #${order.id}`;
   }
 
+  const paymentValidated = order.payment_status === "confirmed" || ["paid", "completed"].includes(order.status);
+  const paymentProofUrl = order.payment_proof ? `${backofficeUploadsBaseUrl()}/uploads/${order.payment_proof}` : "";
+
   content.innerHTML = `
     <div class="admin-detail-grid">
       <section class="admin-detail-panel">
@@ -777,6 +780,27 @@ function openBackofficeOrderDetail(order) {
       </section>
 
       ${
+        order.payment_proof
+          ? `
+            <section class="admin-detail-panel">
+              <h4>Preuve de paiement</h4>
+              <div class="admin-proof-preview">
+                <img src="${paymentProofUrl}" alt="Preuve commande ${order.id}" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+                <div class="admin-proof-fallback" style="display:none;">
+                  <p>Impossible d'afficher cette preuve directement.</p>
+                  <a class="btn btn-light" href="${paymentProofUrl}" target="_blank">Ouvrir le fichier</a>
+                </div>
+              </div>
+              <div class="admin-proof-actions">
+                <button class="btn btn-light" type="button" onclick="openPaymentProofPreview('${paymentProofUrl}', 'Preuve commande #${order.id}')">Voir en grand</button>
+                <a class="btn btn-light" href="${paymentProofUrl}" target="_blank" download>Télécharger la preuve</a>
+              </div>
+            </section>
+          `
+          : ""
+      }
+
+      ${
         order.order_type === "delivery" && order.delivery_signature_data
           ? `
             <section class="admin-detail-panel">
@@ -791,8 +815,14 @@ function openBackofficeOrderDetail(order) {
       }
     </div>
     <div class="card-actions admin-detail-actions">
-      <button class="btn-primary" type="button" onclick="printKitchenOrderSheet(${order.id})">Imprimer fiche cuisine</button>
-      <button class="btn-light" type="button" onclick="printClientReceiptFromBackoffice(${order.id})">Imprimer fiche client</button>
+      ${
+        paymentValidated
+          ? `
+            <button class="btn-primary" type="button" onclick="printKitchenOrderSheet(${order.id})">Imprimer fiche cuisine</button>
+            <button class="btn-light" type="button" onclick="printClientReceiptFromBackoffice(${order.id})">Imprimer fiche client</button>
+          `
+          : ""
+      }
     </div>
   `;
 
@@ -807,6 +837,16 @@ function escapePrintHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function openPaymentProofPreview(url, title = "Preuve de paiement") {
+  if (!url) return;
+  const proofWindow = window.open(url, "_blank", "width=1200,height=900");
+  if (!proofWindow) {
+    window.location.href = url;
+    return;
+  }
+  proofWindow.document.title = title;
 }
 
 function openPrintDocument(title, bodyMarkup) {
@@ -1109,5 +1149,6 @@ function closeOrderDetail() {
 
 window.openBackofficeNotificationByKeyword = openBackofficeNotificationByKeyword;
 window.openDeliverySignatureModal = openDeliverySignatureModal;
+window.openPaymentProofPreview = openPaymentProofPreview;
 window.printKitchenOrderSheet = printKitchenOrderSheet;
 window.printClientReceiptFromBackoffice = printClientReceiptFromBackoffice;

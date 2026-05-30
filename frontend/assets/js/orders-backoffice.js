@@ -212,20 +212,10 @@ function renderPaymentCards(orders) {
               </div>
 
               <div class="admin-proof-preview">
-                <img
-                  src="${backofficeUploadsBaseUrl()}/uploads/${order.payment_proof}"
-                  alt="Preuve commande ${order.id}"
-                  role="button"
-                  tabindex="0"
-                  onclick="openBackofficeProofViewer('${order.payment_proof}', ${order.id})"
-                  onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openBackofficeProofViewer('${order.payment_proof}', ${order.id});}"
-                  onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
+                <img src="${backofficeUploadsBaseUrl()}/uploads/${order.payment_proof}" alt="Preuve commande ${order.id}" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';" />
                 <div class="admin-proof-fallback" style="display:none;">
                   <p>Impossible d'afficher cette preuve directement.</p>
-                  <div class="admin-action-group">
-                    <button class="btn btn-light" type="button" onclick="openBackofficeProofViewer('${order.payment_proof}', ${order.id})">Voir la preuve</button>
-                    <a class="btn btn-primary" href="${backofficeUploadsBaseUrl()}/uploads/${order.payment_proof}" target="_blank" rel="noopener" download>Telecharger</a>
-                  </div>
+                  <a class="btn btn-light" href="${backofficeUploadsBaseUrl()}/uploads/${order.payment_proof}" target="_blank">Ouvrir le fichier</a>
                 </div>
               </div>
 
@@ -235,12 +225,8 @@ function renderPaymentCards(orders) {
               </div>
 
               <div class="admin-proof-actions">
-                <button class="btn btn-light" type="button" onclick="openBackofficeProofViewer('${order.payment_proof}', ${order.id})">
-                  Voir en grand
-                </button>
-                <a class="btn btn-primary" href="${backofficeUploadsBaseUrl()}/uploads/${order.payment_proof}" target="_blank" rel="noopener" download>
-                  Telecharger la preuve
-                </a>
+                <button class="btn btn-light" type="button" onclick="openPaymentProofPreview('${backofficeUploadsBaseUrl()}/uploads/${order.payment_proof}', 'Preuve commande #${order.id}')">Voir en grand</button>
+                <a class="btn btn-light" href="${backofficeUploadsBaseUrl()}/uploads/${order.payment_proof}" target="_blank" download>Télécharger</a>
               </div>
 
               <div class="admin-action-group">
@@ -258,6 +244,16 @@ function openOrderDetailById(orderId) {
   const order = ordersCache.find(item => item.id === orderId) || filteredOrdersCache.find(item => item.id === orderId);
   openBackofficeOrderDetail(order);
 }
+
+window.openPaymentProofPreview = function openPaymentProofPreview(url, title = "Preuve de paiement") {
+  if (!url) return;
+  const proofWindow = window.open(url, "_blank", "width=1200,height=900");
+  if (!proofWindow) {
+    window.location.href = url;
+    return;
+  }
+  proofWindow.document.title = title;
+};
 
 function openOrderEdit(orderId) {
   const order = ordersCache.find(item => item.id === orderId);
