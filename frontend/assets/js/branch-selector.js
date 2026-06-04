@@ -115,12 +115,15 @@ const BRANCH_WEEKDAY_LABELS = {
 };
 
 let branchMarketingPromise = null;
+let branchHasActiveCurrentEvent = true;
 
 async function loadBranchMarketingContent() {
   if (branchMarketingPromise) return branchMarketingPromise;
 
   branchMarketingPromise = apiRequest("/products/marketing")
     .then(data => {
+      branchHasActiveCurrentEvent = Boolean(data?.currentEvent);
+
       if (data?.currentEvent) {
         CURRENT_EVENT.badge = "Événement actuel";
         CURRENT_EVENT.title = data.currentEvent.title || CURRENT_EVENT.title;
@@ -292,6 +295,15 @@ function renderBranchCards(locations, products) {
 function renderCurrentEvent() {
   const container = document.getElementById("branch-current-event-card");
   if (!container) return;
+
+  if (!branchHasActiveCurrentEvent) {
+    container.hidden = true;
+    container.innerHTML = "";
+    container.style.background = "";
+    return;
+  }
+
+  container.hidden = false;
   const eventImage = resolveMarketingImagePath(CURRENT_EVENT.image, "../assets/images/home/burger-week-promo.png");
 
   container.style.background = `

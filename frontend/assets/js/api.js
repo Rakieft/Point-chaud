@@ -696,10 +696,19 @@ function getMarketingPromoImage(event, fallbackImage) {
   return fallbackImage;
 }
 
+function setElementVisibility(element, visible, displayValue = "") {
+  if (!element) return;
+  element.hidden = !visible;
+  element.style.display = visible ? displayValue : "none";
+}
+
 async function renderHomepagePromotions() {
+  const section = document.getElementById("promotions");
+  const currentCard = document.getElementById("home-current-promo-card");
+  const upcomingCard = document.getElementById("home-upcoming-promo-card");
   const currentTitle = document.getElementById("home-current-promo-title");
   const upcomingTitle = document.getElementById("home-upcoming-promo-title");
-  if (!currentTitle || !upcomingTitle) return;
+  if (!currentTitle || !upcomingTitle || !currentCard || !upcomingCard || !section) return;
 
   try {
     const data = await apiRequest("/products/marketing");
@@ -707,8 +716,12 @@ async function renderHomepagePromotions() {
     const upcomingEvent = Array.isArray(data?.upcomingEvents)
       ? data.upcomingEvents.find(event => event.is_active) || data.upcomingEvents[0] || null
       : null;
+    const hasVisiblePromotion = Boolean(currentEvent || upcomingEvent);
+
+    setElementVisibility(section, hasVisiblePromotion);
 
     if (currentEvent) {
+      setElementVisibility(currentCard, true);
       const currentImage = document.getElementById("home-current-promo-image");
       document.getElementById("home-current-promo-badge").textContent = "Evenement du moment";
       currentTitle.textContent = currentEvent.title || currentEvent.product?.name || "Promotion";
@@ -721,9 +734,12 @@ async function renderHomepagePromotions() {
         currentImage.src = getMarketingPromoImage(currentEvent, "../assets/images/home/burger-week-promo.png");
         currentImage.alt = currentEvent.title || currentEvent.product?.name || "Promotion Point Chaud";
       }
+    } else {
+      setElementVisibility(currentCard, false);
     }
 
     if (upcomingEvent) {
+      setElementVisibility(upcomingCard, true);
       const upcomingImage = document.getElementById("home-upcoming-promo-image");
       document.getElementById("home-upcoming-promo-badge").textContent = "A venir";
       upcomingTitle.textContent = upcomingEvent.title || upcomingEvent.product?.name || "A venir";
@@ -736,8 +752,13 @@ async function renderHomepagePromotions() {
         upcomingImage.src = getMarketingPromoImage(upcomingEvent, "../assets/images/home/wing-things-promo.png");
         upcomingImage.alt = upcomingEvent.title || upcomingEvent.product?.name || "Prochaine promotion Point Chaud";
       }
+    } else {
+      setElementVisibility(upcomingCard, false);
     }
   } catch (error) {
+    setElementVisibility(section, false);
+    setElementVisibility(currentCard, false);
+    setElementVisibility(upcomingCard, false);
     console.warn("Promotions accueil indisponibles", error);
   }
 }

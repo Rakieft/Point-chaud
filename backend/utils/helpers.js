@@ -56,6 +56,54 @@ exports.getDriversAtLocation = async locationId => {
   return users;
 };
 
+exports.getClientCreditBalance = async (userId, connection = db) => {
+  const [[row]] = await connection.query(
+    `
+      SELECT COALESCE(
+        SUM(
+          CASE
+            WHEN payment_method = 'credit' AND credit_settlement_status IN ('open', 'partial')
+              THEN GREATEST(COALESCE(credit_amount, 0) - COALESCE(credit_settled_amount, 0), 0)
+            ELSE 0
+          END
+        ),
+        0
+      ) AS balance
+      FROM orders
+      WHERE user_id = ?
+    `,
+    [userId]
+  );
+
+  return Number(row.balance || 0);
+};
+
+exports.getClientCreditPayments = async (userId, limit = 20, connection = db) => {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 100));
+  const [rows] = await connection.query(
+    `
+      SELECT
+        cp.id,
+        cp.user_id,
+        cp.order_id,
+        cp.amount,
+        cp.payment_channel,
+        cp.note,
+        cp.paid_at,
+        cp.created_at,
+        recorder.name AS recorded_by_name
+      FROM credit_payments cp
+      LEFT JOIN users recorder ON recorder.id = cp.recorded_by
+      WHERE cp.user_id = ?
+      ORDER BY cp.paid_at DESC, cp.id DESC
+      LIMIT ${safeLimit}
+    `,
+    [userId]
+  );
+
+  return rows;
+};
+
 exports.getScopedUser = async userId => {
   const [rows] = await db.query(
     `
@@ -70,6 +118,10 @@ exports.getScopedUser = async userId => {
         u.avatar_url,
         u.title,
         u.role,
+        u.credit_enabled,
+        u.credit_limit,
+        u.credit_status,
+        u.credit_note,
         u.assigned_location_id,
         u.is_active,
         l.name AS assigned_location_name
@@ -80,7 +132,15 @@ exports.getScopedUser = async userId => {
     [userId]
   );
 
-  return rows[0] || null;
+  const user = rows[0] || null;
+  if (!user) return null;
+
+  return {
+    ...user,
+    credit_enabled: Boolean(user.credit_enabled),
+    credit_limit: Number(user.credit_limit || 0),
+    current_credit_balance: await exports.getClientCreditBalance(user.id)
+  };
 };
 
 exports.fetchOrderByIdWithDetails = async orderId => {

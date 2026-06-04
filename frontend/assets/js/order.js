@@ -884,12 +884,15 @@ const CATALOG_WEEKDAY_LABELS = {
 };
 
 let catalogMarketingPromise = null;
+let catalogHasActiveCurrentEvent = true;
 
 async function loadCatalogMarketingContent() {
   if (catalogMarketingPromise) return catalogMarketingPromise;
 
   catalogMarketingPromise = apiRequest("/products/marketing")
     .then(data => {
+      catalogHasActiveCurrentEvent = Boolean(data?.currentEvent);
+
       if (data?.currentEvent) {
         CATALOG_CURRENT_EVENT.badge = "Événement du moment";
         CATALOG_CURRENT_EVENT.title = data.currentEvent.title || CATALOG_CURRENT_EVENT.title;
@@ -963,17 +966,24 @@ function renderCatalogContextStripByIds(
     products.find(product => normalizeCatalogText(product.name).includes(normalizeCatalogText(dish.title)));
 
   strip.hidden = false;
-  eventCard.style.backgroundImage = `
-    linear-gradient(98deg, rgba(43, 17, 9, 0.9) 0%, rgba(95, 31, 9, 0.66) 42%, rgba(255, 127, 28, 0.16) 100%),
-    url("${CATALOG_CURRENT_EVENT.image}")
-  `;
-  eventCard.innerHTML = `
-    <span class="badge">${CATALOG_CURRENT_EVENT.badge}</span>
-    <h3>${CATALOG_CURRENT_EVENT.title}</h3>
-    <strong class="branch-event-price">${CATALOG_CURRENT_EVENT.price || "15$"}</strong>
-    <p>${locationName ? `${CATALOG_CURRENT_EVENT.text} \u00e0 ${locationName}.` : CATALOG_CURRENT_EVENT.text}</p>
-    <button class="btn btn-light btn-sm" type="button" id="${eventActionId}">Voir l'offre</button>
-  `;
+  if (catalogHasActiveCurrentEvent) {
+    eventCard.hidden = false;
+    eventCard.style.backgroundImage = `
+      linear-gradient(98deg, rgba(43, 17, 9, 0.9) 0%, rgba(95, 31, 9, 0.66) 42%, rgba(255, 127, 28, 0.16) 100%),
+      url("${CATALOG_CURRENT_EVENT.image}")
+    `;
+    eventCard.innerHTML = `
+      <span class="badge">${CATALOG_CURRENT_EVENT.badge}</span>
+      <h3>${CATALOG_CURRENT_EVENT.title}</h3>
+      <strong class="branch-event-price">${CATALOG_CURRENT_EVENT.price || "15$"}</strong>
+      <p>${locationName ? `${CATALOG_CURRENT_EVENT.text} \u00e0 ${locationName}.` : CATALOG_CURRENT_EVENT.text}</p>
+      <button class="btn btn-light btn-sm" type="button" id="${eventActionId}">Voir l'offre</button>
+    `;
+  } else {
+    eventCard.hidden = true;
+    eventCard.innerHTML = "";
+    eventCard.style.backgroundImage = "";
+  }
 
   dishCard.innerHTML = `
     <span class="badge">Plat du jour</span>
@@ -1571,7 +1581,8 @@ function formatPaymentMethod(method) {
   const labels = {
     moncash: "MonCash",
     natcash: "NatCash",
-    bank_transfer: "Virement bancaire"
+    bank_transfer: "Virement bancaire",
+    credit: "Credit client"
   };
 
   return labels[method] || "Pas encore renseigne";
@@ -1862,6 +1873,11 @@ function openClientOrderDetail(orderId) {
         <h4>Paiement et retrait</h4>
         <div class="stack-sm">
           <span>Paiement: ${formatPaymentMethod(order.payment_method)}</span>
+          ${
+            order.payment_method === "credit"
+              ? `<span>Credit: ${order.credit_settlement_status === "settled" ? "Regle" : "Ouvert"}</span>`
+              : ""
+          }
           <span>Etat paiement: ${order.status === "cancelled" ? "Non requis" : getClientOrderState(order).badgeText}</span>
           ${
             order.order_type === "delivery"
@@ -2206,6 +2222,7 @@ async function handleCheckoutOrderSubmit(event) {
   const deliveryAddressInput = document.getElementById("delivery_address");
   const pickupDateInput = orderForm?.elements?.pickup_date;
   const pickupTimeInput = orderForm?.elements?.pickup_time;
+  const creditToggle = document.getElementById("checkout-credit-toggle");
 
   if (!orderForm) {
     return false;
@@ -2281,6 +2298,7 @@ async function handleCheckoutOrderSubmit(event) {
     const formData = new FormData(orderForm);
     const payload = Object.fromEntries(formData.entries());
     payload.location_id = String(cartLocationLock.locationId || selectedLocationId || "");
+    payload.payment_method = creditToggle?.checked ? "credit" : "";
     payload.items = cart.map(item => ({
       product_id: item.product_id,
       quantity: Number(item.quantity)
@@ -2352,6 +2370,10 @@ async function renderCheckoutPage() {
   const paymentOrderSchedule = document.getElementById("payment-order-schedule");
   const paymentProofInput = document.getElementById("payment-proof-input");
   const paymentProofFileName = document.getElementById("payment-proof-file-name");
+  const checkoutCreditPanel = document.getElementById("checkout-credit-panel");
+  const checkoutCreditToggle = document.getElementById("checkout-credit-toggle");
+  const checkoutCreditSummary = document.getElementById("checkout-credit-summary");
+  const checkoutCreditStatus = document.getElementById("checkout-credit-status");
   let checkoutCatalog = null;
   const deliveryFee = 500;
 
@@ -2376,6 +2398,60 @@ async function renderCheckoutPage() {
           )}).`
         : `Total a transferer: ${formatMoney(order.total)}.`;
     paymentOrderSchedule.textContent = `${order.order_type === "delivery" ? "Livraison" : "Retrait"} prevu(e) le ${formatDateTime(order.pickup_date, order.pickup_time)}.`;
+  };
+
+  const syncCheckoutCreditPanel = totalAmount => {
+    if (!orderForm) return;
+    const hiddenPaymentMethod = orderForm.elements.namedItem("payment_method");
+    const isEligibleForCredit = Boolean(user.credit_enabled) && user.credit_status === "active";
+
+    if (!checkoutCreditPanel || !checkoutCreditToggle || !checkoutCreditSummary || !checkoutCreditStatus) {
+      if (hiddenPaymentMethod) hiddenPaymentMethod.value = "";
+      return;
+    }
+
+    if (!isEligibleForCredit) {
+      checkoutCreditPanel.hidden = true;
+      checkoutCreditToggle.checked = false;
+      if (hiddenPaymentMethod) hiddenPaymentMethod.value = "";
+      return;
+    }
+
+    checkoutCreditPanel.hidden = false;
+    const currentBalance = Number(user.current_credit_balance || 0);
+    const creditLimit = Number(user.credit_limit || 0);
+    const availableAmount = Math.max(0, creditLimit - currentBalance);
+    const fitsLimit = currentBalance + totalAmount <= creditLimit;
+
+    checkoutCreditPanel.classList.toggle("is-unavailable", !fitsLimit);
+    checkoutCreditSummary.innerHTML = `
+      <span class="client-credit-member-copy">Ton compte beneficie d'un acces credit privilegie chez Point Chaud.</span>
+      <span class="client-credit-summary-line">Limite accordee: <strong>${formatMoney(creditLimit)}</strong></span>
+      <span class="client-credit-summary-line">Solde ouvert: <strong>${formatMoney(currentBalance)}</strong></span>
+    `;
+    checkoutCreditStatus.innerHTML = fitsLimit
+      ? `
+        <div class="client-credit-available-box">
+          <small>Disponible maintenant</small>
+          <strong>${formatMoney(availableAmount)}</strong>
+        </div>
+      `
+      : `
+        <div class="client-credit-available-box is-alert">
+          <small>Disponible restant</small>
+          <strong>${formatMoney(availableAmount)}</strong>
+          <span>Le plafond est depasse pour cette commande. Utilise le paiement normal ou reduis le panier.</span>
+        </div>
+      `;
+
+    checkoutCreditToggle.disabled = !fitsLimit;
+    if (!fitsLimit) {
+      checkoutCreditToggle.checked = false;
+    }
+
+    if (hiddenPaymentMethod) {
+      hiddenPaymentMethod.value = checkoutCreditToggle.checked && fitsLimit ? "credit" : "";
+    }
   };
 
   const renderCheckoutCartPreview = () => {
@@ -2432,6 +2508,8 @@ async function renderCheckoutPage() {
           </article>
         `
       : `<div class="empty-state"><p>Le panier est vide.</p></div>`;
+
+    syncCheckoutCreditPanel(grandTotal);
   };
 
   const renderCheckoutLocationStock = () => {
@@ -2531,6 +2609,12 @@ async function renderCheckoutPage() {
     };
 
     orderTypeSelect?.addEventListener("change", syncDeliveryFields);
+    checkoutCreditToggle?.addEventListener("change", () => {
+      const hiddenPaymentMethod = orderForm?.elements?.namedItem("payment_method");
+      if (hiddenPaymentMethod) {
+        hiddenPaymentMethod.value = checkoutCreditToggle.checked ? "credit" : "";
+      }
+    });
     locationSelect?.addEventListener("change", () => {
       syncDeliveryFields();
       renderCheckoutLocationStock();

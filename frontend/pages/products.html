@@ -165,6 +165,7 @@
               <div class="catalog-hero-copy">
                 <span class="badge client-badge">Selection rapide</span>
                 <h2>Compose ton panier sans perdre de temps.</h2>
+                <p>Retrouve facilement les categories les plus commandees et ajoute tes produits favoris.</p>
               </div>
               <div class="catalog-hero-side">
                 <div class="catalog-mini-summary">
@@ -332,9 +333,9 @@
                       <small>Ce prix s'applique a toutes les succursales sauf si un prix special est defini plus bas.</small>
                     </label>
                     <label>
-                      Stock total indicatif
-                      <input name="stock" type="number" min="0" required />
-                      <small>Ce total est calcule a partir des stocks par succursale et sert seulement de repere.</small>
+                      Stock total calcule
+                      <input name="stock" type="number" min="0" required readonly />
+                      <small>Ce total est calcule automatiquement a partir des stocks des succursales.</small>
                     </label>
                     <label>
                       Image produit
@@ -353,7 +354,7 @@
                     <div class="stack">
                       <div>
                         <strong>Stock et prix par succursale</strong>
-                        <p class="muted">Change uniquement la succursale voulue ici, sans toucher au prix global du produit.</p>
+                        <p class="muted">Renseigne chaque succursale ici. Le stock total se met a jour tout seul au-dessus.</p>
                       </div>
                       <div id="product-location-stocks" class="admin-report-list"></div>
                     </div>

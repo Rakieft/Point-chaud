@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const db = require("../config/db");
 const { validateOrderPayload, validateOrderSchedule } = require("../validators/order.validator");
 const {
@@ -7,7 +8,8 @@ const {
   getScopedUser,
   getUserContact,
   getManagersAtLocation,
-  getDriversAtLocation
+  getDriversAtLocation,
+  getClientCreditBalance
 } = require("../utils/helpers");
 const { generateQrPayload } = require("../services/qr.service");
 const { sendSmsNotification } = require("../services/sms.service");
@@ -103,12 +105,23 @@ exports.createOrder = async (req, res) => {
     return res.status(400).json({ message });
   }
 
-  const { location_id, pickup_date, pickup_time, notes, items, order_type, delivery_address, delivery_zone } =
+  const {
+    location_id,
+    pickup_date,
+    pickup_time,
+    notes,
+    items,
+    order_type,
+    delivery_address,
+    delivery_zone,
+    payment_method
+  } =
     req.body;
   const connection = await db.getConnection();
 
   try {
     await connection.beginTransaction();
+    const customer = await getScopedUser(req.user.id);
 
     const productIds = items.map(item => item.product_id);
     const [products] = await connection.query(
@@ -140,6 +153,27 @@ exports.createOrder = async (req, res) => {
 
     const nextOrderType = order_type === "delivery" ? "delivery" : "pickup";
     const deliveryFee = getDeliveryFee(location_id, nextOrderType);
+    const itemsTotal = items.reduce((sum, item) => {
+      const product = productMap.get(item.product_id);
+      return sum + Number(product?.price || 0) * Number(item.quantity || 0);
+    }, 0);
+    const orderTotal = itemsTotal + Number(deliveryFee || 0);
+    const isCreditOrder = payment_method === "credit";
+
+    if (isCreditOrder) {
+      if (!customer?.credit_enabled || customer.credit_status !== "active") {
+        throw new Error("Ce compte n'est pas autorise a commander a credit");
+      }
+
+      const creditBalance = await getClientCreditBalance(req.user.id, connection);
+      if (creditBalance + orderTotal > Number(customer.credit_limit || 0)) {
+        throw new Error(
+          `Plafond depasse. Solde actuel: ${creditBalance.toFixed(2)} HTG, limite: ${Number(
+            customer.credit_limit || 0
+          ).toFixed(2)} HTG.`
+        );
+      }
+    }
 
     const [result] = await connection.query(
       `INSERT INTO orders (
@@ -152,9 +186,13 @@ exports.createOrder = async (req, res) => {
         delivery_address,
         delivery_zone,
         delivery_fee,
+        payment_method,
+        credit_amount,
+        credit_settled_amount,
+        credit_settlement_status,
         notes,
         payment_status
-      ) VALUES (?, 'pending_validation', ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      ) VALUES (?, 'pending_validation', ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 'pending')`,
       [
         req.user.id,
         location_id,
@@ -164,6 +202,9 @@ exports.createOrder = async (req, res) => {
         nextOrderType === "delivery" ? delivery_address || null : null,
         nextOrderType === "delivery" ? delivery_zone || null : null,
         deliveryFee,
+        isCreditOrder ? "credit" : null,
+        isCreditOrder ? orderTotal : 0,
+        isCreditOrder ? "open" : "none",
         notes || null
       ]
     );
@@ -283,18 +324,71 @@ exports.validateOrder = async (req, res) => {
       return res.status(400).json({ message: "Cette commande a deja ete traitee" });
     }
 
-    const nextStatus = action === "validate" ? "awaiting_payment" : "cancelled";
+    const isCreditOrder = order.payment_method === "credit";
+    let nextStatus = action === "validate" ? (isCreditOrder ? "paid" : "awaiting_payment") : "cancelled";
+    let nextPaymentStatus = action === "validate" ? (isCreditOrder ? "confirmed" : order.payment_status) : "rejected";
+    let nextQrToken = null;
+
+    if (action === "validate" && isCreditOrder) {
+      const [itemsRows] = await db.query(
+        "SELECT COALESCE(SUM(quantity * price), 0) AS total FROM order_items WHERE order_id = ?",
+        [req.params.id]
+      );
+      const itemsTotal = Number(itemsRows[0]?.total || 0);
+      const orderTotal = itemsTotal + Number(order.delivery_fee || 0);
+      const customer = await getScopedUser(order.user_id);
+      const currentBalance = await getClientCreditBalance(order.user_id);
+      const outstandingExcludingCurrent = Math.max(0, currentBalance - Number(order.credit_amount || 0));
+
+      if (!customer?.credit_enabled || customer.credit_status !== "active") {
+        return res.status(400).json({ message: "Ce client n'a plus acces au credit" });
+      }
+
+      if (outstandingExcludingCurrent + orderTotal > Number(customer.credit_limit || 0)) {
+        return res.status(400).json({
+          message: "Le plafond credit du client est depasse pour cette commande"
+        });
+      }
+
+      nextQrToken =
+        order.order_type === "delivery" ? null : crypto.randomUUID();
+    }
 
     await db.query(
       `UPDATE orders
-       SET status = ?, payment_status = ?, validated_by = ?, validated_at = NOW()
+       SET status = ?,
+           payment_status = ?,
+           validated_by = ?,
+           validated_at = NOW(),
+           confirmed_by = CASE WHEN ? = 'confirmed' THEN ? ELSE confirmed_by END,
+           confirmed_at = CASE WHEN ? = 'confirmed' THEN NOW() ELSE confirmed_at END,
+           delivery_status = CASE WHEN ? = 'confirmed' AND order_type = 'delivery' THEN 'pending_assignment' ELSE delivery_status END,
+           qr_code_token = CASE WHEN ? = 'confirmed' THEN ? ELSE qr_code_token END,
+           credit_amount = CASE WHEN payment_method = 'credit' THEN (SELECT COALESCE(SUM(quantity * price), 0) FROM order_items WHERE order_id = ?) + COALESCE(delivery_fee, 0) ELSE credit_amount END,
+           credit_settlement_status = CASE WHEN payment_method = 'credit' AND ? = 'confirmed' THEN 'open' WHEN ? = 'rejected' THEN 'none' ELSE credit_settlement_status END
        WHERE id = ?`,
-      [nextStatus, action === "validate" ? order.payment_status : "rejected", req.user.id, req.params.id]
+      [
+        nextStatus,
+        nextPaymentStatus,
+        req.user.id,
+        nextPaymentStatus,
+        req.user.id,
+        nextPaymentStatus,
+        nextPaymentStatus,
+        nextPaymentStatus,
+        nextQrToken,
+        req.params.id,
+        nextPaymentStatus,
+        nextPaymentStatus,
+        req.params.id
+      ]
     );
 
     const message =
       action === "validate"
-        ? `Votre commande #${req.params.id} a ete validee. Vous pouvez maintenant payer.`
+        ? isCreditOrder
+          ? `Votre commande #${req.params.id} a ete validee sur votre credit client.`
+          : `Votre commande #${req.params.id} a ete validee. Vous pouvez maintenant payer.`
         : `Votre commande #${req.params.id} a ete refusee.`;
 
     await createNotificationForUser(order.user_id, message);

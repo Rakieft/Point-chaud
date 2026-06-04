@@ -1,6 +1,6 @@
 const db = require("../config/db");
 const { hashPassword } = require("../utils/hash");
-const { getScopedUser } = require("../utils/helpers");
+const { getScopedUser, getClientCreditBalance, getClientCreditPayments } = require("../utils/helpers");
 const {
   getPaymentProofCleanupStats,
   runPaymentProofCleanup
@@ -206,6 +206,241 @@ exports.getStaff = async (req, res) => {
     res.json(rows);
   } catch (error) {
     res.status(500).json({ message: "Impossible de recuperer les membres du staff", error: error.message });
+  }
+};
+
+exports.getClientCreditProfiles = async (req, res) => {
+  try {
+    const searchTerm = String(req.query.search || "").trim();
+    const enabledOnly = String(req.query.enabled_only || "true") !== "false";
+    const params = [];
+    const clauses = ["role = 'client'"];
+
+    if (enabledOnly) {
+      clauses.push("credit_enabled = TRUE");
+    }
+
+    if (searchTerm) {
+      clauses.push("(name LIKE ? OR email LIKE ? OR phone LIKE ?)");
+      const likeValue = `%${searchTerm}%`;
+      params.push(likeValue, likeValue, likeValue);
+    }
+
+    const [rows] = await db.query(
+      `
+        SELECT
+          id,
+          name,
+          email,
+          phone,
+          credit_enabled,
+          credit_limit,
+          credit_status,
+          credit_note,
+          created_at
+        FROM users
+        WHERE ${clauses.join(" AND ")}
+        ORDER BY name, email
+      `,
+      params
+    );
+
+    const clients = await Promise.all(rows.map(row => getScopedUser(row.id)));
+    res.json(clients.filter(Boolean));
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de recuperer les clients a credit", error: error.message });
+  }
+};
+
+exports.updateClientCreditSettings = async (req, res) => {
+  const { credit_enabled, credit_limit, credit_status, credit_note } = req.body;
+
+  try {
+    const target = await getScopedUser(req.params.id);
+
+    if (!target || target.role !== "client") {
+      return res.status(404).json({ message: "Client introuvable" });
+    }
+
+    const nextCreditEnabled =
+      typeof credit_enabled === "boolean" ? credit_enabled : String(credit_enabled) === "true";
+    const nextCreditLimit = Math.max(0, Number(credit_limit || 0));
+    const nextCreditStatus = ["inactive", "active", "suspended"].includes(String(credit_status || ""))
+      ? String(credit_status)
+      : nextCreditEnabled
+        ? "active"
+        : "inactive";
+
+    await db.query(
+      `
+        UPDATE users
+        SET
+          credit_enabled = ?,
+          credit_limit = ?,
+          credit_status = ?,
+          credit_note = ?
+        WHERE id = ?
+      `,
+      [nextCreditEnabled, nextCreditLimit, nextCreditStatus, credit_note ?? target.credit_note ?? null, req.params.id]
+    );
+
+    const updatedClient = await getScopedUser(req.params.id);
+    res.json({ message: "Acces credit mis a jour", user: updatedClient });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de mettre a jour le credit client", error: error.message });
+  }
+};
+
+exports.getClientCreditPaymentHistory = async (req, res) => {
+  try {
+    const target = await getScopedUser(req.params.id);
+
+    if (!target || target.role !== "client") {
+      return res.status(404).json({ message: "Client introuvable" });
+    }
+
+    const payments = await getClientCreditPayments(target.id, Number(req.query.limit || 20));
+    res.json({
+      client: target,
+      payments
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Impossible de recuperer l'historique du credit", error: error.message });
+  }
+};
+
+exports.recordClientCreditPayment = async (req, res) => {
+  const { amount, note, paid_at, payment_channel } = req.body;
+  const normalizedAmount = Number(amount || 0);
+  const normalizedChannel = String(payment_channel || "").trim() || null;
+  const allowedChannels = ["cash", "moncash", "bank_transfer", "natcash", "other"];
+
+  if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+    return res.status(400).json({ message: "Le montant du reglement est invalide" });
+  }
+
+  if (normalizedChannel && !allowedChannels.includes(normalizedChannel)) {
+    return res.status(400).json({ message: "Canal de paiement credit invalide" });
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const target = await getScopedUser(req.params.id);
+
+    if (!target || target.role !== "client") {
+      await connection.rollback();
+      return res.status(404).json({ message: "Client introuvable" });
+    }
+
+    const currentBalance = await getClientCreditBalance(target.id, connection);
+
+    if (currentBalance <= 0) {
+      await connection.rollback();
+      return res.status(400).json({ message: "Ce client n'a aucun solde credit ouvert" });
+    }
+
+    if (normalizedAmount > currentBalance) {
+      await connection.rollback();
+      return res.status(400).json({
+        message: `Le montant depasse le solde ouvert actuel (${currentBalance.toFixed(2)} HTG)`
+      });
+    }
+
+    const [openOrders] = await connection.query(
+      `
+        SELECT
+          id,
+          COALESCE(credit_amount, 0) AS credit_amount,
+          COALESCE(credit_settled_amount, 0) AS credit_settled_amount,
+          created_at
+        FROM orders
+        WHERE user_id = ?
+          AND payment_method = 'credit'
+          AND credit_settlement_status IN ('open', 'partial')
+        ORDER BY created_at ASC, id ASC
+      `,
+      [target.id]
+    );
+
+    if (!openOrders.length) {
+      await connection.rollback();
+      return res.status(400).json({ message: "Aucune commande credit ouverte n'a ete trouvee pour ce client" });
+    }
+
+    let remainingAmount = normalizedAmount;
+
+    for (const order of openOrders) {
+      if (remainingAmount <= 0) break;
+
+      const openAmount = Math.max(0, Number(order.credit_amount || 0) - Number(order.credit_settled_amount || 0));
+      if (openAmount <= 0) continue;
+
+      const appliedAmount = Math.min(openAmount, remainingAmount);
+      const nextSettledAmount = Number(order.credit_settled_amount || 0) + appliedAmount;
+      const nextStatus =
+        nextSettledAmount >= Number(order.credit_amount || 0) - 0.0001 ? "settled" : "partial";
+
+      await connection.query(
+        `
+          UPDATE orders
+          SET
+            credit_settled_amount = ?,
+            credit_settlement_status = ?
+          WHERE id = ?
+        `,
+        [nextSettledAmount, nextStatus, order.id]
+      );
+
+      remainingAmount -= appliedAmount;
+    }
+
+    if (remainingAmount > 0.009) {
+      await connection.rollback();
+      return res.status(400).json({
+        message: "Le reglement n'a pas pu etre applique entierement aux commandes ouvertes"
+      });
+    }
+
+    await connection.query(
+      `
+        INSERT INTO credit_payments (
+          user_id,
+          amount,
+          payment_channel,
+          note,
+          recorded_by,
+          paid_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+      `,
+      [
+        target.id,
+        normalizedAmount,
+        normalizedChannel,
+        note ? String(note).trim() : null,
+        req.user.id,
+        paid_at ? String(paid_at) : new Date()
+      ]
+    );
+
+    await connection.commit();
+
+    const updatedClient = await getScopedUser(target.id);
+    const payments = await getClientCreditPayments(target.id, 20);
+
+    res.json({
+      message: "Reglement credit enregistre",
+      client: updatedClient,
+      payments
+    });
+  } catch (error) {
+    await connection.rollback();
+    res.status(500).json({ message: "Impossible d'enregistrer ce reglement credit", error: error.message });
+  } finally {
+    connection.release();
   }
 };
 

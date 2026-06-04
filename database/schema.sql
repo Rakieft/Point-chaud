@@ -11,6 +11,10 @@ CREATE TABLE users (
     password VARCHAR(255),
     phone VARCHAR(30),
     role ENUM('client', 'admin', 'manager', 'driver') DEFAULT 'client',
+    credit_enabled BOOLEAN DEFAULT FALSE,
+    credit_limit DECIMAL(10,2) DEFAULT 0,
+    credit_status ENUM('inactive', 'active', 'suspended') DEFAULT 'inactive',
+    credit_note TEXT NULL,
     oauth_provider ENUM('google', 'apple') NULL,
     oauth_subject VARCHAR(255) NULL,
     email_verified BOOLEAN DEFAULT FALSE,
@@ -88,10 +92,13 @@ CREATE TABLE orders (
     pickup_time TIME,
 
     -- Paiement
-    payment_method ENUM('moncash', 'natcash', 'bank_transfer'),
+    payment_method ENUM('moncash', 'natcash', 'bank_transfer', 'credit'),
     payment_status ENUM('pending', 'confirmed', 'rejected') DEFAULT 'pending',
     payment_proof VARCHAR(255),
     transaction_reference VARCHAR(120),
+    credit_amount DECIMAL(10,2) DEFAULT 0,
+    credit_settled_amount DECIMAL(10,2) DEFAULT 0,
+    credit_settlement_status ENUM('none', 'open', 'partial', 'settled') DEFAULT 'none',
     notes TEXT,
     order_type ENUM('pickup', 'delivery') DEFAULT 'pickup',
     delivery_address VARCHAR(255),
@@ -242,4 +249,19 @@ CREATE TABLE weekly_driver_reports (
     UNIQUE KEY uk_weekly_driver_scope (week_start_date, week_end_date, scope, location_id),
     CONSTRAINT fk_weekly_driver_location FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE SET NULL,
     CONSTRAINT fk_weekly_driver_user FOREIGN KEY (generated_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE credit_payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    order_id INT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    payment_channel VARCHAR(50) NULL,
+    note TEXT NULL,
+    recorded_by INT NULL,
+    paid_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_credit_payments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_credit_payments_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+    CONSTRAINT fk_credit_payments_recorder FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE SET NULL
 );

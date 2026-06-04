@@ -42,7 +42,7 @@ function renderLocationStockInputs(locations, product = null) {
   const container = document.getElementById("product-location-stocks");
   if (!container) return;
 
-  const stocksByLocation = new Map(
+  const explicitStocksByLocation = new Map(
     (product?.location_stocks || []).map(item => [
       Number(item.location_id),
       {
@@ -54,6 +54,36 @@ function renderLocationStockInputs(locations, product = null) {
       }
     ])
   );
+  const baseStocks = locations.map(location => ({
+    location_id: Number(location.id),
+    stock: explicitStocksByLocation.has(Number(location.id))
+      ? Number(explicitStocksByLocation.get(Number(location.id)).stock || 0)
+      : 0,
+    price_override: explicitStocksByLocation.has(Number(location.id))
+      ? explicitStocksByLocation.get(Number(location.id)).price_override
+      : ""
+  }));
+  const fallbackTotal = Math.max(0, Number(product?.stock || 0));
+  const missingIndexes = [];
+  let currentTotal = 0;
+
+  baseStocks.forEach((item, index) => {
+    currentTotal += Number(item.stock || 0);
+    if (!explicitStocksByLocation.has(Number(item.location_id))) {
+      missingIndexes.push(index);
+    }
+  });
+
+  if (product && missingIndexes.length && currentTotal < fallbackTotal) {
+    let remainder = fallbackTotal - currentTotal;
+    const base = Math.floor(remainder / missingIndexes.length);
+    let extra = remainder % missingIndexes.length;
+
+    missingIndexes.forEach(index => {
+      baseStocks[index].stock += base + (extra > 0 ? 1 : 0);
+      if (extra > 0) extra -= 1;
+    });
+  }
 
   container.innerHTML = locations
     .map(
@@ -67,7 +97,7 @@ function renderLocationStockInputs(locations, product = null) {
               min="0"
               data-location-stock-input
               data-location-id="${location.id}"
-              value="${stocksByLocation.has(Number(location.id)) ? stocksByLocation.get(Number(location.id)).stock : 0}" />
+              value="${baseStocks.find(item => Number(item.location_id) === Number(location.id))?.stock || 0}" />
           </label>
           <label>
             Prix special pour cette succursale
@@ -78,7 +108,9 @@ function renderLocationStockInputs(locations, product = null) {
               data-location-price-input
               data-location-id="${location.id}"
               placeholder="Utiliser le prix global"
-              value="${stocksByLocation.has(Number(location.id)) ? stocksByLocation.get(Number(location.id)).price_override : ""}" />
+              value="${
+                baseStocks.find(item => Number(item.location_id) === Number(location.id))?.price_override ?? ""
+              }" />
             <small>Laisse vide pour garder le prix global.</small>
           </label>
         </div>
@@ -99,6 +131,10 @@ function renderLocationStockInputs(locations, product = null) {
   container.querySelectorAll("[data-location-stock-input]").forEach(input => {
     input.addEventListener("input", syncTotal);
   });
+
+  if (totalInput) {
+    totalInput.readOnly = true;
+  }
 
   syncTotal();
 }

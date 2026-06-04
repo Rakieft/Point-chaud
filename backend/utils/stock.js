@@ -26,21 +26,47 @@ function normalizePriceOverride(value) {
 
 function normalizeLocationStocks(rawStocks, locations, fallbackTotal = 0) {
   if (Array.isArray(rawStocks) && rawStocks.length) {
-    const byLocation = new Map(rawStocks.map(item => [
-      Number(item.location_id),
-      {
-        stock: Math.max(0, Number(item.stock || 0)),
-        price_override: normalizePriceOverride(item.price_override)
-      }
-    ]));
+    const safeFallbackTotal = Math.max(0, Number(fallbackTotal || 0));
+    const byLocation = new Map(
+      rawStocks.map(item => [
+        Number(item.location_id),
+        {
+          stock: Math.max(0, Number(item.stock || 0)),
+          price_override: normalizePriceOverride(item.price_override)
+        }
+      ])
+    );
 
-    return locations.map(location => ({
+    const normalized = locations.map(location => ({
       location_id: Number(location.id),
       stock: byLocation.has(Number(location.id)) ? byLocation.get(Number(location.id)).stock : 0,
       price_override: byLocation.has(Number(location.id))
         ? byLocation.get(Number(location.id)).price_override
         : null
     }));
+
+    const missingIndexes = [];
+    let currentTotal = 0;
+
+    normalized.forEach((item, index) => {
+      currentTotal += Number(item.stock || 0);
+      if (!byLocation.has(Number(item.location_id))) {
+        missingIndexes.push(index);
+      }
+    });
+
+    if (missingIndexes.length && currentTotal < safeFallbackTotal) {
+      let remainder = safeFallbackTotal - currentTotal;
+      const base = Math.floor(remainder / missingIndexes.length);
+      let extra = remainder % missingIndexes.length;
+
+      missingIndexes.forEach(index => {
+        normalized[index].stock += base + (extra > 0 ? 1 : 0);
+        if (extra > 0) extra -= 1;
+      });
+    }
+
+    return normalized;
   }
 
   if (rawStocks && typeof rawStocks === "object") {

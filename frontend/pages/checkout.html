@@ -96,6 +96,7 @@
             </div>
 
             <form id="checkout-order-form" class="stack" onsubmit="return submitCheckoutOrderForm(event)">
+              <input name="payment_method" type="hidden" value="" />
               <label>
                 Mode de commande
                 <select id="order_type" name="order_type" required>
@@ -139,6 +140,27 @@
                 Notes
                 <textarea name="notes" placeholder="Ex: sans piment, recuperation pour 16h30"></textarea>
               </label>
+              <article id="checkout-credit-panel" class="client-checkout-helper-panel" hidden>
+                <div class="client-credit-shell">
+                  <div class="client-credit-card-head">
+                    <div class="client-credit-heading">
+                      <span class="client-credit-vip-badge">Acces VIP</span>
+                      <h3>Credit client disponible</h3>
+                    </div>
+                    <label class="client-credit-toggle-card">
+                      <div class="client-credit-toggle-copy">
+                        <strong>Activer le credit</strong>
+                        <small>Utiliser cet acces pour cette commande.</small>
+                      </div>
+                      <input id="checkout-credit-toggle" type="checkbox" />
+                    </label>
+                  </div>
+                  <div class="client-credit-card-body">
+                    <div id="checkout-credit-summary" class="client-credit-summary">Option reservee aux clients autorises.</div>
+                    <div id="checkout-credit-status" class="client-credit-status client-order-note"></div>
+                  </div>
+                </div>
+              </article>
               <button class="btn-primary" type="button" onclick="return submitCheckoutOrderForm(event)">
                 Envoyer la commande
               </button>

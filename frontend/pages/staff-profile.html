@@ -161,6 +161,55 @@
               <button id="staff-reset-filters" class="btn btn-light" type="button">Reinitialiser</button>
             </div>
           </section>
+
+          <section id="admin-client-credit-section" class="admin-panel admin-only" style="display:none;">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Credit client</p>
+                <h2>Autoriser les clients de confiance</h2>
+              </div>
+            </div>
+            <div id="client-credit-message" class="message-box"></div>
+            <div id="client-credit-summary-grid" class="admin-product-summary"></div>
+            <div class="admin-orders-toolbar">
+              <label>
+                Recherche
+                <input id="client-credit-search-input" type="search" placeholder="Nom, email ou telephone" autocomplete="off" />
+              </label>
+              <div class="admin-action-group" style="align-self:end;">
+                <button id="client-credit-search-button" class="btn btn-light" type="button">Rechercher</button>
+              </div>
+              <label>
+                Statut credit
+                <select id="client-credit-status-filter">
+                  <option value="">Tous</option>
+                  <option value="active">Actif</option>
+                  <option value="suspended">Suspendu</option>
+                  <option value="inactive">Inactif</option>
+                </select>
+              </label>
+            </div>
+            <p class="muted">Par defaut, seuls les clients deja autorises au credit sont affiches. Utilise la recherche pour retrouver un client precis.</p>
+
+            <div class="admin-table-wrap" style="margin-top:20px;">
+              <table class="admin-orders-table">
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Credit</th>
+                    <th>Limite</th>
+                    <th>Solde actuel</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="client-credit-table-body"></tbody>
+              </table>
+            </div>
+            <div class="admin-orders-toolbar-meta" style="margin-top:14px;">
+              <span id="client-credit-results-count" class="badge">0 client</span>
+              <button id="client-credit-reset-filters" class="btn btn-light" type="button">Reinitialiser</button>
+            </div>
+          </section>
         </section>
       </main>
     </div>
@@ -189,6 +238,131 @@
             <button class="btn-primary" type="submit">Enregistrer les modifications</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div id="client-credit-modal" class="admin-modal hidden">
+      <div class="admin-modal-backdrop" onclick="closeClientCreditEdit()"></div>
+      <div class="admin-modal-card">
+        <div class="admin-modal-head">
+          <div>
+            <p class="admin-eyebrow">Credit client</p>
+            <h3 id="client-credit-title">Configurer le credit</h3>
+          </div>
+          <button class="admin-icon-btn" type="button" onclick="closeClientCreditEdit()">Fermer</button>
+        </div>
+
+        <div id="client-credit-edit-message" class="message-box"></div>
+
+        <section class="admin-credit-profile-shell">
+          <div class="admin-credit-profile-hero">
+            <div class="admin-credit-profile-avatar" id="client-credit-avatar">CL</div>
+            <div class="admin-credit-profile-copy">
+              <strong id="client-credit-profile-name">Client</strong>
+              <span id="client-credit-profile-email">email</span>
+              <small id="client-credit-profile-phone">Telephone non renseigne</small>
+            </div>
+          </div>
+          <div class="admin-credit-profile-grid">
+            <article class="admin-credit-profile-card">
+              <small>Statut</small>
+              <strong id="client-credit-profile-status">Inactif</strong>
+            </article>
+            <article class="admin-credit-profile-card">
+              <small>Limite</small>
+              <strong id="client-credit-profile-limit">0,00 HTG</strong>
+            </article>
+            <article class="admin-credit-profile-card">
+              <small>Solde ouvert</small>
+              <strong id="client-credit-profile-balance">0,00 HTG</strong>
+            </article>
+            <article class="admin-credit-profile-card">
+              <small>Disponible</small>
+              <strong id="client-credit-profile-available">0,00 HTG</strong>
+            </article>
+          </div>
+          <div id="client-credit-profile-alert" class="admin-credit-profile-alert"></div>
+        </section>
+
+        <form id="client-credit-form" class="admin-staff-form">
+          <input type="hidden" name="client_id" />
+          <label>
+            <span>Acces au credit</span>
+            <select name="credit_enabled" required>
+              <option value="false">Non autorise</option>
+              <option value="true">Autorise</option>
+            </select>
+          </label>
+          <label>
+            Statut
+            <select name="credit_status" required>
+              <option value="inactive">Inactif</option>
+              <option value="active">Actif</option>
+              <option value="suspended">Suspendu</option>
+            </select>
+          </label>
+          <label>
+            Limite HTG
+            <input name="credit_limit" type="number" min="0" step="0.01" required />
+          </label>
+          <label class="admin-form-span">
+            Note interne
+            <textarea name="credit_note" placeholder="Conditions ou remarques internes"></textarea>
+          </label>
+          <div class="card-actions admin-form-span">
+            <button class="btn-primary" type="submit">Enregistrer le credit</button>
+          </div>
+        </form>
+
+        <section class="admin-credit-payment-shell">
+          <div class="admin-section-head">
+            <div>
+              <p class="admin-eyebrow">Reglement</p>
+              <h3>Enregistrer un paiement credit</h3>
+            </div>
+          </div>
+          <div id="client-credit-payment-message" class="message-box"></div>
+          <form id="client-credit-payment-form" class="admin-staff-form">
+            <input type="hidden" name="client_id" />
+            <label>
+              Montant verse
+              <input name="amount" type="number" min="0.01" step="0.01" required />
+            </label>
+            <label>
+              Canal de paiement
+              <select name="payment_channel">
+                <option value="cash">Cash</option>
+                <option value="moncash">MonCash</option>
+                <option value="bank_transfer">Virement bancaire</option>
+                <option value="natcash">NatCash</option>
+                <option value="other">Autre</option>
+              </select>
+            </label>
+            <label>
+              Date et heure du paiement
+              <input name="paid_at" type="datetime-local" />
+            </label>
+            <label class="admin-form-span">
+              Note de reglement
+              <textarea name="note" placeholder="Reference, commentaire ou precision interne"></textarea>
+            </label>
+            <div class="card-actions admin-form-span">
+              <button class="btn-primary" type="submit">Enregistrer le reglement</button>
+            </div>
+          </form>
+
+          <div class="admin-credit-history-shell">
+            <div class="admin-section-head">
+              <div>
+                <p class="admin-eyebrow">Historique</p>
+                <h3>Derniers reglements</h3>
+              </div>
+            </div>
+            <div id="client-credit-payments-history" class="admin-credit-history-list">
+              <div class="empty-state"><p>Aucun reglement enregistre pour le moment.</p></div>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
 

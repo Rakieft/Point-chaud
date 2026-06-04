@@ -1,5 +1,19 @@
 let staffListCache = [];
 let filteredStaffCache = [];
+let clientCreditCache = [];
+let filteredClientCreditCache = [];
+let clientCreditSearchMode = "authorized";
+let clientCreditPaymentsCache = [];
+
+function getCreditClientInitials(name) {
+  return String(name || "Client")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase() || "")
+    .join("") || "CL";
+}
 
 async function renderStaffProfilePage() {
   try {
@@ -10,15 +24,40 @@ async function renderStaffProfilePage() {
 
     if (user.role === "admin") {
       document.getElementById("admin-only-staff-section").style.display = "";
-      const [staff, catalog] = await Promise.all([apiRequest("/users/staff"), apiRequest("/products")]);
+      document.getElementById("admin-client-credit-section").style.display = "";
+      const [staff, catalog, clients] = await Promise.all([
+        apiRequest("/users/staff"),
+        apiRequest("/products"),
+        loadClientCreditProfiles({ authorizedOnly: clientCreditSearchMode !== "search" })
+      ]);
       staffListCache = staff;
+      clientCreditCache = clients;
       renderStaffSummary(staff);
+      renderClientCreditSummary(clients);
       renderLocationOptions(catalog.locations);
       applyStaffFilters();
+      applyClientCreditFilters();
     }
   } catch (error) {
     showMessage("profile-message", "error", error.message);
   }
+}
+
+async function loadClientCreditProfiles({ authorizedOnly = true, search = "" } = {}) {
+  const params = new URLSearchParams();
+  if (!authorizedOnly) {
+    params.set("enabled_only", "false");
+  }
+  if (String(search || "").trim()) {
+    params.set("search", String(search).trim());
+  }
+
+  const query = params.toString();
+  return apiRequest(`/users/clients-credit${query ? `?${query}` : ""}`);
+}
+
+async function loadClientCreditPaymentHistory(clientId, limit = 20) {
+  return apiRequest(`/users/clients-credit/${clientId}/payments?limit=${Number(limit) || 20}`);
 }
 
 function fillProfileForm(user) {
@@ -82,6 +121,36 @@ function renderStaffSummary(staff) {
     .join("");
 }
 
+function renderClientCreditSummary(clients) {
+  const container = document.getElementById("client-credit-summary-grid");
+  if (!container) return;
+
+  const active = clients.filter(client => client.credit_enabled && client.credit_status === "active").length;
+  const suspended = clients.filter(client => client.credit_enabled && client.credit_status === "suspended").length;
+  const totalBalance = clients.reduce((sum, client) => sum + Number(client.current_credit_balance || 0), 0);
+  const totalLimit = clients.reduce(
+    (sum, client) => sum + (client.credit_enabled ? Number(client.credit_limit || 0) : 0),
+    0
+  );
+
+  container.innerHTML = [
+    ["Clients autorises", active, "Peuvent commander a credit"],
+    ["Credits suspendus", suspended, "Demandent une verification"],
+    ["Solde ouvert", formatMoney(totalBalance), "Dette client actuellement ouverte"],
+    ["Limites cumulees", formatMoney(totalLimit), "Plafonds accordes en total"]
+  ]
+    .map(
+      ([label, value, text]) => `
+        <article class="admin-product-chip">
+          <strong>${label}</strong>
+          <span>${value}</span>
+          <small>${text}</small>
+        </article>
+      `
+    )
+    .join("");
+}
+
 function applyStaffFilters() {
   const search = normalizeStaffValue(document.getElementById("staff-search-input")?.value || "");
   const role = document.getElementById("staff-role-filter")?.value || "";
@@ -106,6 +175,29 @@ function applyStaffFilters() {
   }
 
   renderStaffTable(filteredStaffCache);
+}
+
+function applyClientCreditFilters() {
+  const search = normalizeStaffValue(document.getElementById("client-credit-search-input")?.value || "");
+  const status = document.getElementById("client-credit-status-filter")?.value || "";
+
+  filteredClientCreditCache = clientCreditCache.filter(client => {
+    const searchable = normalizeStaffValue(`${client.name || ""} ${client.email || ""} ${client.phone || ""}`);
+    const matchesSearch = !search || searchable.includes(search);
+    const matchesStatus = !status || String(client.credit_status || "") === status;
+    return matchesSearch && matchesStatus;
+  });
+
+  const results = document.getElementById("client-credit-results-count");
+  if (results) {
+    const scopeLabel = clientCreditSearchMode === "search" ? "resultat(s)" : "client(s) a credit";
+    results.textContent =
+      filteredClientCreditCache.length === clientCreditCache.length
+        ? `${clientCreditCache.length} ${scopeLabel}`
+        : `${filteredClientCreditCache.length} / ${clientCreditCache.length} ${scopeLabel}`;
+  }
+
+  renderClientCreditTable(filteredClientCreditCache);
 }
 
 function renderStaffTable(staff) {
@@ -163,6 +255,130 @@ function renderStaffTable(staff) {
     `;
 }
 
+function renderClientCreditTable(clients) {
+  const tbody = document.getElementById("client-credit-table-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = clients.length
+    ? clients
+        .map(
+          client => `
+            <tr class="admin-mobile-row">
+              <td>
+                <strong>${client.name || "Client"}</strong>
+                <div><small>${client.email || "Email non renseigne"}</small></div>
+                <div><small>${client.phone || "Telephone non renseigne"}</small></div>
+              </td>
+              <td>${client.credit_enabled ? client.credit_status || "active" : "Non autorise"}</td>
+              <td>${formatMoney(client.credit_limit || 0)}</td>
+              <td>${formatMoney(client.current_credit_balance || 0)}</td>
+              <td>
+                <div class="admin-action-group">
+                  <button class="btn-light" type="button" onclick="openClientCreditEdit(${client.id})">Configurer</button>
+                </div>
+              </td>
+            </tr>
+          `
+        )
+        .join("")
+    : `
+      <tr>
+        <td colspan="5" class="admin-table-empty">
+          <div class="empty-state"><p>Aucun client ne correspond aux filtres actuels.</p></div>
+        </td>
+      </tr>
+    `;
+}
+
+function populateClientCreditProfile(client) {
+  const avatar = document.getElementById("client-credit-avatar");
+  const name = document.getElementById("client-credit-profile-name");
+  const email = document.getElementById("client-credit-profile-email");
+  const phone = document.getElementById("client-credit-profile-phone");
+  const status = document.getElementById("client-credit-profile-status");
+  const limit = document.getElementById("client-credit-profile-limit");
+  const balance = document.getElementById("client-credit-profile-balance");
+  const available = document.getElementById("client-credit-profile-available");
+  const alert = document.getElementById("client-credit-profile-alert");
+
+  if (!client) {
+    if (avatar) avatar.textContent = "CL";
+    if (name) name.textContent = "Client";
+    if (email) email.textContent = "email";
+    if (phone) phone.textContent = "Telephone non renseigne";
+    if (status) status.textContent = "Inactif";
+    if (limit) limit.textContent = formatMoney(0);
+    if (balance) balance.textContent = formatMoney(0);
+    if (available) available.textContent = formatMoney(0);
+    if (alert) alert.innerHTML = "";
+    return;
+  }
+
+  const creditLimit = Number(client.credit_limit || 0);
+  const currentBalance = Number(client.current_credit_balance || 0);
+  const remainingAmount = Math.max(0, creditLimit - currentBalance);
+  const statusLabel = !client.credit_enabled
+    ? "Non autorise"
+    : client.credit_status === "active"
+      ? "Actif"
+      : client.credit_status === "suspended"
+        ? "Suspendu"
+        : "Inactif";
+
+  if (avatar) avatar.textContent = getCreditClientInitials(client.name);
+  if (name) name.textContent = client.name || "Client";
+  if (email) email.textContent = client.email || "Email non renseigne";
+  if (phone) phone.textContent = client.phone || "Telephone non renseigne";
+  if (status) status.textContent = statusLabel;
+  if (limit) limit.textContent = formatMoney(creditLimit);
+  if (balance) balance.textContent = formatMoney(currentBalance);
+  if (available) available.textContent = formatMoney(remainingAmount);
+  if (alert) {
+    alert.innerHTML = client.credit_enabled
+      ? `<strong>${statusLabel}</strong><small>Solde ouvert: ${formatMoney(currentBalance)} sur une limite de ${formatMoney(
+          creditLimit
+        )}. Disponible restant: ${formatMoney(remainingAmount)}.</small>`
+      : `<strong>Client standard</strong><small>Ce client n'utilise pas encore l'option credit. Tu peux l'autoriser si necessaire.</small>`;
+  }
+}
+
+function renderClientCreditPaymentHistory(payments) {
+  const container = document.getElementById("client-credit-payments-history");
+  if (!container) return;
+
+  container.innerHTML = payments.length
+    ? payments
+        .map(
+          payment => `
+            <article class="admin-credit-history-item">
+              <div class="admin-credit-history-main">
+                <strong>${formatMoney(payment.amount || 0)}</strong>
+                <small>${formatTimestamp(payment.paid_at)}</small>
+              </div>
+              <div class="admin-credit-history-meta">
+                <span>${formatCreditPaymentChannel(payment.payment_channel)}</span>
+                <small>${payment.recorded_by_name || "Admin"}</small>
+              </div>
+              ${payment.note ? `<p>${payment.note}</p>` : ""}
+            </article>
+          `
+        )
+        .join("")
+    : `<div class="empty-state"><p>Aucun reglement enregistre pour le moment.</p></div>`;
+}
+
+function formatCreditPaymentChannel(channel) {
+  const mapping = {
+    cash: "Cash",
+    moncash: "MonCash",
+    bank_transfer: "Virement bancaire",
+    natcash: "NatCash",
+    other: "Autre"
+  };
+
+  return mapping[String(channel || "").trim()] || "Reglement";
+}
+
 async function updateStaffRole(staffId, role) {
   const member = staffListCache.find(item => item.id === staffId);
   if (!member) return;
@@ -216,6 +432,46 @@ function openStaffEdit(staffId) {
   document.body.classList.add("modal-open");
 }
 
+function openClientCreditEdit(clientId) {
+  const client = clientCreditCache.find(item => Number(item.id) === Number(clientId));
+  const form = document.getElementById("client-credit-form");
+  const modal = document.getElementById("client-credit-modal");
+  const title = document.getElementById("client-credit-title");
+  const message = document.getElementById("client-credit-edit-message");
+
+  if (!client || !form || !modal) return;
+
+  form.client_id.value = client.id;
+  form.credit_enabled.value = String(Boolean(client.credit_enabled));
+  form.credit_status.value = client.credit_status || (client.credit_enabled ? "active" : "inactive");
+  form.credit_limit.value = Number(client.credit_limit || 0);
+  form.credit_note.value = client.credit_note || "";
+  populateClientCreditProfile(client);
+  const paymentForm = document.getElementById("client-credit-payment-form");
+  if (paymentForm) {
+    paymentForm.reset();
+    paymentForm.client_id.value = client.id;
+    paymentForm.payment_channel.value = "cash";
+  }
+  renderClientCreditPaymentHistory([]);
+
+  if (message) message.innerHTML = "";
+  if (title) title.textContent = `Credit client - ${client.name || "Client"}`;
+
+  modal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+
+  void (async () => {
+    try {
+      const data = await loadClientCreditPaymentHistory(client.id);
+      clientCreditPaymentsCache = data.payments || [];
+      renderClientCreditPaymentHistory(clientCreditPaymentsCache);
+    } catch (error) {
+      showMessage("client-credit-payment-message", "error", error.message);
+    }
+  })();
+}
+
 async function deactivateStaff(staffId) {
   if (!confirm("Confirmer la desactivation de ce compte ?")) return;
 
@@ -235,6 +491,28 @@ function closeStaffEdit() {
     form.reset();
     form.staff_id.value = "";
   }
+
+  if (!modal) return;
+  modal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+}
+
+function closeClientCreditEdit() {
+  const modal = document.getElementById("client-credit-modal");
+  const form = document.getElementById("client-credit-form");
+  const paymentForm = document.getElementById("client-credit-payment-form");
+
+  if (form) {
+    form.reset();
+    form.client_id.value = "";
+  }
+  if (paymentForm) {
+    paymentForm.reset();
+    paymentForm.client_id.value = "";
+  }
+  populateClientCreditProfile(null);
+  clientCreditPaymentsCache = [];
+  renderClientCreditPaymentHistory([]);
 
   if (!modal) return;
   modal.classList.add("hidden");
@@ -309,6 +587,82 @@ function bindStaffEditForm() {
   });
 }
 
+function bindClientCreditForm() {
+  const form = document.getElementById("client-credit-form");
+  if (!form) return;
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const payload = Object.fromEntries(new FormData(form).entries());
+    const clientId = payload.client_id;
+    delete payload.client_id;
+
+    try {
+      const data = await apiRequest(`/users/clients-credit/${clientId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          credit_enabled: payload.credit_enabled === "true",
+          credit_status: payload.credit_status,
+          credit_limit: Number(payload.credit_limit || 0),
+          credit_note: payload.credit_note
+        })
+      });
+      showMessage("client-credit-message", "success", data.message);
+      closeClientCreditEdit();
+      renderStaffProfilePage();
+    } catch (error) {
+      showMessage("client-credit-edit-message", "error", error.message);
+    }
+  });
+}
+
+function bindClientCreditPaymentForm() {
+  const form = document.getElementById("client-credit-payment-form");
+  if (!form) return;
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const payload = Object.fromEntries(new FormData(form).entries());
+    const clientId = payload.client_id;
+    delete payload.client_id;
+
+    try {
+      const data = await apiRequest(`/users/clients-credit/${clientId}/payments`, {
+        method: "POST",
+        body: JSON.stringify({
+          amount: Number(payload.amount || 0),
+          payment_channel: payload.payment_channel,
+          paid_at: payload.paid_at || null,
+          note: payload.note || null
+        })
+      });
+
+      clientCreditPaymentsCache = data.payments || [];
+      renderClientCreditPaymentHistory(clientCreditPaymentsCache);
+      showMessage("client-credit-payment-message", "success", data.message);
+
+      const updatedClient = data.client;
+      if (updatedClient) {
+        clientCreditCache = clientCreditCache.map(client =>
+          Number(client.id) === Number(updatedClient.id) ? updatedClient : client
+        );
+        filteredClientCreditCache = filteredClientCreditCache.map(client =>
+          Number(client.id) === Number(updatedClient.id) ? updatedClient : client
+        );
+        populateClientCreditProfile(updatedClient);
+        renderClientCreditSummary(clientCreditCache);
+        renderClientCreditTable(filteredClientCreditCache);
+      }
+
+      form.reset();
+      form.client_id.value = clientId;
+      form.payment_channel.value = "cash";
+    } catch (error) {
+      showMessage("client-credit-payment-message", "error", error.message);
+    }
+  });
+}
+
 function bindStaffFilters() {
   const search = document.getElementById("staff-search-input");
   const role = document.getElementById("staff-role-filter");
@@ -331,11 +685,60 @@ function bindStaffFilters() {
   });
 }
 
+function bindClientCreditFilters() {
+  const search = document.getElementById("client-credit-search-input");
+  const status = document.getElementById("client-credit-status-filter");
+  const reset = document.getElementById("client-credit-reset-filters");
+  const searchButton = document.getElementById("client-credit-search-button");
+  const redraw = () => applyClientCreditFilters();
+
+  status?.addEventListener("change", redraw);
+  searchButton?.addEventListener("click", async () => {
+    try {
+      const rawSearch = String(search?.value || "").trim();
+      clientCreditSearchMode = rawSearch ? "search" : "authorized";
+      clientCreditCache = await loadClientCreditProfiles({
+        authorizedOnly: !rawSearch,
+        search: rawSearch
+      });
+      renderClientCreditSummary(clientCreditCache);
+      applyClientCreditFilters();
+    } catch (error) {
+      showMessage("client-credit-message", "error", error.message);
+    }
+  });
+  search?.addEventListener("keydown", async event => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    searchButton?.click();
+  });
+  reset?.addEventListener("click", () => {
+    if (search) search.value = "";
+    if (status) status.value = "";
+    clientCreditSearchMode = "authorized";
+    void (async () => {
+      try {
+        clientCreditCache = await loadClientCreditProfiles({ authorizedOnly: true });
+        renderClientCreditSummary(clientCreditCache);
+        redraw();
+      } catch (error) {
+        showMessage("client-credit-message", "error", error.message);
+      }
+    })();
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   bindProfileForm();
   bindStaffForm();
   bindStaffEditForm();
   bindStaffFilters();
+  bindClientCreditForm();
+  bindClientCreditPaymentForm();
+  bindClientCreditFilters();
   renderStaffProfilePage();
   startLiveRefresh("staff-profile", renderStaffProfilePage, 20000);
 });
+
+window.openClientCreditEdit = openClientCreditEdit;
+window.closeClientCreditEdit = closeClientCreditEdit;

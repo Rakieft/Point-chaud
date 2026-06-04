@@ -10,15 +10,12 @@ async function renderDashboardHome() {
     const data = await apiRequest("/users/dashboard");
     const pendingOrders = await apiRequest("/orders?group=pending");
     const validatedOrders = await apiRequest("/orders?group=validated");
-    const securityData = user.role === "admin" ? await apiRequest("/users/security-events") : null;
 
     renderDashboardStats(data);
-    renderQuickLinks(user);
     renderDashboardAlerts(pendingOrders, user, data.lowStockItems || [], data.lowStockThreshold || 5);
     renderDashboardPaymentsReview(pendingOrders);
     renderDashboardRecentOrders(pendingOrders, validatedOrders);
     renderDashboardRecentActivity(pendingOrders, validatedOrders);
-    renderSecurityEventsPanel(user, securityData);
 
     const locationLabel = document.getElementById("admin-location-label");
     const locationCopy = document.getElementById("admin-location-copy");

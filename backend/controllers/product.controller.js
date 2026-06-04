@@ -40,11 +40,27 @@ async function fetchProductById(productId) {
   const product = rows[0] || null;
   if (!product) return null;
 
-  const stocksMap = await fetchLocationStocksForProducts(db, [Number(productId)]);
+  const [locations, stocksMap] = await Promise.all([
+    getLocations(),
+    fetchLocationStocksForProducts(db, [Number(productId)])
+  ]);
+  const locationStocks = normalizeLocationStocks(
+    stocksMap.get(Number(productId)) || [],
+    locations,
+    Number(product.stock || 0)
+  );
+
   return {
     ...product,
-    stock: Number(product.stock || 0),
-    location_stocks: stocksMap.get(Number(productId)) || []
+    stock: locationStocks.reduce((sum, item) => sum + Number(item.stock || 0), 0),
+    location_stocks: locationStocks.map(item => ({
+      ...item,
+      location_name:
+        stocksMap.get(Number(productId))?.find(stock => Number(stock.location_id) === Number(item.location_id))
+          ?.location_name ||
+        locations.find(location => Number(location.id) === Number(item.location_id))?.name ||
+        ""
+    }))
   };
 }
 
@@ -142,14 +158,16 @@ async function fetchDailySpecials() {
   }));
 }
 
-async function buildMarketingPayload() {
+async function buildMarketingPayload({ includeInactiveCurrent = false } = {}) {
   const [currentPromotions, upcomingPromotions, dailySpecials] = await Promise.all([
     fetchPromotions("current"),
     fetchPromotions("upcoming"),
     fetchDailySpecials()
   ]);
 
-  const currentEvent = currentPromotions.find(item => item.is_active) || currentPromotions[0] || null;
+  const currentEvent = includeInactiveCurrent
+    ? currentPromotions.find(item => item.is_active) || currentPromotions[0] || null
+    : currentPromotions.find(item => item.is_active) || null;
 
   return {
     currentEvent,
@@ -201,23 +219,48 @@ exports.getCatalog = async (req, res) => {
       `, locationId ? [locationId, locationId] : []);
 
     const productIds = products.map(product => Number(product.id));
-    const stocksMap = await fetchLocationStocksForProducts(db, productIds);
-
-    const [categories] = await db.query("SELECT * FROM categories ORDER BY name");
-    const locations = await getLocations();
-    const [bankAccounts] = await db.query("SELECT * FROM bank_accounts ORDER BY bank_name");
+    const [stocksMap, categoriesResult, locations, bankAccountsResult] = await Promise.all([
+      fetchLocationStocksForProducts(db, productIds),
+      db.query("SELECT * FROM categories ORDER BY name"),
+      getLocations(),
+      db.query("SELECT * FROM bank_accounts ORDER BY bank_name")
+    ]);
+    const [categories] = categoriesResult;
+    const [bankAccounts] = bankAccountsResult;
 
     res.json({
-        products: products.map(product => ({
+      products: products.map(product => {
+        const rawLocationStocks = stocksMap.get(Number(product.id)) || [];
+        const normalizedLocationStocks = normalizeLocationStocks(
+          rawLocationStocks,
+          locations,
+          Number(product.stock || 0)
+        ).map(item => ({
+          ...item,
+          location_name:
+            rawLocationStocks.find(stock => Number(stock.location_id) === Number(item.location_id))?.location_name ||
+            locations.find(location => Number(location.id) === Number(item.location_id))?.name ||
+            ""
+        }));
+        const computedTotalStock = normalizedLocationStocks.reduce(
+          (sum, item) => sum + Number(item.stock || 0),
+          0
+        );
+
+        return {
           ...product,
-          price: product.location_price_override === null ? Number(product.price || 0) : Number(product.location_price_override || 0),
+          price:
+            product.location_price_override === null
+              ? Number(product.price || 0)
+              : Number(product.location_price_override || 0),
           base_price: Number(product.price || 0),
-          stock: Number(product.stock || 0),
+          stock: computedTotalStock,
           location_stock: product.location_stock === null ? null : Number(product.location_stock || 0),
           location_price_override:
             product.location_price_override === null ? null : Number(product.location_price_override || 0),
-          location_stocks: stocksMap.get(Number(product.id)) || []
-        })),
+          location_stocks: normalizedLocationStocks
+        };
+      }),
       categories,
       locations,
       bankAccounts,
@@ -243,7 +286,7 @@ exports.getMarketingContent = async (req, res) => {
 
 exports.getMarketingAdmin = async (req, res) => {
   try {
-    const marketing = await buildMarketingPayload();
+    const marketing = await buildMarketingPayload({ includeInactiveCurrent: true });
     const [products] = await db.query(
       `
         SELECT
@@ -332,7 +375,7 @@ exports.saveCurrentPromotion = async (req, res) => {
       }
     }
 
-    const data = await buildMarketingPayload();
+    const data = await buildMarketingPayload({ includeInactiveCurrent: true });
     res.json({ message: "Evenement du moment mis a jour", ...data });
   } catch (error) {
     res.status(500).json({ message: "Impossible de mettre a jour l'evenement du moment", error: error.message });
@@ -366,7 +409,7 @@ exports.createUpcomingPromotion = async (req, res) => {
       ]
     );
 
-    const data = await buildMarketingPayload();
+    const data = await buildMarketingPayload({ includeInactiveCurrent: true });
     res.status(201).json({ message: "Evenement a venir ajoute", ...data });
   } catch (error) {
     res.status(500).json({ message: "Impossible d'ajouter l'evenement", error: error.message });
@@ -402,7 +445,7 @@ exports.updateUpcomingPromotion = async (req, res) => {
       ]
     );
 
-    const data = await buildMarketingPayload();
+    const data = await buildMarketingPayload({ includeInactiveCurrent: true });
     res.json({ message: "Evenement a venir mis a jour", ...data });
   } catch (error) {
     res.status(500).json({ message: "Impossible de modifier l'evenement", error: error.message });
@@ -412,7 +455,7 @@ exports.updateUpcomingPromotion = async (req, res) => {
 exports.deleteUpcomingPromotion = async (req, res) => {
   try {
     await db.query("DELETE FROM promotions WHERE id = ? AND kind = 'upcoming'", [req.params.id]);
-    const data = await buildMarketingPayload();
+    const data = await buildMarketingPayload({ includeInactiveCurrent: true });
     res.json({ message: "Evenement supprime", ...data });
   } catch (error) {
     res.status(500).json({ message: "Impossible de supprimer l'evenement", error: error.message });
@@ -442,7 +485,7 @@ exports.saveDailySpecials = async (req, res) => {
       }
     }
 
-    const data = await buildMarketingPayload();
+    const data = await buildMarketingPayload({ includeInactiveCurrent: true });
     res.json({ message: "Plats du jour mis a jour", ...data });
   } catch (error) {
     res.status(500).json({ message: "Impossible de mettre a jour les plats du jour", error: error.message });
@@ -475,7 +518,13 @@ exports.createProduct = async (req, res) => {
       );
 
       const locations = await getLocations(connection);
-      const normalizedStocks = normalizeLocationStocks(location_stocks, locations, Number(stock || 0));
+      const effectiveLocationStocks =
+        Array.isArray(location_stocks) && location_stocks.length ? location_stocks : null;
+      const normalizedStocks = normalizeLocationStocks(
+        effectiveLocationStocks,
+        locations,
+        Number(stock || 0)
+      );
       await setProductLocationStocks(connection, result.insertId, normalizedStocks);
 
       await connection.commit();
@@ -528,8 +577,12 @@ exports.updateProduct = async (req, res) => {
       );
 
       const locations = await getLocations(connection);
+      const effectiveLocationStocks =
+        Array.isArray(location_stocks) && location_stocks.length
+          ? location_stocks
+          : product.location_stocks || [];
       const normalizedStocks = normalizeLocationStocks(
-        location_stocks,
+        effectiveLocationStocks,
         locations,
         Number(stock || product.stock || 0)
       );

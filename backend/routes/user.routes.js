@@ -10,6 +10,10 @@ router.patch("/me", auth, userController.updateMyProfile);
 
 router.get("/dashboard", auth, role("manager", "admin"), userController.getDashboardStats);
 router.get("/staff", auth, role("admin"), userController.getStaff);
+router.get("/clients-credit", auth, role("admin"), userController.getClientCreditProfiles);
+router.patch("/clients-credit/:id", auth, role("admin"), userController.updateClientCreditSettings);
+router.get("/clients-credit/:id/payments", auth, role("admin"), userController.getClientCreditPaymentHistory);
+router.post("/clients-credit/:id/payments", auth, role("admin"), userController.recordClientCreditPayment);
 router.patch("/staff/:id", auth, role("admin"), userController.updateStaffMember);
 router.delete("/staff/:id", auth, role("admin"), userController.deactivateStaffMember);
 router.get("/reports", auth, role("manager", "admin"), userController.getReports);

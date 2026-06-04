@@ -98,6 +98,13 @@ function buildUpcomingSchedule(offsetMinutes = 0) {
   };
 }
 
+function selectAvailableProduct(products, { excludeIds = [], minStock = 1 } = {}) {
+  return products.find(product => {
+    const stock = Number(product.location_stock ?? product.stock ?? 0);
+    return stock >= minStock && !excludeIds.includes(Number(product.id));
+  });
+}
+
 async function main() {
   const adminToken = await login("kieftraphterjoly@gmail.com", "admin123");
   const clientToken = await login("client@pointchaud.com", "client123");
@@ -110,9 +117,13 @@ async function main() {
 
   const delmasCatalogBefore = await request("/products?location_id=3");
   const routeCatalogBefore = await request("/products?location_id=1");
-  const pickupProductBefore = delmasCatalogBefore.products.find(product => product.name === "Pain chaud");
-  const routePickupBefore = routeCatalogBefore.products.find(product => product.name === "Pain chaud");
-  const deliveryProductBefore = delmasCatalogBefore.products.find(product => product.name === "Pate poulet");
+  const pickupProductBefore = selectAvailableProduct(delmasCatalogBefore.products, { minStock: 2 });
+  const routePickupBefore = selectAvailableProduct(routeCatalogBefore.products, { minStock: 1 });
+  const deliveryProductBefore =
+    selectAvailableProduct(delmasCatalogBefore.products, {
+      excludeIds: [Number(pickupProductBefore?.id)],
+      minStock: 2
+    }) || pickupProductBefore;
 
   if (!pickupProductBefore || !deliveryProductBefore || !routePickupBefore) {
     throw new Error("Produits de smoke test introuvables");
@@ -288,14 +299,15 @@ async function main() {
       driver: Boolean(driverToken)
     },
     stockByLocation: {
-      delmasBeforePainChaud: pickupProductBefore.location_stock,
-      delmasAfterPainChaud: pickupProductAfter.location_stock,
-      routeBeforePainChaud: routePickupBefore.location_stock,
-      routeAfterPainChaud: routePickupAfter.location_stock,
-      delmasBeforePatePoulet: deliveryProductBefore.location_stock,
-      delmasAfterPatePoulet: deliveryProductAfter.location_stock
+      delmasBeforePickup: pickupProductBefore.location_stock,
+      delmasAfterPickup: pickupProductAfter.location_stock,
+      routeBeforePickup: routePickupBefore.location_stock,
+      routeAfterPickup: routePickupAfter.location_stock,
+      delmasBeforeDelivery: deliveryProductBefore.location_stock,
+      delmasAfterDelivery: deliveryProductAfter.location_stock
     },
     pickup: {
+      product: pickupProductBefore.name,
       orderId: pickupCreate.order.id,
       crossBranchStatus,
       validatedStatus: pickupValidated.order.status,
@@ -303,6 +315,7 @@ async function main() {
       finalStatus: pickupScanned.order.status
     },
     delivery: {
+      product: deliveryProductBefore.name,
       orderId: deliveryCreate.order.id,
       confirmMessage: deliveryConfirmed.message,
       confirmStatus: deliveryAfterConfirm?.status || null,

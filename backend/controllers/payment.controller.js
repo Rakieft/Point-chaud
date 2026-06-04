@@ -67,6 +67,10 @@ exports.submitPaymentProof = async (req, res) => {
 
     const order = orders[0];
 
+    if (order.payment_method === "credit") {
+      return res.status(400).json({ message: "Cette commande est deja prise en charge par le credit client" });
+    }
+
     if (order.status !== "awaiting_payment") {
       return res.status(400).json({ message: "Cette commande n'attend pas de paiement" });
     }

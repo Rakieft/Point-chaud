@@ -94,6 +94,25 @@ async function cleanupLegacyCatalogData() {
 }
 
 async function run() {
+  if (!(await tableExists("credit_payments"))) {
+    await db.query(`
+      CREATE TABLE credit_payments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        order_id INT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        payment_channel VARCHAR(50) NULL,
+        note TEXT NULL,
+        recorded_by INT NULL,
+        paid_at DATETIME NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_credit_payments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        CONSTRAINT fk_credit_payments_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+        CONSTRAINT fk_credit_payments_recorder FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+  }
+
   if (!(await tableExists("security_events"))) {
     await db.query(`
       CREATE TABLE security_events (
@@ -207,6 +226,24 @@ async function run() {
     await db.query("ALTER TABLE users ADD COLUMN phone VARCHAR(30) NULL AFTER password");
   }
 
+  if (!(await columnExists("users", "credit_enabled"))) {
+    await db.query("ALTER TABLE users ADD COLUMN credit_enabled BOOLEAN DEFAULT FALSE AFTER role");
+  }
+
+  if (!(await columnExists("users", "credit_limit"))) {
+    await db.query("ALTER TABLE users ADD COLUMN credit_limit DECIMAL(10,2) DEFAULT 0 AFTER credit_enabled");
+  }
+
+  if (!(await columnExists("users", "credit_status"))) {
+    await db.query(
+      "ALTER TABLE users ADD COLUMN credit_status ENUM('inactive', 'active', 'suspended') DEFAULT 'inactive' AFTER credit_limit"
+    );
+  }
+
+  if (!(await columnExists("users", "credit_note"))) {
+    await db.query("ALTER TABLE users ADD COLUMN credit_note TEXT NULL AFTER credit_status");
+  }
+
   if (!(await columnExists("users", "bio"))) {
     await db.query("ALTER TABLE users ADD COLUMN bio TEXT NULL AFTER phone");
   }
@@ -281,6 +318,32 @@ async function run() {
 
   if (!(await columnExists("orders", "transaction_reference"))) {
     await db.query("ALTER TABLE orders ADD COLUMN transaction_reference VARCHAR(120) NULL AFTER payment_proof");
+  }
+
+  if (!(await columnDefinitionIncludes("orders", "payment_method", "'credit'"))) {
+    await db.query(
+      "ALTER TABLE orders MODIFY COLUMN payment_method ENUM('moncash', 'natcash', 'bank_transfer', 'credit')"
+    );
+  }
+
+  if (!(await columnExists("orders", "credit_amount"))) {
+    await db.query("ALTER TABLE orders ADD COLUMN credit_amount DECIMAL(10,2) DEFAULT 0 AFTER transaction_reference");
+  }
+
+  if (!(await columnExists("orders", "credit_settled_amount"))) {
+    await db.query(
+      "ALTER TABLE orders ADD COLUMN credit_settled_amount DECIMAL(10,2) DEFAULT 0 AFTER credit_amount"
+    );
+  }
+
+  if (!(await columnExists("orders", "credit_settlement_status"))) {
+    await db.query(
+      "ALTER TABLE orders ADD COLUMN credit_settlement_status ENUM('none', 'open', 'partial', 'settled') DEFAULT 'none' AFTER credit_settled_amount"
+    );
+  }
+
+  if (!(await columnExists("credit_payments", "payment_channel"))) {
+    await db.query("ALTER TABLE credit_payments ADD COLUMN payment_channel VARCHAR(50) NULL AFTER amount");
   }
 
   if (!(await columnExists("orders", "notes"))) {
