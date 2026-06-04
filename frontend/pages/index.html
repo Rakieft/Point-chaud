@@ -38,52 +38,33 @@
 
     <main>
       <section class="hero">
-        <div class="container hero-grid">
-          <div class="hero-copy hero-copy-home">
-            <span class="hero-pill" style="color: yellow;">Commande validee avant paiement</span>
-            <h1>POINT CHAUD. commandée sans stresse.</h1>
-            <p>
-              Pain chaud, pates, pizza, fritures et boissons. 
-            </p>
-            <div class="hero-highlights">
-              <span>Produits frais tous les jours</span>
-              
-              <span>Retrait ou livraison selon la commande</span>
+        <div class="container">
+          <div class="hero-stage">
+            <div class="hero-stage-media">
+              <video
+                class="hero-visual-video"
+                autoplay
+                muted
+                loop
+                playsinline
+                preload="metadata"
+                poster="../assets/images/hero-point-chaud-premium-v2.jpg">
+                <source src="../assets/images/hero video.mp4" type="video/mp4" />
+              </video>
+              <div class="hero-stage-scrim"></div>
             </div>
-            <div class="hero-actions" style="padding-top: 10px;">
-              <a class="btn btn-primary" href="./succursales.html">Commander maintenant</a>
+            <div class="hero-stage-copy">
+              <!-- <span class="hero-stage-kicker">Saveurs chaudes. </span> -->
+              <h1>Point Chaud, le resto qui donne envie de commander tout de suite.</h1>
               
-            </div>
-            <div class="hero-proof-strip">
-              <article>
-                <strong>3 succursales</strong>
+              
+              <div class="hero-actions hero-stage-actions">
+                <a class="btn btn-primary" href="./succursales.html">Commander maintenant</a>
+              </div>
+              <div class="hero-stage-footer">
+                <strong>3 succursales actives</strong>
                 <span>Route Freres, Petion-Ville, Delmas</span>
-              </article>
-              <article>
-                <strong>Paiements locaux</strong>
-                <span>PeyeCash, virement bancaire</span>
-              </article>
-            </div>
-          </div>
-
-          <div class="hero-visual">
-            <div class="hero-visual-glow"></div>
-            <div class="hero-visual-copy">
-              <span class="badge hero-visual-badge" style="color: yellow;">Fraicheur - Rapidite - Confiance</span>
-              <h2>Tout est pret pour commander plus vite.</h2>
-            </div>
-            <img
-              class="hero-visual-image"
-              src="../assets/images/hero-point-chaud-premium-v2.jpg"
-              alt="Presentation premium du systeme Point Chaud pour les commandes en ligne"
-              loading="eager" />
-            <div class="hero-floating-card hero-floating-top">
-              <strong>Best sellers</strong>
-              <span>Pate poulet - Pain chaud - Pizza fromage</span>
-            </div>
-            <div class="hero-floating-card hero-floating-bottom">
-              <strong>Recuperation rapide</strong>
-              <span>QR code securise apres confirmation du paiement</span>
+              </div>
             </div>
           </div>
         </div>
@@ -93,7 +74,8 @@
         <div class="container">
           <div class="section-head home-section-head">
             <div>
-              <h2>Evenement</h2>
+              <h2>Evenements</h2>
+              
             </div>
             <a class="home-inline-link" href="./succursales.html">Voir toutes les évenements</a>
           </div>
@@ -103,7 +85,7 @@
               <div class="home-promo-copy">
                 <span id="home-current-promo-badge" class="badge">Burger Week</span>
                 <h3 id="home-current-promo-title">Burger Week</h3>
-                <small id="home-current-promo-period">Du 20 au 27 Septembre</small>
+                <small id="home-current-promo-period">Du 20 au 27 mai</small>
                 <strong id="home-current-promo-price" class="branch-event-price">15$</strong>
                 <p id="home-current-promo-description">Des burgers a prix speciaux toute la semaine avec un rendu premium et tres visible.</p>
                 <a id="home-current-promo-link" class="btn btn-primary" href="./succursales.html">Voir les offres</a>
@@ -117,9 +99,10 @@
               <div class="home-promo-copy">
                 <span id="home-upcoming-promo-badge" class="badge">Wing & Things</span>
                 <h3 id="home-upcoming-promo-title">Wing & Things</h3>
-                <small id="home-upcoming-promo-period">Les vendredis</small>
+                <small id="home-upcoming-promo-period">Tous les vendredis</small>
                 <strong id="home-upcoming-promo-price" class="branch-event-price">15$</strong>
                 <p id="home-upcoming-promo-description">Wings, frites, boissons et bonne vibe pour pousser les commandes du soir.</p>
+                
               </div>
               <div class="home-promo-visual">
                 <img id="home-upcoming-promo-image" src="../assets/images/home/wing-things-promo.png" alt="Visuel Wing and Things Point Chaud" loading="lazy" />
@@ -216,11 +199,12 @@
                   <small>(509) 44 22 3333</small>
                 </div>
                 <div class="home-branch-item">
-                  <strong>Route Freres</strong>
-                  <span>Carrefoure Djoumbalaa</span>
+                  <strong>Route Frere</strong>
+                  <span>Carrefour de Djoumbala</span>
                   <small>(509) 36 33 4444</small>
                 </div>
               </div>
+              
             </article>
 
             <article class="panel home-delivery-panel">
@@ -228,6 +212,7 @@
                 <span class="badge home-cta-badge">Livraison rapide & fiable</span>
                 <h3>Nous livrons avec soin et rapidite partout a Port-au-Prince.</h3>
                 <ul class="home-delivery-list">
+                  
                   <li>Suivi de commande en temps reel</li>
                   <li>Livreurs professionnels et courtois</li>
                 </ul>
@@ -237,8 +222,6 @@
           </div>
         </div>
       </section>
-
-      
 
       <section class="section">
         <div class="container">
@@ -261,10 +244,10 @@
         <section>
           <a class="brand" href="./index.html">POINT CHAUD</a>
           <p>
-            Boulangerie & restaurant.
-            Des produits frais, chauds et savoureux, preparé avec passion pour vous, chaque jour.
+            Boulangerie & Fast-Food Haitien.
+            Des produits frais, chauds et savoureux, prepares avec passion pour vous, chaque jour.
           </p>
-        
+         
         </section>
 
         <section>
