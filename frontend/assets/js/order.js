@@ -329,6 +329,9 @@ function renderCatalog(products, options = {}) {
   const resultsNote = document.getElementById(options.resultsNoteId || "public-results-note");
   const cartCount = document.getElementById(options.cartCountId || "public-cart-count");
   const cartTotal = document.getElementById(options.cartTotalId || "public-cart-total");
+  const loadMoreButton = document.getElementById(options.loadMoreId || "public-load-more");
+  const pageSize = Math.max(1, Number(options.pageSize || 24));
+  let visibleCount = pageSize;
 
   if (!container) {
     return;
@@ -426,7 +429,11 @@ function renderCatalog(products, options = {}) {
     });
   };
 
-  const draw = () => {
+  const draw = ({ resetVisibleCount = false } = {}) => {
+    if (resetVisibleCount) {
+      visibleCount = pageSize;
+    }
+
     const term = (search?.value || "").toLowerCase();
     const selectedCategory = category?.value || "";
     const sortValue = sort?.value || "featured";
@@ -449,6 +456,7 @@ function renderCatalog(products, options = {}) {
         if (categoryCompare !== 0) return categoryCompare;
         return String(a.name || "").localeCompare(String(b.name || ""), "fr");
       });
+    const visibleProducts = filtered.slice(0, visibleCount);
 
     if (resultsCount) {
       resultsCount.textContent = `${filtered.length} produit${filtered.length > 1 ? "s" : ""}`;
@@ -459,13 +467,15 @@ function renderCatalog(products, options = {}) {
         ? `Categorie active: ${selectedCategory}`
         : term
           ? `Resultats pour "${search?.value || ""}".`
-          : "Catalogue pret a explorer.";
+          : filtered.length > visibleProducts.length
+            ? `${visibleProducts.length} affiches sur ${filtered.length}.`
+            : "Catalogue pret a explorer.";
     }
 
     syncActiveChip(selectedCategory);
 
-    container.innerHTML = filtered.length
-      ? filtered
+    container.innerHTML = visibleProducts.length
+      ? visibleProducts
           .map(
             product => `
               <article class="product-card">
@@ -512,6 +522,15 @@ function renderCatalog(products, options = {}) {
           .join("")
       : `<div class="empty-state"><h3>Aucun produit trouve</h3><p>Essaie un autre mot-cle ou une autre categorie.</p></div>`;
 
+    if (loadMoreButton) {
+      const remainingCount = Math.max(0, filtered.length - visibleProducts.length);
+      loadMoreButton.hidden = remainingCount <= 0;
+      loadMoreButton.textContent = remainingCount > 0
+        ? `Voir plus (${remainingCount} restant${remainingCount > 1 ? "s" : ""})`
+        : "Voir plus";
+      loadMoreButton.disabled = remainingCount <= 0;
+    }
+
     container.querySelectorAll(".add-to-cart-btn").forEach(button => {
       button.addEventListener("click", () => {
         if (button.disabled || button.getAttribute("aria-disabled") === "true") {
@@ -547,19 +566,25 @@ function renderCatalog(products, options = {}) {
   };
 
   if (search) {
-    search.oninput = draw;
+    search.oninput = () => draw({ resetVisibleCount: true });
   }
   if (category) {
     category.onchange = () => {
       syncActiveChip(category.value || "");
-      draw();
+      draw({ resetVisibleCount: true });
     };
   }
   if (sort) {
-    sort.onchange = draw;
+    sort.onchange = () => draw({ resetVisibleCount: true });
+  }
+  if (loadMoreButton) {
+    loadMoreButton.onclick = () => {
+      visibleCount += pageSize;
+      draw();
+    };
   }
   updateCartSummary();
-  draw();
+  draw({ resetVisibleCount: true });
 }
 
 function renderNotifications(container, notifications) {
@@ -1162,6 +1187,7 @@ async function renderClientProductsPage() {
       resultsNoteId: "client-results-note",
       cartCountId: "client-cart-count",
       cartTotalId: "client-cart-total",
+      loadMoreId: "client-load-more",
       locationId,
       locationName: selectedLocation.name,
       availableOnly: Boolean(selectedLocation)
@@ -2728,6 +2754,7 @@ async function renderPublicCatalogPage() {
 
     renderCatalog(catalog.products, {
       categories: catalog.categories,
+      loadMoreId: "public-load-more",
       locationId,
       locationName: selectedLocation?.name || "",
       availableOnly: Boolean(selectedLocation)

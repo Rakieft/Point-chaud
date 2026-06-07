@@ -1,10 +1,8 @@
 const db = require("../config/db");
-const crypto = require("crypto");
 const { hashPassword, comparePassword } = require("../utils/hash");
 const { generateToken } = require("../utils/jwt");
 const { getScopedUser } = require("../utils/helpers");
 const { verifySocialIdentity } = require("../services/social-auth.service");
-const { sendVerificationEmail, sendPasswordResetEmail } = require("../services/email.service");
 const { logSecurityEvent } = require("../services/security-log.service");
 
 async function getUserById(userId) {
@@ -16,25 +14,6 @@ function hasConfiguredValue(value) {
   return Boolean(normalized) && normalized !== "..." && normalized.toLowerCase() !== "change_me";
 }
 
-function buildVerificationTokenSet() {
-  const rawToken = crypto.randomBytes(32).toString("hex");
-  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  return { rawToken, tokenHash, expiresAt };
-}
-
-function buildPasswordResetTokenSet() {
-  const rawToken = crypto.randomBytes(32).toString("hex");
-  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-  const hours = Number(process.env.PASSWORD_RESET_TOKEN_HOURS || 2);
-  const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000);
-  return { rawToken, tokenHash, expiresAt };
-}
-
-function hashToken(rawToken) {
-  return crypto.createHash("sha256").update(String(rawToken)).digest("hex");
-}
-
 exports.register = async (req, res) => {
   const { name, email, password, phone } = req.body;
 
@@ -43,38 +22,27 @@ exports.register = async (req, res) => {
   }
 
   try {
-    const [existingUsers] = await db.query("SELECT id, role, email_verified FROM users WHERE email = ?", [email]);
+    const [existingUsers] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
 
     if (existingUsers.length) {
-      const existingUser = existingUsers[0];
-      const message =
-        existingUser.role === "client" && !existingUser.email_verified
-          ? "Cet email est deja inscrit, mais il attend encore sa verification. Connecte-toi ou renvoie le lien."
-          : "Cet email est deja utilise";
-      return res.status(409).json({ message });
+      return res.status(409).json({ message: "Cet email est deja utilise" });
     }
 
     const hashedPassword = await hashPassword(password);
-    const { rawToken, tokenHash, expiresAt } = buildVerificationTokenSet();
 
     const [result] = await db.query(
       `INSERT INTO users
        (name, email, password, phone, role, is_active, email_verified, email_verification_token_hash, email_verification_expires_at)
-       VALUES (?, ?, ?, ?, 'client', TRUE, FALSE, ?, ?)`,
-      [name, email, hashedPassword, phone || null, tokenHash, expiresAt]
+       VALUES (?, ?, ?, ?, 'client', TRUE, TRUE, NULL, NULL)`,
+      [name, email, hashedPassword, phone || null]
     );
 
-    const delivery = await sendVerificationEmail({
-      email,
-      name,
-      token: rawToken
-    });
+    const scopedUser = await getUserById(result.insertId);
 
     res.status(201).json({
-      message: "Compte cree avec succes. Verifie maintenant ton email pour activer la connexion.",
-      requiresEmailVerification: true,
-      email,
-      verificationPreviewUrl: delivery.previewUrl || null
+      message: "Compte cree avec succes.",
+      token: generateToken(scopedUser),
+      user: scopedUser
     });
   } catch (error) {
     res.status(500).json({ message: "Impossible de creer le compte", error: error.message });
@@ -113,21 +81,6 @@ exports.login = async (req, res) => {
         ipAddress
       });
       return res.status(403).json({ message: "Ce compte est desactive" });
-    }
-
-    if (user.role === "client" && !user.email_verified) {
-      await logSecurityEvent({
-        eventType: "login_unverified_email",
-        severity: "warning",
-        userId: user.id,
-        email: user.email,
-        ipAddress
-      });
-      return res.status(403).json({
-        message: "Verifie ton email avant de te connecter.",
-        code: "EMAIL_NOT_VERIFIED",
-        email: user.email
-      });
     }
 
     if (!user.password) {
@@ -336,272 +289,21 @@ exports.createStaff = async (req, res) => {
 };
 
 exports.verifyEmail = async (req, res) => {
-  const token = req.body.token || req.query.token;
-
-  if (!token) {
-    return res.status(400).json({ message: "Le token de verification est obligatoire" });
-  }
-
-  try {
-    const tokenHash = crypto.createHash("sha256").update(String(token)).digest("hex");
-    const [users] = await db.query(
-      `
-        SELECT id, email_verified, email_verification_expires_at
-        FROM users
-        WHERE email_verification_token_hash = ?
-        LIMIT 1
-      `,
-      [tokenHash]
-    );
-
-    if (!users.length) {
-      return res.status(400).json({ message: "Lien de verification invalide ou deja utilise" });
-    }
-
-    const user = users[0];
-    if (user.email_verified) {
-      return res.json({ message: "Cette adresse email est deja verifiee" });
-    }
-
-    if (!user.email_verification_expires_at || new Date(user.email_verification_expires_at).getTime() < Date.now()) {
-      return res.status(400).json({ message: "Ce lien de verification a expire" });
-    }
-
-    await db.query(
-      `
-        UPDATE users
-        SET email_verified = TRUE,
-            email_verified_at = NOW(),
-            email_verification_token_hash = NULL,
-            email_verification_expires_at = NULL
-        WHERE id = ?
-      `,
-      [user.id]
-    );
-
-    return res.json({ message: "Email verifie avec succes. Tu peux maintenant te connecter." });
-  } catch (error) {
-    return res.status(500).json({ message: "Impossible de verifier cet email", error: error.message });
-  }
+  return res.status(410).json({ message: "La verification email est desactivee pour le moment." });
 };
 
 exports.resendVerificationEmail = async (req, res) => {
-  const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ message: "L'email est obligatoire" });
-  }
-
-  try {
-    const [users] = await db.query(
-      "SELECT id, name, email, role, email_verified, is_active FROM users WHERE email = ? LIMIT 1",
-      [email]
-    );
-
-    if (!users.length) {
-      return res.status(404).json({ message: "Aucun compte trouve avec cet email" });
-    }
-
-    const user = users[0];
-
-    if (user.role !== "client") {
-      return res.status(400).json({ message: "Cette verification est reservee aux comptes clients" });
-    }
-
-    if (!user.is_active) {
-      return res.status(403).json({ message: "Ce compte est desactive" });
-    }
-
-    if (user.email_verified) {
-      return res.json({ message: "Cet email est deja verifie" });
-    }
-
-    const { rawToken, tokenHash, expiresAt } = buildVerificationTokenSet();
-    await db.query(
-      `
-        UPDATE users
-        SET email_verification_token_hash = ?,
-            email_verification_expires_at = ?
-        WHERE id = ?
-      `,
-      [tokenHash, expiresAt, user.id]
-    );
-
-    const delivery = await sendVerificationEmail({
-      email: user.email,
-      name: user.name,
-      token: rawToken
-    });
-
-    return res.json({
-      message: "Un nouveau lien de verification a ete envoye.",
-      verificationPreviewUrl: delivery.previewUrl || null
-    });
-  } catch (error) {
-    return res.status(500).json({ message: "Impossible de renvoyer le mail de verification", error: error.message });
-  }
+  return res.status(410).json({ message: "La verification email est desactivee pour le moment." });
 };
 
 exports.forgotPassword = async (req, res) => {
-  const { email } = req.body;
-  const ipAddress = req.ip || req.headers["x-forwarded-for"] || null;
-
-  if (!email) {
-    return res.status(400).json({ message: "L'email est obligatoire" });
-  }
-
-  try {
-    const [users] = await db.query(
-      `
-        SELECT id, name, email, is_active, password, oauth_provider
-        FROM users
-        WHERE email = ?
-        LIMIT 1
-      `,
-      [email]
-    );
-
-    if (users.length) {
-      const user = users[0];
-      const canResetPassword = Boolean(user.is_active && user.password);
-
-      if (canResetPassword) {
-        const { rawToken, tokenHash, expiresAt } = buildPasswordResetTokenSet();
-
-        await db.query(
-          `
-            UPDATE users
-            SET password_reset_token_hash = ?,
-                password_reset_expires_at = ?
-            WHERE id = ?
-          `,
-          [tokenHash, expiresAt, user.id]
-        );
-
-        const delivery = await sendPasswordResetEmail({
-          email: user.email,
-          name: user.name,
-          token: rawToken
-        });
-
-        await logSecurityEvent({
-          eventType: "password_reset_requested",
-          severity: "info",
-          userId: user.id,
-          email: user.email,
-          ipAddress
-        });
-
-        return res.json({
-          message:
-            "Si un compte compatible existe pour cet email, un lien de reinitialisation vient d'etre prepare.",
-          resetPreviewUrl: delivery.previewUrl || null
-        });
-      }
-    }
-
-    return res.json({
-      message: "Si un compte compatible existe pour cet email, un lien de reinitialisation vient d'etre prepare.",
-      resetPreviewUrl: null
-    });
-  } catch (error) {
-    return res.status(500).json({ message: "Impossible de traiter cette demande", error: error.message });
-  }
+  return res.status(410).json({ message: "La reinitialisation de mot de passe est desactivee pour le moment." });
 };
 
 exports.validatePasswordResetToken = async (req, res) => {
-  const token = req.body.token || req.query.token;
-
-  if (!token) {
-    return res.status(400).json({ message: "Le token de reinitialisation est obligatoire" });
-  }
-
-  try {
-    const tokenHash = hashToken(token);
-    const [users] = await db.query(
-      `
-        SELECT id, password_reset_expires_at
-        FROM users
-        WHERE password_reset_token_hash = ?
-        LIMIT 1
-      `,
-      [tokenHash]
-    );
-
-    if (!users.length) {
-      return res.status(400).json({ message: "Lien de reinitialisation invalide ou deja utilise" });
-    }
-
-    const user = users[0];
-
-    if (!user.password_reset_expires_at || new Date(user.password_reset_expires_at).getTime() < Date.now()) {
-      return res.status(400).json({ message: "Ce lien de reinitialisation a expire" });
-    }
-
-    return res.json({ message: "Lien de reinitialisation valide" });
-  } catch (error) {
-    return res.status(500).json({ message: "Impossible de verifier ce lien", error: error.message });
-  }
+  return res.status(410).json({ message: "La reinitialisation de mot de passe est desactivee pour le moment." });
 };
 
 exports.resetPassword = async (req, res) => {
-  const { token, password } = req.body;
-  const ipAddress = req.ip || req.headers["x-forwarded-for"] || null;
-
-  if (!token || !password) {
-    return res.status(400).json({ message: "Le token et le nouveau mot de passe sont obligatoires" });
-  }
-
-  if (String(password).length < 6) {
-    return res.status(400).json({ message: "Le mot de passe doit contenir au moins 6 caracteres" });
-  }
-
-  try {
-    const tokenHash = hashToken(token);
-    const [users] = await db.query(
-      `
-        SELECT id, password_reset_expires_at
-        FROM users
-        WHERE password_reset_token_hash = ?
-        LIMIT 1
-      `,
-      [tokenHash]
-    );
-
-    if (!users.length) {
-      return res.status(400).json({ message: "Lien de reinitialisation invalide ou deja utilise" });
-    }
-
-    const user = users[0];
-
-    if (!user.password_reset_expires_at || new Date(user.password_reset_expires_at).getTime() < Date.now()) {
-      return res.status(400).json({ message: "Ce lien de reinitialisation a expire" });
-    }
-
-    const hashedPassword = await hashPassword(password);
-
-    await db.query(
-      `
-        UPDATE users
-        SET password = ?,
-            password_reset_token_hash = NULL,
-            password_reset_expires_at = NULL
-        WHERE id = ?
-      `,
-      [hashedPassword, user.id]
-    );
-
-    const [updatedUsers] = await db.query("SELECT email FROM users WHERE id = ? LIMIT 1", [user.id]);
-    await logSecurityEvent({
-      eventType: "password_reset_completed",
-      severity: "info",
-      userId: user.id,
-      email: updatedUsers[0]?.email || null,
-      ipAddress
-    });
-
-    return res.json({ message: "Mot de passe reinitialise avec succes. Tu peux maintenant te connecter." });
-  } catch (error) {
-    return res.status(500).json({ message: "Impossible de reinitialiser ce mot de passe", error: error.message });
-  }
+  return res.status(410).json({ message: "La reinitialisation de mot de passe est desactivee pour le moment." });
 };

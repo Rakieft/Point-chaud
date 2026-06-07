@@ -1146,6 +1146,16 @@ small {
   flex-wrap: wrap;
 }
 
+.catalog-load-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding-top: 18px;
+}
+
+.catalog-load-more-wrap .btn {
+  min-width: 220px;
+}
+
 .catalog-results-copy {
   display: grid;
   gap: 4px;
@@ -1993,8 +2003,8 @@ html[data-theme="dark"] .empty-state {
   }
 
   .hero-stage {
-    min-height: min(78svh, 640px);
-    padding: 24px 18px 24px;
+    min-height: min(70svh, 560px);
+    padding: 22px 18px 20px;
     align-items: start;
   }
 
@@ -4527,6 +4537,11 @@ html[data-theme="dark"] .client-profile-summary-hero {
 
   .catalog-toolbar > * {
     width: 100%;
+  }
+
+  .catalog-load-more-wrap .btn {
+    width: 100%;
+    min-width: 0;
   }
 
   .catalog-context-strip {

@@ -316,6 +316,19 @@ async function run() {
     `
   );
 
+  await db.query(
+    `
+      UPDATE users
+      SET email_verified = TRUE,
+          email_verified_at = COALESCE(email_verified_at, NOW()),
+          email_verification_token_hash = NULL,
+          email_verification_expires_at = NULL
+      WHERE role = 'client'
+        AND is_active = TRUE
+        AND (email_verified IS NULL OR email_verified = FALSE)
+    `
+  );
+
   if (!(await columnExists("orders", "transaction_reference"))) {
     await db.query("ALTER TABLE orders ADD COLUMN transaction_reference VARCHAR(120) NULL AFTER payment_proof");
   }
