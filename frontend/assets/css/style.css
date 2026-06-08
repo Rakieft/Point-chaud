@@ -9265,7 +9265,7 @@ html[data-theme="dark"] .simple-dish-card-media {
   background:
     linear-gradient(90deg, rgba(247, 190, 19, 0.96) 0%, rgba(245, 189, 23, 0.94) 33%, rgba(245, 189, 23, 0.74) 48%, rgba(245, 189, 23, 0.18) 64%, rgba(245, 189, 23, 0.02) 100%),
     linear-gradient(180deg, rgba(255, 231, 146, 0.18), rgba(233, 151, 78, 0.12)),
-    url("../images/dashboard/client-hero-storefront.jpeg") right center / cover no-repeat;
+    url("../images/dashboard/client-hero-storefront.jpg") right center / cover no-repeat;
   border-color: rgba(244, 196, 44, 0.3);
   position: relative;
   overflow: hidden;
@@ -9640,7 +9640,7 @@ html[data-theme="dark"] .client-dashboard-hero {
   background:
     linear-gradient(90deg, rgba(54, 32, 10, 0.94) 0%, rgba(85, 49, 14, 0.9) 34%, rgba(97, 62, 19, 0.62) 50%, rgba(97, 62, 19, 0.16) 66%, rgba(97, 62, 19, 0.04) 100%),
     linear-gradient(180deg, rgba(186, 136, 24, 0.14), rgba(109, 55, 26, 0.16)),
-    url("../images/dashboard/client-hero-storefront.jpeg") right center / cover no-repeat;
+    url("../images/dashboard/client-hero-storefront.jpg") right center / cover no-repeat;
 }
 
 html[data-theme="dark"] .client-dashboard-hero::before {
